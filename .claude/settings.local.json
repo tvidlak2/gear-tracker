@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter create:*)",
+      "Bash(where flutter:*)",
+      "Read(//c/Users/tomas/AppData/Local/flutter/bin/**)",
+      "Read(//c/flutter/bin/**)",
+      "WebSearch",
+      "WebFetch(domain:pub.dev)"
+    ]
+  }
+}

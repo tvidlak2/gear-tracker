@@ -1,0 +1,52 @@
+name: gear_tracker
+description: GearTracker – aplikace pro správu outdoorového vybavení a sledování údržby.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Lokální SQLite databáze
+  sqflite: ^2.3.3
+  sqflite_common_ffi_web: ^1.1.1   # web podpora
+  path: ^1.9.0
+
+  # Navigace
+  go_router: ^13.2.0
+
+  # State management
+  provider: ^6.1.2
+
+  # Datum a čas
+  intl: ^0.19.0
+
+  # Ikony a UI
+  cupertino_icons: ^1.0.6
+  flutter_svg: ^2.0.10+1
+
+  # Výběr data
+  table_calendar: ^3.1.2
+
+  # Výběr obrázků (foto vybavení)
+  image_picker: ^1.1.2
+
+  # Oprávnění
+  permission_handler: ^11.3.1
+
+  # UUID pro generování ID
+  uuid: ^4.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icons/
+    - assets/images/
