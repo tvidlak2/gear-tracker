@@ -1,0 +1,701 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+
+import '../database/database_helper.dart';
+import '../models/gear_item.dart';
+import '../models/maintenance_rule.dart';
+import '../models/maintenance_log.dart';
+import '../models/usage_log.dart';
+import '../services/maintenance_service.dart';
+import '../widgets/maintenance_badge.dart';
+
+/// Globální přehled všeho vybavení, které potřebuje servis.
+class MaintenanceOverviewScreen extends StatefulWidget {
+  const MaintenanceOverviewScreen({super.key});
+
+  @override
+  State<MaintenanceOverviewScreen> createState() =>
+      _MaintenanceOverviewScreenState();
+}
+
+class _MaintenanceOverviewScreenState
+    extends State<MaintenanceOverviewScreen> {
+  final _db = DatabaseHelper.instance;
+  final _maintenanceService = MaintenanceService();
+
+  List<_ItemWithStatus> _items = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _loading = true);
+    final gearItems = await _db.getGearItems(status: GearStatus.active);
+    final result = <_ItemWithStatus>[];
+
+    for (final item in gearItems) {
+      final results =
+          await _maintenanceService.getStatusForItem(item.id!);
+      final hasIssue = results.any(
+        (r) =>
+            r.status == MaintenanceStatus.overdue ||
+            r.status == MaintenanceStatus.warning,
+      );
+      if (hasIssue) {
+        result.add(_ItemWithStatus(item: item, results: results));
+      }
+    }
+
+    result.sort((a, b) {
+      final aHasOverdue =
+          a.results.any((r) => r.status == MaintenanceStatus.overdue);
+      final bHasOverdue =
+          b.results.any((r) => r.status == MaintenanceStatus.overdue);
+      if (aHasOverdue != bHasOverdue) return aHasOverdue ? -1 : 1;
+      return a.item.name.compareTo(b.item.name);
+    });
+
+    if (mounted) {
+      setState(() {
+        _items = result;
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Servis a údržba')),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _items.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle_outline,
+                          size: 80,
+                          color: Colors.green.shade300),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Vše v pořádku!',
+                        style: TextStyle(fontSize: 20),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text('Žádné vybavení nevyžaduje servis.'),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadData,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: _items.length,
+                    itemBuilder: (_, i) => _ItemCard(
+                      data: _items[i],
+                      onTap: () =>
+                          context.push('/gear/${_items[i].item.id}').then((_) => _loadData()),
+                      onLogMaintenance: (ruleId) =>
+                          _quickLog(_items[i].item, ruleId),
+                    ),
+                  ),
+                ),
+    );
+  }
+
+  Future<void> _quickLog(GearItem item, int ruleId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Zaznamenat servis'),
+        content:
+            Text('Zaznamat provedení servisu pro "${item.name}" dnes?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Zrušit'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Zaznamenat'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await _maintenanceService.logMaintenance(
+        gearItemId: item.id!,
+        ruleId: ruleId,
+        performedDate: DateTime.now(),
+      );
+      _loadData();
+    }
+  }
+}
+
+class _ItemWithStatus {
+  final GearItem item;
+  final List<MaintenanceStatusResult> results;
+
+  const _ItemWithStatus({required this.item, required this.results});
+}
+
+class _ItemCard extends StatelessWidget {
+  final _ItemWithStatus data;
+  final VoidCallback onTap;
+  final void Function(int ruleId) onLogMaintenance;
+
+  const _ItemCard({
+    required this.data,
+    required this.onTap,
+    required this.onLogMaintenance,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasOverdue =
+        data.results.any((r) => r.status == MaintenanceStatus.overdue);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    hasOverdue ? Icons.warning : Icons.info_outline,
+                    color: hasOverdue ? Colors.red : Colors.orange,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      data.item.name,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ...data.results
+                  .where((r) => r.status != MaintenanceStatus.ok)
+                  .map(
+                    (r) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          MaintenanceBadge(
+                              status: r.status, compact: true),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(r.rule.name)),
+                          if (r.rule.id != null)
+                            TextButton(
+                              onPressed: () =>
+                                  onLogMaintenance(r.rule.id!),
+                              child: const Text('Hotovo'),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ──────────────────────── ADD MAINTENANCE LOG SCREEN ─────────────────────────
+
+class AddMaintenanceLogScreen extends StatefulWidget {
+  final int gearItemId;
+
+  const AddMaintenanceLogScreen({super.key, required this.gearItemId});
+
+  @override
+  State<AddMaintenanceLogScreen> createState() =>
+      _AddMaintenanceLogScreenState();
+}
+
+class _AddMaintenanceLogScreenState extends State<AddMaintenanceLogScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _db = DatabaseHelper.instance;
+  final _maintenanceService = MaintenanceService();
+
+  final _performedByCtrl = TextEditingController();
+  final _costCtrl = TextEditingController();
+  final _notesCtrl = TextEditingController();
+
+  List<MaintenanceRule> _rules = [];
+  int? _selectedRuleId;
+  DateTime _performedDate = DateTime.now();
+  bool _loading = false;
+
+  static final _dateFormat = DateFormat('d. M. yyyy');
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRules();
+  }
+
+  Future<void> _loadRules() async {
+    final rules = await _db.getRulesForItem(widget.gearItemId);
+    if (mounted) setState(() => _rules = rules);
+  }
+
+  @override
+  void dispose() {
+    _performedByCtrl.dispose();
+    _costCtrl.dispose();
+    _notesCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _loading = true);
+
+    await _maintenanceService.logMaintenance(
+      gearItemId: widget.gearItemId,
+      ruleId: _selectedRuleId,
+      performedDate: _performedDate,
+      performedBy: _performedByCtrl.text.trim().isEmpty
+          ? null
+          : _performedByCtrl.text.trim(),
+      cost: _costCtrl.text.trim().isEmpty
+          ? null
+          : double.tryParse(_costCtrl.text.trim()),
+      notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
+    );
+
+    if (mounted) context.pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Zaznamenat servis'),
+        actions: [
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2)),
+            )
+          else
+            TextButton(onPressed: _save, child: const Text('Uložit')),
+        ],
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (_rules.isNotEmpty)
+              DropdownButtonFormField<int?>(
+                value: _selectedRuleId,
+                decoration: const InputDecoration(
+                  labelText: 'Pravidlo (volitelné)',
+                  border: OutlineInputBorder(),
+                ),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('–')),
+                  ..._rules.map(
+                    (r) => DropdownMenuItem(value: r.id, child: Text(r.name)),
+                  ),
+                ],
+                onChanged: (v) => setState(() => _selectedRuleId = v),
+              ),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _performedDate,
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime.now(),
+                );
+                if (picked != null) setState(() => _performedDate = picked);
+              },
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Datum provedení',
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.calendar_today, size: 18),
+                ),
+                child: Text(_dateFormat.format(_performedDate)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _performedByCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Provedl/a',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _costCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Cena (Kč)',
+                border: OutlineInputBorder(),
+                suffixText: 'Kč',
+              ),
+              validator: (v) {
+                if (v != null && v.isNotEmpty && double.tryParse(v) == null) {
+                  return 'Zadej číslo';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _notesCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Poznámky',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ──────────────────────── ADD MAINTENANCE RULE SCREEN ────────────────────────
+
+class AddMaintenanceRuleScreen extends StatefulWidget {
+  final int gearItemId;
+
+  const AddMaintenanceRuleScreen({super.key, required this.gearItemId});
+
+  @override
+  State<AddMaintenanceRuleScreen> createState() =>
+      _AddMaintenanceRuleScreenState();
+}
+
+class _AddMaintenanceRuleScreenState
+    extends State<AddMaintenanceRuleScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _db = DatabaseHelper.instance;
+
+  final _nameCtrl = TextEditingController();
+  final _triggerValueCtrl = TextEditingController();
+  final _warningBeforeCtrl = TextEditingController(text: '0');
+
+  TriggerType _triggerType = TriggerType.date;
+  bool _isSafetyCritical = false;
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _triggerValueCtrl.dispose();
+    _warningBeforeCtrl.dispose();
+    super.dispose();
+  }
+
+  String get _triggerUnit {
+    switch (_triggerType) {
+      case TriggerType.date:
+        return 'dní';
+      case TriggerType.usageHours:
+        return 'hodin';
+      case TriggerType.usageDistance:
+        return 'km';
+      case TriggerType.usageCount:
+        return 'použití';
+    }
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _loading = true);
+
+    final rule = MaintenanceRule(
+      gearItemId: widget.gearItemId,
+      name: _nameCtrl.text.trim(),
+      triggerType: _triggerType,
+      triggerValue: double.parse(_triggerValueCtrl.text.trim()),
+      warningBefore: double.parse(_warningBeforeCtrl.text.trim()),
+      isSafetyCritical: _isSafetyCritical,
+    );
+
+    await _db.insertMaintenanceRule(rule);
+    if (mounted) context.pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Přidat pravidlo údržby'),
+        actions: [
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2)),
+            )
+          else
+            TextButton(onPressed: _save, child: const Text('Uložit')),
+        ],
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            TextFormField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Název pravidla *',
+                border: OutlineInputBorder(),
+                hintText: 'např. Kontrola lana, Výměna mazání',
+              ),
+              validator: (v) =>
+                  v == null || v.trim().isEmpty ? 'Zadej název' : null,
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<TriggerType>(
+              value: _triggerType,
+              decoration: const InputDecoration(
+                labelText: 'Typ spouštěče',
+                border: OutlineInputBorder(),
+              ),
+              items: TriggerType.values
+                  .map((t) =>
+                      DropdownMenuItem(value: t, child: Text(t.label)))
+                  .toList(),
+              onChanged: (v) => setState(() => _triggerType = v ?? _triggerType),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _triggerValueCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: 'Interval *',
+                border: const OutlineInputBorder(),
+                suffixText: _triggerUnit,
+              ),
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Zadej hodnotu';
+                if (double.tryParse(v) == null) return 'Zadej číslo';
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _warningBeforeCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: 'Varování před',
+                border: const OutlineInputBorder(),
+                suffixText: _triggerUnit,
+              ),
+              validator: (v) {
+                if (v != null && v.isNotEmpty && double.tryParse(v) == null) {
+                  return 'Zadej číslo';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            SwitchListTile(
+              value: _isSafetyCritical,
+              onChanged: (v) => setState(() => _isSafetyCritical = v),
+              title: const Text('Bezpečnostně kritické'),
+              subtitle: const Text(
+                  'Toto pravidlo je klíčové pro bezpečné použití vybavení.'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ──────────────────────── ADD USAGE LOG SCREEN ───────────────────────────────
+
+class AddUsageLogScreen extends StatefulWidget {
+  final int gearItemId;
+
+  const AddUsageLogScreen({super.key, required this.gearItemId});
+
+  @override
+  State<AddUsageLogScreen> createState() => _AddUsageLogScreenState();
+}
+
+class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _db = DatabaseHelper.instance;
+
+  final _durationCtrl = TextEditingController();
+  final _distanceCtrl = TextEditingController();
+  final _locationCtrl = TextEditingController();
+
+  DateTime _date = DateTime.now();
+  UsageSource _source = UsageSource.manual;
+  bool _loading = false;
+
+  static final _dateFormat = DateFormat('d. M. yyyy');
+
+  @override
+  void dispose() {
+    _durationCtrl.dispose();
+    _distanceCtrl.dispose();
+    _locationCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _loading = true);
+
+    final log = UsageLog(
+      gearItemId: widget.gearItemId,
+      date: _date,
+      durationMinutes: _durationCtrl.text.isNotEmpty
+          ? int.tryParse(_durationCtrl.text)
+          : null,
+      distanceKm: _distanceCtrl.text.isNotEmpty
+          ? double.tryParse(_distanceCtrl.text)
+          : null,
+      location: _locationCtrl.text.trim().isEmpty
+          ? null
+          : _locationCtrl.text.trim(),
+      source: _source,
+    );
+
+    await _db.insertUsageLog(log);
+    if (mounted) context.pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Přidat aktivitu'),
+        actions: [
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2)),
+            )
+          else
+            TextButton(onPressed: _save, child: const Text('Uložit')),
+        ],
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            InkWell(
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _date,
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime.now(),
+                );
+                if (picked != null) setState(() => _date = picked);
+              },
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Datum aktivity',
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.calendar_today, size: 18),
+                ),
+                child: Text(_dateFormat.format(_date)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _durationCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Délka aktivity (minuty)',
+                border: OutlineInputBorder(),
+                suffixText: 'min',
+              ),
+              validator: (v) {
+                if (v != null && v.isNotEmpty && int.tryParse(v) == null) {
+                  return 'Zadej celé číslo';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _distanceCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Vzdálenost (km)',
+                border: OutlineInputBorder(),
+                suffixText: 'km',
+              ),
+              validator: (v) {
+                if (v != null && v.isNotEmpty && double.tryParse(v) == null) {
+                  return 'Zadej číslo';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _locationCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Místo',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<UsageSource>(
+              value: _source,
+              decoration: const InputDecoration(
+                labelText: 'Zdroj',
+                border: OutlineInputBorder(),
+              ),
+              items: UsageSource.values
+                  .map((s) =>
+                      DropdownMenuItem(value: s, child: Text(s.label)))
+                  .toList(),
+              onChanged: (v) => setState(() => _source = v ?? _source),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
