@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +11,7 @@ import '../models/gear_item.dart';
 import '../models/maintenance_log.dart';
 import '../models/maintenance_rule.dart';
 import '../models/usage_log.dart';
+import '../services/igc_parser.dart';
 import '../services/maintenance_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/maintenance_badge.dart';
@@ -118,6 +122,7 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
               onAdd: () => context
                   .push('/gear/${item.id}/usage/add')
                   .then((_) => _loadData()),
+              onImportIgc: _importIgc,
             ),
           ),
 
@@ -236,6 +241,77 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
     'paraglider' => const Color(0xFF1D9E75),
     _            => const Color(0xFF424242),
   };
+
+  // ── IGC import ────────────────────────────────────────────────────────────
+
+  Future<void> _importIgc() async {
+    // 1. Pick file
+    FilePickerResult? result;
+    try {
+      result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['igc'],
+        withData: true,
+      );
+    } catch (_) {
+      // File picker cancelled or platform error
+      return;
+    }
+
+    if (result == null || result.files.isEmpty) return;
+
+    final bytes = result.files.first.bytes;
+    if (bytes == null || !mounted) return;
+
+    // 2. Parse
+    final content = utf8.decode(bytes, allowMalformed: true);
+    final flight  = IgcParser.parse(content);
+
+    if (flight == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Nepodařilo se načíst IGC soubor. Zkontroluj formát.'),
+          ),
+        );
+      }
+      return;
+    }
+
+    // 3. Preview dialog
+    if (!mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => _IgcPreviewDialog(flight: flight),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    // 4. Save to UsageLog
+    await _db.insertUsageLog(UsageLog(
+      gearItemId: widget.gearItemId,
+      date: flight.flightDate,
+      durationMinutes: flight.durationMinutes,
+      source: UsageSource.igc,
+    ));
+
+    // 5. Reload
+    await _loadData();
+
+    // 6. Toast
+    if (mounted) {
+      final h = flight.durationMinutes ~/ 60;
+      final m = flight.durationMinutes % 60;
+      final dur = h > 0 ? '$h h $m min' : '$m min';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Let přidán: $dur, max výška ${flight.maxAltitudeM} m'),
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
 
   // ── Dialogs ────────────────────────────────────────────────────────────────
 
@@ -601,8 +677,13 @@ class _MaintenanceRuleCard extends StatelessWidget {
 class _ActivityHistorySection extends StatelessWidget {
   final List<UsageLog> logs;
   final VoidCallback   onAdd;
+  final VoidCallback   onImportIgc;
 
-  const _ActivityHistorySection({required this.logs, required this.onAdd});
+  const _ActivityHistorySection({
+    required this.logs,
+    required this.onAdd,
+    required this.onImportIgc,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -611,10 +692,44 @@ class _ActivityHistorySection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionHeader(
-            title: 'Historie aktivit',
-            onAdd: onAdd,
-            addLabel: 'Přidat',
+          // Custom header with two buttons
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Historie aktivit',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: onImportIgc,
+                  icon: const Icon(Icons.flight_outlined, size: 15),
+                  label: const Text('IGC', style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                TextButton.icon(
+                  onPressed: onAdd,
+                  icon: const Icon(Icons.add_rounded, size: 16),
+                  label: const Text('Přidat', style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ],
+            ),
           ),
           if (logs.isEmpty)
             _EmptyHint('Žádné záznamy o použití.')
@@ -707,6 +822,7 @@ class _SourceBadge extends StatelessWidget {
       UsageSource.strava => ('Strava', const Color(0xFFFC4C02)),
       UsageSource.garmin => ('Garmin', const Color(0xFF006EBF)),
       UsageSource.gpx    => ('GPX',    const Color(0xFF5C6BC0)),
+      UsageSource.igc    => ('IGC',    const Color(0xFF00897B)),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
@@ -803,6 +919,112 @@ class _BottomActions extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ─── IGC preview dialog ───────────────────────────────────────────────────────
+
+class _IgcPreviewDialog extends StatelessWidget {
+  final IgcFlight flight;
+  static final _dateFmt = DateFormat('d. M. yyyy');
+
+  const _IgcPreviewDialog({required this.flight});
+
+  @override
+  Widget build(BuildContext context) {
+    final h   = flight.durationMinutes ~/ 60;
+    final m   = flight.durationMinutes % 60;
+    final dur = h > 0 ? '$h h $m min' : '$m min';
+
+    final start =
+        '${flight.startHour.toString().padLeft(2, '0')}:'
+        '${flight.startMinute.toString().padLeft(2, '0')}';
+    final end =
+        '${flight.endHour.toString().padLeft(2, '0')}:'
+        '${flight.endMinute.toString().padLeft(2, '0')}';
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          Container(
+            width: 34, height: 34,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE0F2F1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.flight_outlined,
+                color: Color(0xFF00897B), size: 18),
+          ),
+          const SizedBox(width: 10),
+          const Text('Náhled letu', style: TextStyle(fontSize: 17)),
+        ],
+      ),
+      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _PreviewRow(Icons.calendar_today_outlined,
+              'Datum', _dateFmt.format(flight.flightDate)),
+          _PreviewRow(Icons.schedule_outlined,
+              'Start', start),
+          _PreviewRow(Icons.schedule_outlined,
+              'Přistání', end),
+          _PreviewRow(Icons.timer_outlined,
+              'Délka letu', dur),
+          _PreviewRow(Icons.height_rounded,
+              'Max výška', '${flight.maxAltitudeM} m'),
+          _PreviewRow(Icons.location_on_outlined,
+              'GPS start',
+              '${flight.startLat.toStringAsFixed(4)}°, '
+              '${flight.startLon.toStringAsFixed(4)}°'),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Zrušit'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary),
+          child: const Text('Přidat let'),
+        ),
+      ],
+    );
+  }
+}
+
+class _PreviewRow extends StatelessWidget {
+  final IconData icon;
+  final String   label;
+  final String   value;
+
+  const _PreviewRow(this.icon, this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Icon(icon, size: 15, color: context.subtitleColor),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 80,
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 13, color: context.subtitleColor)),
+          ),
+          Expanded(
+            child: Text(value,
+                style: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w600),
+                textAlign: TextAlign.right),
+          ),
+        ],
       ),
     );
   }

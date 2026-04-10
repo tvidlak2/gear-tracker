@@ -27,6 +27,8 @@ class CategoryIcon extends StatelessWidget {
       'tent' => Icons.cabin,
       'sleeping_bag' => Icons.bedtime,
       'bike' => Icons.directions_bike,
+      'star' => Icons.star_outline_rounded,
+      'label' => Icons.label_outline_rounded,
       _ => Icons.category_outlined,
     };
   }

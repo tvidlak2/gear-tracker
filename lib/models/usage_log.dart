@@ -1,4 +1,4 @@
-enum UsageSource { manual, strava, garmin, gpx }
+enum UsageSource { manual, strava, garmin, gpx, igc }
 
 extension UsageSourceExtension on UsageSource {
   String get label {
@@ -11,6 +11,8 @@ extension UsageSourceExtension on UsageSource {
         return 'Garmin';
       case UsageSource.gpx:
         return 'GPX soubor';
+      case UsageSource.igc:
+        return 'IGC soubor';
     }
   }
 

@@ -218,6 +218,10 @@ class _AddGearScreenState extends State<AddGearScreen> {
   void _onCategorySelected(Category cat) {
     final changed = _selectedCatId != cat.id;
     setState(() {
+      // Add to list if it doesn't exist yet (e.g. freshly created custom category)
+      if (!_categories.any((c) => c.id == cat.id)) {
+        _categories = [..._categories, cat];
+      }
       _selectedCatId = cat.id;
       if (changed && !_isEdit) {
         _draftRules = _defaultRulesFor(cat.icon);
@@ -446,10 +450,17 @@ class _AddGearScreenState extends State<AddGearScreen> {
         return (ai == -1 ? 999 : ai).compareTo(bi == -1 ? 999 : bi);
       });
 
-    final quickCats  = sorted.take(6).toList();
-    final otherCats  = sorted.skip(6).toList();
+    final quickCats = sorted.take(6).toList();
+    final otherCats = sorted.skip(6).toList();
 
-    // Label for the "more" button: show selected cat name if it's in others
+    // Promote selected-from-others into the quick grid as a 7th tile
+    if (_selectedCatId != null) {
+      final idx = otherCats.indexWhere((c) => c.id == _selectedCatId);
+      if (idx >= 0) {
+        quickCats.add(otherCats.removeAt(idx));
+      }
+    }
+
     final selectedInOthers = _selectedCatId != null &&
         otherCats.any((c) => c.id == _selectedCatId);
     final moreLabel = selectedInOthers
@@ -949,10 +960,10 @@ class _MoreCategoriesSheetState extends State<_MoreCategoriesSheet> {
       // Insert the new category into DB and return it
       final db  = DatabaseHelper.instance;
       final id  = await db.insertCategory(
-        Category(name: name, icon: 'category_outlined', sport: 'vlastní'),
+        Category(name: name, icon: 'star', sport: 'vlastní'),
       );
       widget.onSelect(
-        Category(id: id, name: name, icon: 'category_outlined', sport: 'vlastní'),
+        Category(id: id, name: name, icon: 'star', sport: 'vlastní'),
       );
     }
   }
