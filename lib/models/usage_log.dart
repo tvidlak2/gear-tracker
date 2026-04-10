@@ -32,6 +32,8 @@ class UsageLog {
   final DateTime date;
   final int? durationMinutes;
   final double? distanceKm;
+  /// Elevation gain in metres (e.g. from Strava's `total_elevation_gain`).
+  final double? elevationGainM;
   final String? location;
   final UsageSource source;
   final String? stravaActivityId;
@@ -42,6 +44,7 @@ class UsageLog {
     required this.date,
     this.durationMinutes,
     this.distanceKm,
+    this.elevationGainM,
     this.location,
     this.source = UsageSource.manual,
     this.stravaActivityId,
@@ -50,26 +53,30 @@ class UsageLog {
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
-      'gear_item_id': gearItemId,
-      'date': date.toIso8601String(),
-      'duration_minutes': durationMinutes,
-      'distance_km': distanceKm,
-      'location': location,
-      'source': source.value,
+      'gear_item_id':       gearItemId,
+      'date':               date.toIso8601String(),
+      'duration_minutes':   durationMinutes,
+      'distance_km':        distanceKm,
+      'elevation_gain':     elevationGainM,
+      'location':           location,
+      'source':             source.value,
       'strava_activity_id': stravaActivityId,
     };
   }
 
   factory UsageLog.fromMap(Map<String, dynamic> map) {
     return UsageLog(
-      id: map['id'] as int?,
-      gearItemId: map['gear_item_id'] as int,
-      date: DateTime.parse(map['date'] as String),
+      id:             map['id'] as int?,
+      gearItemId:     map['gear_item_id'] as int,
+      date:           DateTime.parse(map['date'] as String),
       durationMinutes: map['duration_minutes'] as int?,
       distanceKm: map['distance_km'] != null
           ? (map['distance_km'] as num).toDouble()
           : null,
-      location: map['location'] as String?,
+      elevationGainM: map['elevation_gain'] != null
+          ? (map['elevation_gain'] as num).toDouble()
+          : null,
+      location:         map['location'] as String?,
       source: UsageSourceExtension.fromString(
         map['source'] as String? ?? 'manual',
       ),
@@ -83,18 +90,20 @@ class UsageLog {
     DateTime? date,
     int? durationMinutes,
     double? distanceKm,
+    double? elevationGainM,
     String? location,
     UsageSource? source,
     String? stravaActivityId,
   }) {
     return UsageLog(
-      id: id ?? this.id,
-      gearItemId: gearItemId ?? this.gearItemId,
-      date: date ?? this.date,
-      durationMinutes: durationMinutes ?? this.durationMinutes,
-      distanceKm: distanceKm ?? this.distanceKm,
-      location: location ?? this.location,
-      source: source ?? this.source,
+      id:               id               ?? this.id,
+      gearItemId:       gearItemId       ?? this.gearItemId,
+      date:             date             ?? this.date,
+      durationMinutes:  durationMinutes  ?? this.durationMinutes,
+      distanceKm:       distanceKm       ?? this.distanceKm,
+      elevationGainM:   elevationGainM   ?? this.elevationGainM,
+      location:         location         ?? this.location,
+      source:           source           ?? this.source,
       stravaActivityId: stravaActivityId ?? this.stravaActivityId,
     );
   }

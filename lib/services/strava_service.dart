@@ -416,6 +416,9 @@ class StravaService {
         date:             act.startDateUtc,
         durationMinutes:  act.durationMinutes,
         distanceKm:       act.distanceKm > 0 ? act.distanceKm : null,
+        elevationGainM:   act.totalElevationGainM > 0
+                              ? act.totalElevationGainM
+                              : null,
         location:         act.name,
         source:           UsageSource.strava,
         stravaActivityId: stravaId,
