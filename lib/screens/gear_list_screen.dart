@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../database/database_helper.dart';
+import '../l10n/app_localizations.dart';
 import '../models/category.dart';
 import '../models/gear_item.dart';
 import '../services/maintenance_service.dart';
@@ -72,9 +73,10 @@ class _GearListScreenState extends State<GearListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Vybavení'),
+        title: Text(l10n.myGear),
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_list),
@@ -98,7 +100,7 @@ class _GearListScreenState extends State<GearListScreen> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredItems.isEmpty
-                    ? const Center(child: Text('Žádné vybavení nenalezeno.'))
+                    ? Center(child: Text(l10n.noData))
                     : RefreshIndicator(
                         onRefresh: _loadData,
                         child: ListView.builder(
@@ -125,7 +127,7 @@ class _GearListScreenState extends State<GearListScreen> {
         onPressed: () =>
             context.push('/gear/add').then((_) => _loadData()),
         icon: const Icon(Icons.add),
-        label: const Text('Přidat'),
+        label: Text(l10n.add),
       ),
     );
   }
@@ -208,6 +210,7 @@ class _FilterSheetState extends State<_FilterSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -216,7 +219,7 @@ class _FilterSheetState extends State<_FilterSheet> {
         children: [
           Text('Filtrovat', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
-          Text('Stav', style: Theme.of(context).textTheme.labelLarge),
+          Text(l10n.gearStatus, style: Theme.of(context).textTheme.labelLarge),
           Wrap(
             spacing: 8,
             children: GearStatus.values.map((s) {
@@ -229,7 +232,7 @@ class _FilterSheetState extends State<_FilterSheet> {
             }).toList(),
           ),
           const SizedBox(height: 12),
-          Text('Kategorie', style: Theme.of(context).textTheme.labelLarge),
+          Text(l10n.gearCategory, style: Theme.of(context).textTheme.labelLarge),
           Wrap(
             spacing: 8,
             children: widget.categories.map((c) {
@@ -250,7 +253,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                   widget.onApply(null, null);
                   Navigator.pop(context);
                 },
-                child: const Text('Zrušit filtry'),
+                child: Text(l10n.cancel),
               ),
               const SizedBox(width: 8),
               FilledButton(

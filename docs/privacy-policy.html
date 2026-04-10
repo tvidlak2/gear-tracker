@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy – GearTracker</title>
+  <meta name="description" content="GearTracker privacy policy – your data stays on your device." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1D9E75;
+      --primary-dark: #0F6E56;
+      --primary-light: #E8F7F2;
+      --text: #1A1A2E;
+      --text-muted: #5A6475;
+      --bg: #FFFFFF;
+      --border: #D4EDE5;
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.7;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 0 24px;
+    }
+    .nav {
+      max-width: 820px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 0;
+    }
+    .nav-logo {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #fff;
+      text-decoration: none;
+    }
+    .nav-link {
+      color: rgba(255,255,255,0.85);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    .nav-link:hover { color: #fff; }
+
+    /* ── HERO STRIP ── */
+    .hero-strip {
+      background: var(--primary);
+      color: #fff;
+      padding: 48px 24px 56px;
+      text-align: center;
+    }
+    .hero-strip h1 {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .hero-strip p {
+      opacity: 0.88;
+      font-size: 1rem;
+    }
+
+    /* ── WAVE ── */
+    .wave {
+      display: block;
+      width: 100%;
+      overflow: hidden;
+      line-height: 0;
+      background: var(--primary);
+    }
+    .wave svg { display: block; width: 100%; }
+
+    /* ── CONTENT ── */
+    .content {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 56px 24px 72px;
+    }
+
+    .effective-date {
+      display: inline-block;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 50px;
+      margin-bottom: 40px;
+    }
+
+    /* Summary box */
+    .summary-box {
+      background: var(--primary-light);
+      border-left: 4px solid var(--primary);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 20px 24px;
+      margin-bottom: 48px;
+      font-size: 0.97rem;
+    }
+    .summary-box strong { color: var(--primary-dark); }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 44px;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    p { margin-bottom: 14px; color: var(--text); }
+    p:last-child { margin-bottom: 0; }
+
+    ul {
+      padding-left: 22px;
+      margin-bottom: 14px;
+    }
+    li { margin-bottom: 6px; color: var(--text); }
+
+    a { color: var(--primary-dark); }
+    a:hover { color: var(--primary); }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 6px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--primary-light);
+      border: 1.5px solid var(--border);
+      color: var(--primary-dark);
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 50px;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--text);
+      color: rgba(255,255,255,0.6);
+      text-align: center;
+      padding: 28px 24px;
+      font-size: 0.85rem;
+    }
+    footer a {
+      color: rgba(255,255,255,0.85);
+      text-decoration: none;
+    }
+    footer a:hover { color: #fff; text-decoration: underline; }
+    .footer-links { margin-bottom: 8px; }
+    .footer-links a + a::before {
+      content: ' · ';
+      color: rgba(255,255,255,0.3);
+    }
+
+    @media (max-width: 600px) {
+      .hero-strip { padding: 40px 20px 48px; }
+      .content { padding: 40px 20px 56px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header>
+    <nav class="nav">
+      <a class="nav-logo" href="/">🎒 GearTracker</a>
+      <a class="nav-link" href="index.html">← Zpět na web</a>
+    </nav>
+  </header>
+
+  <!-- Hero strip -->
+  <div class="hero-strip">
+    <h1>Privacy Policy</h1>
+    <p>GearTracker respektuje tvoje soukromí. Tvá data zůstávají v tvém telefonu.</p>
+  </div>
+
+  <!-- Wave -->
+  <div class="wave">
+    <svg viewBox="0 0 1440 60" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <path d="M0,40 C360,80 1080,0 1440,40 L1440,60 L0,60 Z" fill="#ffffff"/>
+    </svg>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <span class="effective-date">📅 Platnost od: dubna 2026</span>
+
+    <div class="summary-box">
+      <strong>Zkráceně:</strong> GearTracker neposílá žádná tvá data na naše servery. Vše je uloženo pouze lokálně v telefonu. Jedinou výjimkou je volitelné propojení se Stravou, které probíhá přímo mezi tebou a Stravou.
+    </div>
+
+    <h2>1. Kdo provozuje tuto aplikaci</h2>
+    <p>
+      Aplikaci GearTracker vyvíjí a provozuje:<br>
+      <strong>Tomas Vidlak</strong><br>
+      E-mail: <a href="mailto:tvidlak@pavoucek.cz">tvidlak@pavoucek.cz</a>
+    </p>
+
+    <h2>2. Jaká data aplikace zpracovává</h2>
+    <p>GearTracker ukládá tato data <strong>výhradně lokálně na tvém zařízení</strong> (SQLite databáze):</p>
+    <ul>
+      <li>Informace o vybavení (název, kategorie, datum koupě, fotografie)</li>
+      <li>Pravidla a záznamy údržby</li>
+      <li>Záznamy aktivit (trvání, vzdálenost, nastoupané metry, datum)</li>
+      <li>Nastavení aplikace (jazyk, notifikace, Strava konfigurace)</li>
+    </ul>
+    <div class="badge-row">
+      <span class="badge">✅ Žádný cloud</span>
+      <span class="badge">✅ Žádná registrace</span>
+      <span class="badge">✅ Žádná analytika</span>
+    </div>
+
+    <h2>3. Cloudové účty a servery</h2>
+    <p>
+      GearTracker <strong>nemá vlastní server ani backend</strong>. Nevytváříme žádné uživatelské účty a nepřijímáme žádná data z tvého telefonu.
+    </p>
+    <p>
+      Data aplikace <strong>nejsou nikdy odesílána</strong> třetím stranám za účelem reklamy, profilování ani prodeje.
+    </p>
+
+    <h2>4. Integrace se Stravou (volitelná)</h2>
+    <p>
+      Pokud se rozhodneš propojit GearTracker se Stravou, platí následující:
+    </p>
+    <ul>
+      <li>Autorizace probíhá přímo přes OAuth2 rozhraní Stravy — my nikdy nevidíme tvé přihlašovací údaje ke Stravě.</li>
+      <li>Přístupový token Stravy je uložen <strong>bezpečně na tvém zařízení</strong> (Android Keystore přes <code>flutter_secure_storage</code>).</li>
+      <li>Token je použit pouze pro stažení tvých aktivit ze Strava API přímo do telefonu.</li>
+      <li>Kdykoli můžeš Stravu odpojit v <em>Nastavení → Propojené služby → Odpojit</em>.</li>
+    </ul>
+    <p>
+      Strava má vlastní Privacy Policy dostupnou na <a href="https://www.strava.com/legal/privacy" target="_blank" rel="noopener">strava.com/legal/privacy</a>.
+    </p>
+
+    <h2>5. Oprávnění aplikace</h2>
+    <ul>
+      <li><strong>Internet</strong> — pro komunikaci se Strava API (pouze pokud propojíš Stravu)</li>
+      <li><strong>Notifikace</strong> — pro připomínky servisu (pouze pokud povolíš)</li>
+      <li><strong>Čtení médií / fotoaparát</strong> — pro přidání fotografie vybavení (pouze pokud přidáš foto)</li>
+      <li><strong>Čtení souborů</strong> — pro import IGC souborů (pouze při importu)</li>
+    </ul>
+
+    <h2>6. Jak smazat svá data</h2>
+    <p>
+      Všechna data jsou uložena lokálně. Můžeš je smazat dvěma způsoby:
+    </p>
+    <ul>
+      <li><strong>Selektivně:</strong> Nastavení → Záloha a export → Vymazat všechna data</li>
+      <li><strong>Kompletně:</strong> Odinstalací aplikace z telefonu</li>
+    </ul>
+
+    <h2>7. Děti</h2>
+    <p>
+      Aplikace není určena pro děti mladší 13 let a vědomě neshromažďujeme data od takových uživatelů.
+    </p>
+
+    <h2>8. Změny tohoto dokumentu</h2>
+    <p>
+      Pokud dojde k podstatným změnám v tom, jak nakládáme s daty, aktualizujeme datum platnosti tohoto dokumentu a (je-li to možné) upozorníme tě v aplikaci.
+    </p>
+
+    <h2>9. Kontakt</h2>
+    <p>
+      Máš-li otázky týkající se ochrany soukromí, napiš nám:
+    </p>
+    <p>
+      📧 <a href="mailto:tvidlak@pavoucek.cz">tvidlak@pavoucek.cz</a>
+    </p>
+
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-links">
+      <a href="index.html">GearTracker</a>
+      <a href="privacy-policy.html">Privacy Policy</a>
+      <a href="mailto:tvidlak@pavoucek.cz">Kontakt</a>
+    </div>
+    <div>© 2026 Tomas Vidlak · GearTracker</div>
+  </footer>
+
+</body>
+</html>

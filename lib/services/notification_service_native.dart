@@ -2,6 +2,8 @@
 /// Používá flutter_local_notifications + timezone pro přesné plánování.
 library;
 
+import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -39,7 +41,9 @@ class NotificationService {
     // Nastav lokální timezone pro zonedSchedule
     tz_data.initializeTimeZones();
     final localTz = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(localTz));
+    // flutter_timezone 5.x returns a TimezoneInfo object; .identifier holds
+    // the IANA string (e.g. "Europe/Prague") that tz.getLocation() expects.
+    tz.setLocalLocation(tz.getLocation(localTz.identifier));
 
     // Inicializuj plugin pro každou platformu
     const androidSettings =
@@ -130,6 +134,14 @@ class NotificationService {
   ///   - stav overdue / warning               → okamžitá notifikace
   ///   - stav ok                              → žádná notifikace (nelze plánovat)
   Future<void> scheduleAll() async {
+    try {
+      await _scheduleAllInternal();
+    } catch (e) {
+      debugPrint('NotificationService.scheduleAll failed (non-fatal): $e');
+    }
+  }
+
+  Future<void> _scheduleAllInternal() async {
     if (!await isEnabled()) return;
     if (!_initialized) await init();
 
@@ -250,17 +262,37 @@ class NotificationService {
     if (scheduledDate.isBefore(DateTime.now())) return;
 
     final tzDate = tz.TZDateTime.from(scheduledDate, tz.local);
+    final details = _details(critical: critical);
 
-    await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      tzDate,
-      _details(critical: critical),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-    );
+    try {
+      // Prefer exact scheduling for reliability
+      await _plugin.zonedSchedule(
+        id, title, body, tzDate, details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    } on PlatformException catch (e) {
+      // Android 12+ may throw if SCHEDULE_EXACT_ALARM is not granted by user.
+      // Fall back to inexact alarm – still fires, just not at the precise time.
+      if (e.code == 'exact_alarms_not_permitted' ||
+          (e.message ?? '').contains('exact')) {
+        debugPrint(
+            'Exact alarms not permitted, falling back to inexact for id=$id');
+        try {
+          await _plugin.zonedSchedule(
+            id, title, body, tzDate, details,
+            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            uiLocalNotificationDateInterpretation:
+                UILocalNotificationDateInterpretation.absoluteTime,
+          );
+        } catch (e2) {
+          debugPrint('Inexact schedule also failed for id=$id: $e2');
+        }
+      } else {
+        debugPrint('zonedSchedule failed for id=$id: $e');
+      }
+    }
   }
 
   NotificationDetails _details({bool critical = false}) {

@@ -2,8 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../database/database_helper.dart';
+import '../l10n/app_localizations.dart';
+import '../main.dart' show localeNotifier;
 import '../models/strava_models.dart';
 import '../services/notification_service.dart';
 import '../services/strava_service.dart';
@@ -23,6 +27,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = false;
   bool _notifLoading = true;
 
+  // Language state
+  String _currentLocale = 'cs';
+
+  static const _languages = [
+    ('cs', '🇨🇿', 'Čeština'),
+    ('sk', '🇸🇰', 'Slovenčina'),
+    ('en', '🇬🇧', 'English'),
+    ('de', '🇩🇪', 'Deutsch'),
+    ('es', '🇪🇸', 'Español'),
+    ('fr', '🇫🇷', 'Français'),
+    ('it', '🇮🇹', 'Italiano'),
+  ];
+
   // Strava state
   bool           _stravaConnected = false;
   bool           _stravaLoading   = true;
@@ -38,6 +55,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _loadNotificationState();
     _loadStravaState();
+    _loadLocale();
+  }
+
+  Future<void> _loadLocale() async {
+    final prefs = await SharedPreferences.getInstance();
+    final code = prefs.getString('app_locale') ?? 'cs';
+    if (mounted) setState(() => _currentLocale = code);
+  }
+
+  Future<void> _setLocale(String code) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_locale', code);
+    if (mounted) setState(() => _currentLocale = code);
+    localeNotifier.value = Locale(code);
   }
 
   Future<void> _loadNotificationState() async {
@@ -159,19 +190,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _disconnectStrava() async {
+    final l10n = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Odpojit Strava'),
+        title: Text(l10n.stravaDisconnect),
         content: const Text(
             'Odstraní přístupové tokeny. Nalogované aktivity zůstanou.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Zrušit')),
+              child: Text(l10n.cancel)),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Odpojit')),
+              child: Text(l10n.stravaDisconnect)),
         ],
       ),
     );
@@ -215,13 +247,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _lastSyncDate  = lastSync;
     });
 
+    final l10n = AppLocalizations.of(context);
     final total = results.values.fold(0, (s, r) => s + r.added);
+    final lastSyncStr = lastSync != null
+        ? DateFormat('d. M. yyyy').format(lastSync)
+        : '';
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           total > 0
-              ? 'Synchronizace dokončena – přidáno $total aktivit.'
-              : 'Žádné nové aktivity k synchronizaci.',
+              ? l10n.stravaSyncSuccess(total, lastSyncStr)
+              : l10n.stravaSyncNoNew,
         ),
         duration: const Duration(seconds: 3),
       ),
@@ -235,47 +271,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final secretCtrl = TextEditingController();
     final saved = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Strava API přihlašovací údaje'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Zadej Client ID a Client Secret ze svého Strava API účtu '
-              '(https://www.strava.com/settings/api).',
-              style: TextStyle(fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: idCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Client ID',
-                border: OutlineInputBorder(),
+      builder: (ctx) {
+        final l = AppLocalizations.of(ctx);
+        return AlertDialog(
+          title: Text(l.stravaCredentials),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Zadej Client ID a Client Secret ze svého Strava API účtu '
+                '(https://www.strava.com/settings/api).',
+                style: TextStyle(fontSize: 13),
               ),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: secretCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Client Secret',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 12),
+              TextField(
+                controller: idCtrl,
+                decoration: InputDecoration(
+                  labelText: l.stravaClientId,
+                  border: const OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
               ),
-              obscureText: true,
+              const SizedBox(height: 10),
+              TextField(
+                controller: secretCtrl,
+                decoration: InputDecoration(
+                  labelText: l.stravaClientSecret,
+                  border: const OutlineInputBorder(),
+                ),
+                obscureText: true,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l.save),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Zrušit'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Uložit'),
-          ),
-        ],
-      ),
+        );
+      },
     );
     if (saved == true && idCtrl.text.isNotEmpty && secretCtrl.text.isNotEmpty) {
       await _stravaSvc.saveCredentials(
@@ -308,11 +347,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _notifLoading = false;
       });
 
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(value
-              ? 'Notifikace zapnuty – termíny servisu tě připomenou.'
-              : 'Notifikace vypnuty.'),
+              ? l10n.notificationsEnabled
+              : l10n.notificationsDisabled),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -333,12 +373,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildLanguageSection(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(l10n.language),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark
+                    ? const Color(0xFF2C2C2C)
+                    : const Color(0xFFE0E0E0),
+                width: 0.5,
+              ),
+            ),
+            child: Column(
+              children: _languages.map((lang) {
+                final (code, flag, name) = lang;
+                final selected = _currentLocale == code;
+                final isLast = lang == _languages.last;
+                return Column(
+                  children: [
+                    ListTile(
+                      leading: Text(flag, style: const TextStyle(fontSize: 22)),
+                      title: Text(
+                        name,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: selected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                          color: selected ? cs.primary : null,
+                        ),
+                      ),
+                      trailing: selected
+                          ? Icon(Icons.check_circle,
+                              color: cs.primary, size: 20)
+                          : null,
+                      onTap: () => _setLocale(code),
+                    ),
+                    if (!isLast)
+                      Divider(
+                        height: 0,
+                        indent: 56,
+                        endIndent: 0,
+                        color: isDark
+                            ? const Color(0xFF2C2C2C)
+                            : const Color(0xFFEEEEEE),
+                      ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs   = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Nastavení')),
+      appBar: AppBar(title: Text(l10n.navSettings)),
       body: ListView(
         children: [
           // ── Sekce: Aplikace ─────────────────────────────────────────────
@@ -358,15 +465,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: _toggleNotifications,
           ),
 
-          _SettingsTile(
-            icon: Icons.language_outlined,
-            title: 'Jazyk',
-            subtitle: 'Čeština',
-            onTap: () {},
-          ),
+          // ── Sekce: Jazyk ─────────────────────────────────────────────────
+          _buildLanguageSection(context),
 
           // ── Sekce: Propojené služby ──────────────────────────────────────
-          _SectionHeader('Propojené služby'),
+          _SectionHeader(l10n.connectedServices),
           _StravaSection(
             loading:      _stravaLoading,
             connected:    _stravaConnected,
@@ -393,19 +496,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _SectionHeader('Data'),
           _SettingsTile(
             icon: Icons.backup_outlined,
-            title: 'Záloha a export',
+            title: l10n.backupExport,
             subtitle: 'Export do CSV nebo záloha do cloudu',
             onTap: () {},
           ),
           _SettingsTile(
             icon: Icons.upload_file_outlined,
-            title: 'Import',
+            title: l10n.importData,
             subtitle: 'Import ze souboru CSV nebo GPX',
             onTap: () {},
           ),
           _SettingsTile(
             icon: Icons.delete_outline,
-            title: 'Vymazat všechna data',
+            title: l10n.clearAllData,
             subtitle: 'Trvale odstraní vše z databáze',
             titleColor: cs.error,
             onTap: () {},
@@ -621,7 +724,7 @@ class _StravaSection extends StatelessWidget {
                 ),
                 TextButton(
                   onPressed: onRetry,
-                  child: const Text('Zkusit znovu'),
+                  child: Text(AppLocalizations.of(context).retry),
                 ),
               ],
             ),
@@ -674,7 +777,7 @@ class _StravaSection extends StatelessWidget {
                       style: FilledButton.styleFrom(
                           backgroundColor: stravaOrange),
                       icon: const Icon(Icons.link, size: 16),
-                      label: const Text('Připojit Strava'),
+                      label: Text(AppLocalizations.of(context).stravaConnect),
                     ),
                   ],
                 ),
@@ -733,8 +836,8 @@ class _StravaSection extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           syncedCount > 0
-                              ? '$syncedCount synchronizovaných aktivit'
-                              : 'Zatím žádné synchronizované aktivity',
+                              ? AppLocalizations.of(context).stravaSyncedCount(syncedCount)
+                              : AppLocalizations.of(context).stravaSyncedNone,
                           style: TextStyle(
                               fontSize: 12, color: cs.onSurfaceVariant),
                         ),
@@ -752,9 +855,9 @@ class _StravaSection extends StatelessWidget {
                 dense: true,
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 4),
-                title: const Text(
-                  'Synchronizovat při spuštění aplikace',
-                  style: TextStyle(fontSize: 13),
+                title: Text(
+                  AppLocalizations.of(context).stravaAutoSync,
+                  style: const TextStyle(fontSize: 13),
                 ),
                 value: autoSync,
                 activeColor: stravaOrange,
@@ -794,8 +897,8 @@ class _StravaSection extends StatelessWidget {
                                   strokeWidth: 2, color: Colors.white))
                           : const Icon(Icons.sync, size: 16),
                       label: Text(syncing
-                          ? 'Synchronizuji…'
-                          : 'Synchronizovat aktivity'),
+                          ? AppLocalizations.of(context).loading
+                          : AppLocalizations.of(context).stravasyncActivities),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -805,7 +908,7 @@ class _StravaSection extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 10),
                     ),
-                    child: const Text('Odpojit'),
+                    child: Text(AppLocalizations.of(context).stravaDisconnect),
                   ),
                 ],
               ),
@@ -901,14 +1004,14 @@ class _ConnectedBadge extends StatelessWidget {
         color: const Color(0xFFE8F5E9),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.check_circle, size: 13, color: Color(0xFF2E7D32)),
-          SizedBox(width: 4),
+          const Icon(Icons.check_circle, size: 13, color: Color(0xFF2E7D32)),
+          const SizedBox(width: 4),
           Text(
-            'Připojeno',
-            style: TextStyle(
+            AppLocalizations.of(context).stravaConnected,
+            style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: Color(0xFF2E7D32),

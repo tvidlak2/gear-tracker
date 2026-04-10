@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../database/database_helper.dart';
+import '../l10n/app_localizations.dart';
 import '../models/gear_item.dart';
 import '../models/maintenance_rule.dart';
 import '../models/maintenance_log.dart';
@@ -76,8 +77,9 @@ class _MaintenanceOverviewScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Servis a údržba')),
+      appBar: AppBar(title: Text(l10n.maintenanceOverview)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _items.isEmpty
@@ -89,12 +91,12 @@ class _MaintenanceOverviewScreenState
                           size: 80,
                           color: Colors.green.shade300),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Vše v pořádku!',
-                        style: TextStyle(fontSize: 20),
+                      Text(
+                        l10n.allGoodTitle,
+                        style: const TextStyle(fontSize: 20),
                       ),
                       const SizedBox(height: 8),
-                      const Text('Žádné vybavení nevyžaduje servis.'),
+                      Text(l10n.allGoodSubtitle),
                     ],
                   ),
                 )
@@ -116,20 +118,20 @@ class _MaintenanceOverviewScreenState
   }
 
   Future<void> _quickLog(GearItem item, int ruleId) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Zaznamenat servis'),
-        content:
-            Text('Zaznamat provedení servisu pro "${item.name}" dnes?'),
+        title: Text(l10n.logService),
+        content: Text(l10n.deleteGearConfirm(item.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Zrušit'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Zaznamenat'),
+            child: Text(l10n.confirm),
           ),
         ],
       ),
@@ -292,9 +294,10 @@ class _AddMaintenanceLogScreenState extends State<AddMaintenanceLogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Zaznamenat servis'),
+        title: Text(l10n.logService),
         actions: [
           if (_loading)
             const Padding(
@@ -305,7 +308,7 @@ class _AddMaintenanceLogScreenState extends State<AddMaintenanceLogScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2)),
             )
           else
-            TextButton(onPressed: _save, child: const Text('Uložit')),
+            TextButton(onPressed: _save, child: Text(l10n.save)),
         ],
       ),
       body: Form(
@@ -340,10 +343,10 @@ class _AddMaintenanceLogScreenState extends State<AddMaintenanceLogScreen> {
                 if (picked != null) setState(() => _performedDate = picked);
               },
               child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'Datum provedení',
-                  border: OutlineInputBorder(),
-                  suffixIcon: Icon(Icons.calendar_today, size: 18),
+                decoration: InputDecoration(
+                  labelText: l10n.performedDate,
+                  border: const OutlineInputBorder(),
+                  suffixIcon: const Icon(Icons.calendar_today, size: 18),
                 ),
                 child: Text(_dateFormat.format(_performedDate)),
               ),
@@ -351,9 +354,9 @@ class _AddMaintenanceLogScreenState extends State<AddMaintenanceLogScreen> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _performedByCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Provedl/a',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.performedBy,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -361,9 +364,9 @@ class _AddMaintenanceLogScreenState extends State<AddMaintenanceLogScreen> {
               controller: _costCtrl,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Cena (Kč)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: '${l10n.cost} (Kč)',
+                border: const OutlineInputBorder(),
                 suffixText: 'Kč',
               ),
               validator: (v) {
@@ -377,9 +380,9 @@ class _AddMaintenanceLogScreenState extends State<AddMaintenanceLogScreen> {
             TextFormField(
               controller: _notesCtrl,
               maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Poznámky',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.notes,
+                border: const OutlineInputBorder(),
                 alignLabelWithHint: true,
               ),
             ),
@@ -455,9 +458,10 @@ class _AddMaintenanceRuleScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Přidat pravidlo údržby'),
+        title: Text(l10n.addMaintenanceRule),
         actions: [
           if (_loading)
             const Padding(
@@ -468,7 +472,7 @@ class _AddMaintenanceRuleScreenState
                   child: CircularProgressIndicator(strokeWidth: 2)),
             )
           else
-            TextButton(onPressed: _save, child: const Text('Uložit')),
+            TextButton(onPressed: _save, child: Text(l10n.save)),
         ],
       ),
       body: Form(
@@ -478,9 +482,9 @@ class _AddMaintenanceRuleScreenState
           children: [
             TextFormField(
               controller: _nameCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Název pravidla *',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: '${l10n.ruleName} *',
+                border: const OutlineInputBorder(),
                 hintText: 'např. Kontrola lana, Výměna mazání',
               ),
               validator: (v) =>
@@ -536,7 +540,7 @@ class _AddMaintenanceRuleScreenState
             SwitchListTile(
               value: _isSafetyCritical,
               onChanged: (v) => setState(() => _isSafetyCritical = v),
-              title: const Text('Bezpečnostně kritické'),
+              title: Text(l10n.safetyeCritical),
               subtitle: const Text(
                   'Toto pravidlo je klíčové pro bezpečné použití vybavení.'),
             ),
@@ -720,9 +724,10 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Přidat aktivitu'),
+        title: Text(l10n.addActivity),
         actions: [
           if (_loading)
             const Padding(
@@ -733,7 +738,7 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2)),
             )
           else
-            TextButton(onPressed: _save, child: const Text('Uložit')),
+            TextButton(onPressed: _save, child: Text(l10n.save)),
         ],
       ),
       body: Form(
@@ -779,9 +784,9 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
                 if (picked != null) setState(() => _date = picked);
               },
               child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'Datum aktivity',
-                  suffixIcon: Icon(Icons.calendar_today_outlined, size: 18),
+                decoration: InputDecoration(
+                  labelText: l10n.dateLabel,
+                  suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18),
                 ),
                 child: Text(_dateFormat.format(_date)),
               ),
@@ -792,8 +797,8 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
             TextFormField(
               controller: _durationCtrl,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Délka aktivity',
+              decoration: InputDecoration(
+                labelText: l10n.durationLabel,
                 suffixText: 'min',
               ),
               validator: (v) {
@@ -810,8 +815,8 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
               controller: _distanceCtrl,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Vzdálenost',
+              decoration: InputDecoration(
+                labelText: l10n.distanceLabel,
                 suffixText: 'km',
               ),
               validator: (v) {
@@ -826,7 +831,7 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
             // ── Místo ─────────────────────────────────────────────────────
             TextFormField(
               controller: _locationCtrl,
-              decoration: const InputDecoration(labelText: 'Místo'),
+              decoration: InputDecoration(labelText: l10n.locationLabel),
             ),
             const SizedBox(height: 12),
 

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../database/database_helper.dart';
+import '../l10n/app_localizations.dart';
 import '../models/category.dart';
 import '../models/gear_item.dart';
 import '../models/maintenance_log.dart';
@@ -118,18 +119,17 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
     if (!mounted) return;
     setState(() => _stravaSyncing = false);
 
+    final l10n = AppLocalizations.of(context);
     final String message;
     if (result.hasError) {
-      message = 'Chyba synchronizace: ${result.error}';
+      message = l10n.stravaSyncError(result.error ?? '');
     } else if (result.added > 0) {
       final newestStr = result.newestActivityDate != null
           ? DateFormat('d. M. yyyy').format(result.newestActivityDate!)
-          : null;
-      message = newestStr != null
-          ? 'Synchronizováno: ${result.added} aktivit (nejnovější: $newestStr)'
-          : 'Synchronizováno: ${result.added} aktivit';
+          : '';
+      message = l10n.stravaSyncSuccess(result.added, newestStr);
     } else {
-      message = 'Žádné nové aktivity.';
+      message = l10n.stravaSyncNoNew;
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -249,13 +249,16 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
         ),
         PopupMenuButton<String>(
           iconColor: Colors.white,
-          itemBuilder: (_) => [
-            const PopupMenuItem(value: 'status', child: Text('Změnit stav')),
-            PopupMenuItem(
-              value: 'delete',
-              child: Text('Smazat', style: TextStyle(color: AppColors.danger)),
-            ),
-          ],
+          itemBuilder: (ctx) {
+            final l = AppLocalizations.of(ctx);
+            return [
+              PopupMenuItem(value: 'status', child: Text(l.gearStatus)),
+              PopupMenuItem(
+                value: 'delete',
+                child: Text(l.delete, style: const TextStyle(color: AppColors.danger)),
+              ),
+            ];
+          },
           onSelected: (v) {
             if (v == 'status') _showStatusDialog();
             if (v == 'delete') _confirmDelete();
@@ -403,10 +406,11 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
   // ── Dialogs ────────────────────────────────────────────────────────────────
 
   void _showStatusDialog() {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (_) => SimpleDialog(
-        title: const Text('Stav vybavení'),
+        title: Text(l10n.gearStatus),
         children: GearStatus.values
             .map((s) => SimpleDialogOption(
                   child: Text(s.label),
@@ -422,21 +426,21 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
   }
 
   Future<void> _confirmDelete() async {
+    final l10n = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Smazat vybavení?'),
-        content: Text(
-            'Opravdu chceš smazat "${_item!.name}"? Tato akce je nevratná.'),
+        title: Text(l10n.deleteGearConfirm(_item!.name)),
+        content: Text(l10n.deleteGearWarning),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Zrušit')),
+              child: Text(l10n.cancel)),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style:
                 FilledButton.styleFrom(backgroundColor: AppColors.danger),
-            child: const Text('Smazat'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -463,6 +467,7 @@ class _StatCardsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final hours = totalMinutes >= 60
         ? '${(totalMinutes / 60).toStringAsFixed(0)} h'
         : '$totalMinutes min';
@@ -489,21 +494,21 @@ class _StatCardsRow extends StatelessWidget {
         _StatCard(
           icon: Icons.timer_outlined,
           value: hours,
-          label: 'Hodiny',
+          label: l10n.hours,
         ),
         const SizedBox(width: 8),
         _StatCard(
           icon: Icons.calendar_today_outlined,
           value: age,
-          label: 'Stáří',
+          label: l10n.gearAge,
         ),
         const SizedBox(width: 8),
         _StatCard(
           icon: Icons.build_outlined,
           value: serviceVal,
           label: nextServiceResult != null && nextServiceResult!.remaining < 0
-              ? 'Po termínu'
-              : 'Do servisu',
+              ? l10n.statusOverdue
+              : l10n.nextService,
           valueColor: serviceColor,
           iconColor: serviceColor,
         ),
@@ -589,18 +594,19 @@ class _MaintenancePlanSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _SectionHeader(
-            title: 'Plán údržby',
+            title: l10n.maintenancePlan,
             onAdd: onAddRule,
-            addLabel: 'Přidat pravidlo',
+            addLabel: l10n.addMaintenanceRule,
           ),
           if (results.isEmpty)
-            _EmptyHint('Žádná pravidla údržby.')
+            _EmptyHint(l10n.noMaintenanceRules)
           else
             ...results.map((r) {
               final logsForRule = maintenanceLogs
@@ -733,8 +739,8 @@ class _MaintenanceRuleCard extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: onLogService,
               icon: const Icon(Icons.check_circle_outline, size: 16),
-              label: const Text('Zapsat servis',
-                  style: TextStyle(fontSize: 13)),
+              label: Text(AppLocalizations.of(context).logService,
+                  style: const TextStyle(fontSize: 13)),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
                 side: const BorderSide(color: AppColors.primary, width: 1),
@@ -782,6 +788,7 @@ class _ActivityHistorySectionState extends State<_ActivityHistorySection> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final logs        = widget.logs;
     final hasMore     = logs.length > _previewCount;
     final visibleLogs = (_showAll || !hasMore)
@@ -798,16 +805,16 @@ class _ActivityHistorySectionState extends State<_ActivityHistorySection> {
             padding: const EdgeInsets.only(bottom: 12),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Historie aktivit',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    l10n.activityHistory,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                   ),
                 ),
                 TextButton.icon(
                   onPressed: widget.onImportIgc,
                   icon: const Icon(Icons.flight_outlined, size: 15),
-                  label: const Text('IGC', style: TextStyle(fontSize: 12)),
+                  label: Text(l10n.importIgc, style: const TextStyle(fontSize: 12)),
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(
@@ -820,7 +827,7 @@ class _ActivityHistorySectionState extends State<_ActivityHistorySection> {
                 TextButton.icon(
                   onPressed: widget.onAdd,
                   icon: const Icon(Icons.add_rounded, size: 16),
-                  label: const Text('Přidat', style: TextStyle(fontSize: 12)),
+                  label: Text(l10n.add, style: const TextStyle(fontSize: 12)),
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(
@@ -835,7 +842,7 @@ class _ActivityHistorySectionState extends State<_ActivityHistorySection> {
 
           // ── Log rows ─────────────────────────────────────────────────────
           if (logs.isEmpty)
-            _EmptyHint('Žádné záznamy o použití.')
+            _EmptyHint(l10n.noActivities)
           else ...[
             ...visibleLogs.map((l) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -856,8 +863,8 @@ class _ActivityHistorySectionState extends State<_ActivityHistorySection> {
                     ),
                     child: Text(
                       _showAll
-                          ? 'Skrýt'
-                          : 'Zobrazit vše (${logs.length} aktivit)',
+                          ? l10n.hide
+                          : l10n.showAll(logs.length),
                       style: const TextStyle(fontSize: 13),
                     ),
                   ),
@@ -943,12 +950,13 @@ class _SourceBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final (label, color) = switch (source) {
-      UsageSource.manual => ('Ručně',  AppColors.subtitleGray),
-      UsageSource.strava => ('Strava', const Color(0xFFFC4C02)),
-      UsageSource.garmin => ('Garmin', const Color(0xFF006EBF)),
-      UsageSource.gpx    => ('GPX',    const Color(0xFF5C6BC0)),
-      UsageSource.igc    => ('IGC',    const Color(0xFF00897B)),
+      UsageSource.manual => (l10n.sourceManual, AppColors.subtitleGray),
+      UsageSource.strava => (l10n.sourceStrava, const Color(0xFFFC4C02)),
+      UsageSource.garmin => (l10n.sourceGarmin, const Color(0xFF006EBF)),
+      UsageSource.gpx    => (l10n.sourceGpx,    const Color(0xFF5C6BC0)),
+      UsageSource.igc    => (l10n.sourceIgc,    const Color(0xFF00897B)),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
@@ -980,6 +988,7 @@ class _BottomActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
         color: context.isDark ? AppColors.darkCard : Colors.white,
@@ -997,8 +1006,8 @@ class _BottomActions extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: onAddActivity,
                   icon: const Icon(Icons.add_rounded, size: 16),
-                  label: const Text('Aktivita',
-                      style: TextStyle(fontSize: 12)),
+                  label: Text(l10n.addActivity,
+                      style: const TextStyle(fontSize: 12)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,
                     side: const BorderSide(color: AppColors.primary),
@@ -1013,8 +1022,8 @@ class _BottomActions extends StatelessWidget {
                 child: FilledButton.icon(
                   onPressed: onLogService,
                   icon: const Icon(Icons.build_outlined, size: 16),
-                  label: const Text('Zapsat servis',
-                      style: TextStyle(fontSize: 12)),
+                  label: Text(l10n.logService,
+                      style: const TextStyle(fontSize: 12)),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -1029,8 +1038,8 @@ class _BottomActions extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: onEdit,
                   icon: const Icon(Icons.edit_outlined, size: 16),
-                  label: const Text('Upravit',
-                      style: TextStyle(fontSize: 12)),
+                  label: Text(l10n.edit,
+                      style: const TextStyle(fontSize: 12)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: context.isDark
                         ? Colors.white
@@ -1110,13 +1119,13 @@ class _IgcPreviewDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Zrušit'),
+          child: Text(AppLocalizations.of(context).cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, true),
           style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary),
-          child: const Text('Přidat let'),
+          child: Text(AppLocalizations.of(context).add),
         ),
       ],
     );
@@ -1301,9 +1310,9 @@ class _StravaGearSectionState extends State<_StravaGearSection> {
             children: [
               const Icon(Icons.directions_run, size: 16, color: _stravaOrange),
               const SizedBox(width: 6),
-              const Text(
-                'Strava synchronizace',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              Text(
+                AppLocalizations.of(context).stravaSync,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
               ),
             ],
           ),
@@ -1335,9 +1344,9 @@ class _StravaGearSectionState extends State<_StravaGearSection> {
               child: Column(
                 children: [
                   SwitchListTile(
-                    title: const Text(
-                      'Automatická synchronizace',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    title: Text(
+                      AppLocalizations.of(context).stravaAutoSync,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                     subtitle: const Text(
                       'Importuj aktivity ze Stravy jako záznamy použití',
@@ -1359,8 +1368,8 @@ class _StravaGearSectionState extends State<_StravaGearSection> {
                       dense: true,
                       leading: const Icon(Icons.calendar_today_outlined,
                           size: 18, color: _stravaOrange),
-                      title: const Text('Synchronizovat od',
-                          style: TextStyle(fontSize: 13)),
+                      title: Text(AppLocalizations.of(context).stravaSyncFrom,
+                          style: const TextStyle(fontSize: 13)),
                       trailing: Text(
                         _syncFrom != null
                             ? DateFormat('d. M. yyyy').format(_syncFrom!)
@@ -1383,7 +1392,7 @@ class _StravaGearSectionState extends State<_StravaGearSection> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Typy aktivit',
+                            AppLocalizations.of(context).stravaSyncTypes,
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -1460,8 +1469,8 @@ class _StravaGearSectionState extends State<_StravaGearSection> {
                     : const Icon(Icons.sync, size: 18),
                 label: Text(
                   widget.syncing
-                      ? 'Synchronizuji…'
-                      : 'Synchronizovat nyní',
+                      ? AppLocalizations.of(context).loading
+                      : AppLocalizations.of(context).stravasyncActivities,
                   style: const TextStyle(fontSize: 13),
                 ),
               ),

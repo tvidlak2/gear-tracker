@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../database/database_helper.dart';
+import '../l10n/app_localizations.dart';
 import '../models/category.dart';
 import '../models/gear_item.dart';
 import '../models/maintenance_rule.dart';
@@ -286,11 +287,12 @@ class _AddGearScreenState extends State<AddGearScreen> {
     var   type      = rule.triggerType;
     var   safety    = rule.isSafetyCritical;
 
+    final l10n = AppLocalizations.of(context);
     final saved = await showDialog<_DraftRule>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setD) => AlertDialog(
-          title: const Text('Upravit pravidlo'),
+          title: Text(l10n.edit + ' ' + l10n.ruleName.toLowerCase()),
           contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
           content: SingleChildScrollView(
             child: Column(
@@ -299,8 +301,8 @@ class _AddGearScreenState extends State<AddGearScreen> {
               children: [
                 TextField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(
-                      labelText: 'Název pravidla', isDense: true),
+                  decoration: InputDecoration(
+                      labelText: l10n.ruleName, isDense: true),
                 ),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<TriggerType>(
@@ -348,8 +350,8 @@ class _AddGearScreenState extends State<AddGearScreen> {
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
                   value: safety,
-                  title: const Text('Bezpečnostně kritické',
-                      style: TextStyle(fontSize: 13)),
+                  title: Text(l10n.safetyeCritical,
+                      style: const TextStyle(fontSize: 13)),
                   activeColor: AppColors.primary,
                   onChanged: (v) => setD(() => safety = v ?? safety),
                 ),
@@ -359,7 +361,7 @@ class _AddGearScreenState extends State<AddGearScreen> {
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Zrušit')),
+                child: Text(l10n.cancel)),
             FilledButton(
               onPressed: () => Navigator.pop(
                 ctx,
@@ -372,7 +374,7 @@ class _AddGearScreenState extends State<AddGearScreen> {
                 ),
               ),
               style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
-              child: const Text('Uložit'),
+              child: Text(l10n.save),
             ),
           ],
         ),
@@ -395,9 +397,10 @@ class _AddGearScreenState extends State<AddGearScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEdit ? 'Upravit vybavení' : 'Přidat vybavení'),
+        title: Text(_isEdit ? l10n.editGearTitle : l10n.addGearTitle),
       ),
       body: Form(
         key: _formKey,
@@ -432,11 +435,12 @@ class _AddGearScreenState extends State<AddGearScreen> {
   ];
 
   Widget _buildCategorySection() {
+    final l10n = AppLocalizations.of(context);
     if (_categories.isEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionLabel('Kategorie'),
+          _SectionLabel(l10n.gearCategory),
           const SizedBox(height: 10),
           const Center(child: CircularProgressIndicator()),
         ],
@@ -470,7 +474,7 @@ class _AddGearScreenState extends State<AddGearScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionLabel('Kategorie'),
+        _SectionLabel(l10n.gearCategory),
         const SizedBox(height: 10),
         // 2 rows × 3 tiles
         GridView.builder(
@@ -553,6 +557,7 @@ class _AddGearScreenState extends State<AddGearScreen> {
   // ── Basic info ────────────────────────────────────────────────────────────
 
   Widget _buildBasicInfoSection() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -563,8 +568,8 @@ class _AddGearScreenState extends State<AddGearScreen> {
             TextFormField(
               controller: _nameCtrl,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Název *',
+              decoration: InputDecoration(
+                labelText: '${l10n.gearName} *',
                 hintText: 'např. Mammut Crag Classic 9.5',
               ),
               validator: (v) =>
@@ -576,22 +581,22 @@ class _AddGearScreenState extends State<AddGearScreen> {
                 child: TextFormField(
                   controller: _brandCtrl,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(labelText: 'Značka'),
+                  decoration: InputDecoration(labelText: l10n.gearBrand),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: TextFormField(
                   controller: _modelCtrl,
-                  decoration: const InputDecoration(labelText: 'Model'),
+                  decoration: InputDecoration(labelText: l10n.gearModel),
                 ),
               ),
             ]),
             const SizedBox(height: 12),
             TextFormField(
               controller: _serialCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Sériové číslo',
+              decoration: InputDecoration(
+                labelText: l10n.gearSerialNumber,
                 hintText: 'volitelné',
               ),
             ),
@@ -604,6 +609,7 @@ class _AddGearScreenState extends State<AddGearScreen> {
   // ── Dates ─────────────────────────────────────────────────────────────────
 
   Widget _buildDatesSection() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -613,14 +619,14 @@ class _AddGearScreenState extends State<AddGearScreen> {
           children: [
             Row(children: [
               Expanded(child: _DateField(
-                label: 'Rok výroby',
+                label: l10n.gearManufacturedDate,
                 value: _manufacturedDate,
                 onChanged: (d) => setState(() => _manufacturedDate = d),
                 dateFmt: _dateFmt,
               )),
               const SizedBox(width: 12),
               Expanded(child: _DateField(
-                label: 'Datum koupě',
+                label: l10n.gearPurchaseDate,
                 value: _purchaseDate,
                 onChanged: (d) => setState(() => _purchaseDate = d),
                 dateFmt: _dateFmt,
@@ -629,7 +635,7 @@ class _AddGearScreenState extends State<AddGearScreen> {
             const SizedBox(height: 12),
             DropdownButtonFormField<GearStatus>(
               value: _status,
-              decoration: const InputDecoration(labelText: 'Stav'),
+              decoration: InputDecoration(labelText: l10n.gearStatus),
               items: GearStatus.values
                   .map((s) => DropdownMenuItem(value: s, child: Text(s.label)))
                   .toList(),
@@ -644,10 +650,11 @@ class _AddGearScreenState extends State<AddGearScreen> {
   // ── Notes ─────────────────────────────────────────────────────────────────
 
   Widget _buildNotesSection() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionLabel('Poznámky'),
+        _SectionLabel(l10n.gearNotes),
         const SizedBox(height: 10),
         _Card(
           children: [
@@ -672,13 +679,14 @@ class _AddGearScreenState extends State<AddGearScreen> {
   // ── Maintenance rules ─────────────────────────────────────────────────────
 
   Widget _buildRulesSection() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _SectionLabel('Plán údržby'),
+            _SectionLabel(l10n.maintenancePlan),
             TextButton.icon(
               onPressed: () {
                 setState(() => _draftRules.add(_DraftRule(
@@ -693,7 +701,7 @@ class _AddGearScreenState extends State<AddGearScreen> {
                 );
               },
               icon: const Icon(Icons.add_rounded, size: 16),
-              label: const Text('Přidat', style: TextStyle(fontSize: 12)),
+              label: Text(l10n.add, style: const TextStyle(fontSize: 12)),
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -753,6 +761,7 @@ class _AddGearScreenState extends State<AddGearScreen> {
   // ── Bottom bar ────────────────────────────────────────────────────────────
 
   Widget _buildBottomBar() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
         color: context.isDark ? AppColors.darkCard : Colors.white,
@@ -777,7 +786,7 @@ class _AddGearScreenState extends State<AddGearScreen> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Text('Zrušit'),
+                  child: Text(l10n.cancel),
                 ),
               ),
               const SizedBox(width: 12),
@@ -800,7 +809,7 @@ class _AddGearScreenState extends State<AddGearScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : Text(_isEdit ? 'Uložit změny' : 'Uložit vybavení'),
+                      : Text(_isEdit ? l10n.save : l10n.save),
                 ),
               ),
             ],
@@ -946,12 +955,12 @@ class _MoreCategoriesSheetState extends State<_MoreCategoriesSheet> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Zrušit'),
+            child: Text(AppLocalizations.of(ctx).cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, nameCtrl.text.trim()),
             style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
-            child: const Text('Potvrdit'),
+            child: Text(AppLocalizations.of(ctx).confirm),
           ),
         ],
       ),

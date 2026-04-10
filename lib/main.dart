@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'database/db_factory.dart';
+import 'l10n/app_localizations.dart';
 import 'mock_data.dart';
 import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
@@ -15,13 +17,32 @@ import 'screens/activities_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/strava_callback_screen.dart';
 
+/// Global locale notifier – updated by SettingsScreen when the user picks a language.
+final localeNotifier = ValueNotifier<Locale>(const Locale('cs'));
+
+Future<void> _loadLocale() async {
+  final prefs = await SharedPreferences.getInstance();
+  final code = prefs.getString('app_locale') ?? 'cs';
+  localeNotifier.value = Locale(code);
+}
+
 void main() async {
   usePathUrlStrategy(); // path-based URLs on web (no #); must be first
   WidgetsFlutterBinding.ensureInitialized();
   await initDatabaseFactory();
   await MockDataSeeder.seedIfEmpty();
-  await NotificationService.instance.init();
-  await NotificationService.instance.scheduleAll();
+  await _loadLocale();
+
+  // Notifications are an optional feature – never crash the app if they fail
+  // (e.g. exact-alarm permission not granted, or platform doesn't support them)
+  try {
+    await NotificationService.instance.init();
+    await NotificationService.instance.scheduleAll();
+  } catch (e) {
+    // Silently ignore – the rest of the app works without notifications
+    debugPrint('NotificationService init/scheduleAll failed: $e');
+  }
+
   runApp(const GearTrackerApp());
 }
 
@@ -83,12 +104,18 @@ class GearTrackerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'GearTracker',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      routerConfig: _router,
+    return ValueListenableBuilder<Locale>(
+      valueListenable: localeNotifier,
+      builder: (context, locale, _) => MaterialApp.router(
+        title: 'GearTracker',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        routerConfig: _router,
+        locale: locale,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+      ),
     );
   }
 }
@@ -134,11 +161,11 @@ class _AppNavBar extends StatelessWidget {
 
   const _AppNavBar({required this.selectedIndex, required this.onTap});
 
-  static const _items = [
-    (Icons.home_outlined,         Icons.home_rounded,           'Přehled'),
-    (Icons.directions_run_outlined, Icons.directions_run_rounded, 'Aktivity'),
-    (Icons.build_outlined,        Icons.build_rounded,           'Servis'),
-    (Icons.settings_outlined,     Icons.settings_rounded,        'Nastavení'),
+  static const _icons = [
+    (Icons.home_outlined,           Icons.home_rounded),
+    (Icons.directions_run_outlined, Icons.directions_run_rounded),
+    (Icons.build_outlined,          Icons.build_rounded),
+    (Icons.settings_outlined,       Icons.settings_rounded),
   ];
 
   @override
@@ -160,8 +187,16 @@ class _AppNavBar extends StatelessWidget {
         child: SizedBox(
           height: 58,
           child: Row(
-            children: List.generate(_items.length, (i) {
-              final (inactiveIcon, activeIcon, label) = _items[i];
+            children: List.generate(_icons.length, (i) {
+              final l10n = AppLocalizations.of(context);
+              final labels = [
+                l10n.navOverview,
+                l10n.navActivities,
+                l10n.navMaintenance,
+                l10n.navSettings,
+              ];
+              final (inactiveIcon, activeIcon) = _icons[i];
+              final label = labels[i];
               final active = selectedIndex == i;
               final color = active
                   ? AppColors.primary

@@ -9,6 +9,7 @@ import '../models/gear_item.dart';
 import '../models/maintenance_rule.dart';
 import '../services/maintenance_service.dart';
 import '../services/strava_service.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../widgets/gear_card.dart';
 import '../widgets/maintenance_badge.dart';
@@ -126,6 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: Column(
         children: [
@@ -151,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // Sekce "Vyžaduje pozornost"
               if (_attentionItems.isNotEmpty) ...[
                 _SectionHeader(
-                  title: 'Vyžaduje pozornost',
+                  title: l10n.requiresAttention,
                   count: _attentionCount,
                   countColor: context.dangerColor,
                   countBgColor: context.dangerBgColor,
@@ -171,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
 
               // Sekce "Vše vybavení"
-              _SectionHeader(title: 'Vše vybavení', count: _gear.length),
+              _SectionHeader(title: l10n.myGear, count: _gear.length),
               if (_gear.isEmpty)
                 SliverToBoxAdapter(
                   child: _EmptyState(
@@ -212,6 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // ── App bar ────────────────────────────────────────────────────────────────
 
   SliverAppBar _buildAppBar() {
+    final l10n = AppLocalizations.of(context);
     return SliverAppBar(
       pinned: true,
       floating: true,
@@ -221,15 +224,15 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'Moje vybavení',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          Text(
+            l10n.myGear,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
           ),
           if (!_loading)
             Text(
               _attentionCount > 0
-                  ? '$_attentionCount upozornění'
-                  : 'Vše v pořádku',
+                  ? l10n.itemsNeedAttention(_attentionCount)
+                  : l10n.allGoodTitle,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
@@ -258,9 +261,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             icon: const Icon(Icons.add_rounded, size: 18),
-            label: const Text(
-              'Přidat',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            label: Text(
+              l10n.add,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -470,19 +473,20 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(40),
       child: Column(
         children: [
           Icon(Icons.backpack_outlined, size: 72, color: context.subtitleColor),
           const SizedBox(height: 16),
-          const Text(
-            'Zatím žádné vybavení',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          Text(
+            l10n.noGearYet,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Text(
-            'Přidej své první vybavení a začni\nsledovat jeho stav a údržbu.',
+            l10n.addFirstGear,
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: context.subtitleColor),
           ),
@@ -490,7 +494,7 @@ class _EmptyState extends StatelessWidget {
           FilledButton.icon(
             onPressed: onAdd,
             icon: const Icon(Icons.add_rounded),
-            label: const Text('Přidat vybavení'),
+            label: Text(l10n.addGear),
           ),
         ],
       ),

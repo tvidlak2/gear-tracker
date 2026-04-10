@@ -11,6 +11,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../l10n/app_localizations.dart';
 import '../services/strava_service.dart';
 import '../theme/app_theme.dart';
 
@@ -67,8 +68,9 @@ class _StravaCallbackScreenState extends State<StravaCallbackScreen> {
     // ── Strava error (e.g. user clicked "Deny") ──────────────────────────
     if (oauthError != null) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         setState(() => _errorMessage =
-            'Strava odmítla přístup: $oauthError');
+            l10n.stravaAccessDenied(oauthError));
       }
       await Future.delayed(const Duration(seconds: 3));
       if (mounted) context.go('/settings');
@@ -78,9 +80,9 @@ class _StravaCallbackScreenState extends State<StravaCallbackScreen> {
     // ── Missing code ─────────────────────────────────────────────────────
     if (code == null || code.isEmpty) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         setState(() => _errorMessage =
-            'Autorizační kód chybí. Zkus přihlášení znovu.\n'
-            'URL: ${kIsWeb ? Uri.base : "N/A"}');
+            '${l10n.stravaMissingCode}\nURL: ${kIsWeb ? Uri.base : "N/A"}');
       }
       await Future.delayed(const Duration(seconds: 4));
       if (mounted) context.go('/settings');
@@ -137,7 +139,7 @@ class _StravaCallbackScreenState extends State<StravaCallbackScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Přesměrovávám zpět do nastavení…',
+                  AppLocalizations.of(context).stravaCallbackRedirecting,
                   style: TextStyle(
                       fontSize: 13,
                       color: Theme.of(context)
@@ -147,14 +149,14 @@ class _StravaCallbackScreenState extends State<StravaCallbackScreen> {
               ] else ...[
                 const CircularProgressIndicator(color: stravaOrange),
                 const SizedBox(height: 20),
-                const Text(
-                  'Dokončuji přihlášení ke Stravě…',
-                  style:
-                      TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                Text(
+                  AppLocalizations.of(context).stravaCallbackProcessing,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Vyměňuji autorizační kód za přístupový token.',
+                  AppLocalizations.of(context).stravaCallbackExchanging,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       fontSize: 13,

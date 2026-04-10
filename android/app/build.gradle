@@ -1,17 +1,30 @@
+import java.util.Properties
+
 plugins {
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+// ── Load signing credentials from key.properties (never committed to git) ────
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withReader('UTF-8') { reader ->
+        keystoreProperties.load(reader)
+    }
+}
+
 android {
-    namespace "com.geartracker.gear_tracker"
-    compileSdk flutter.compileSdkVersion
-    ndkVersion flutter.ndkVersion
+    namespace = "com.geartracker.gear_tracker"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+        // Required by flutter_local_notifications for java.time APIs on API < 26
+        coreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -19,23 +32,42 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.geartracker.gear_tracker"
-        minSdk 21
-        targetSdk flutter.targetSdkVersion
-        versionCode flutter.versionCode
-        versionName flutter.versionName
+        applicationId = "com.geartracker.gear_tracker"
+        minSdk = flutter.minSdkVersion
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    signingConfigs {
+        release {
+            keyAlias     = keystoreProperties['keyAlias']
+            keyPassword  = keystoreProperties['keyPassword']
+            storeFile    = keystoreProperties['storeFile']
+                ? file(keystoreProperties['storeFile'])
+                : null
+            storePassword = keystoreProperties['storePassword']
+        }
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
-            minifyEnabled true
-            shrinkResources true
-            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+            signingConfig = signingConfigs.release
+            minifyEnabled = true
+            shrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
 
 flutter {
-    source "../.."
+    source = "../.."
+}
+
+dependencies {
+    // Core library desugaring – needed by flutter_local_notifications
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"
 }
