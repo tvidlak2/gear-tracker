@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,6 +8,7 @@ import '../models/category.dart';
 import '../models/gear_item.dart';
 import '../models/maintenance_rule.dart';
 import '../services/maintenance_service.dart';
+import '../services/strava_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/gear_card.dart';
 import '../widgets/maintenance_badge.dart';
@@ -43,13 +46,39 @@ class _HomeScreenState extends State<HomeScreen> {
   final _db  = DatabaseHelper.instance;
   final _svc = MaintenanceService();
 
-  List<_GearWithStats> _gear    = [];
-  bool                 _loading = true;
+  List<_GearWithStats> _gear          = [];
+  bool                 _loading       = true;
+  bool                 _stravaSyncing = false;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    StravaService.isSyncing.addListener(_onSyncStateChanged);
+    _maybeAutoSync();
+  }
+
+  @override
+  void dispose() {
+    StravaService.isSyncing.removeListener(_onSyncStateChanged);
+    super.dispose();
+  }
+
+  void _onSyncStateChanged() {
+    if (mounted) {
+      final wasSyncing = _stravaSyncing;
+      setState(() => _stravaSyncing = StravaService.isSyncing.value);
+      // Reload gear data after sync finishes to pick up new usage logs
+      if (wasSyncing && !_stravaSyncing) _loadData();
+    }
+  }
+
+  Future<void> _maybeAutoSync() async {
+    final svc = StravaService.instance;
+    if (!await svc.isConnected) return;
+    if (!await svc.isAutoSyncEnabled()) return;
+    // Fire-and-forget; isSyncing notifier drives the progress bar
+    unawaited(svc.syncAll());
   }
 
   Future<void> _loadData() async {
@@ -98,10 +127,20 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: RefreshIndicator(
-        color: AppColors.primary,
-        onRefresh: _loadData,
-        child: CustomScrollView(
+      body: Column(
+        children: [
+          // Strava sync progress indicator – shown when background sync runs
+          if (_stravaSyncing)
+            LinearProgressIndicator(
+              backgroundColor: const Color(0xFFFC4C02).withAlpha(30),
+              valueColor: const AlwaysStoppedAnimation(Color(0xFFFC4C02)),
+              minHeight: 3,
+            ),
+          Expanded(
+            child: RefreshIndicator(
+              color: AppColors.primary,
+              onRefresh: _loadData,
+              child: CustomScrollView(
           slivers: [
             _buildAppBar(),
             if (_loading)
@@ -163,6 +202,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ],
         ),
+          ),
+        ),
+        ],
       ),
     );
   }

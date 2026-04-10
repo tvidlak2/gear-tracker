@@ -34,6 +34,7 @@ class UsageLog {
   final double? distanceKm;
   final String? location;
   final UsageSource source;
+  final String? stravaActivityId;
 
   const UsageLog({
     this.id,
@@ -43,6 +44,7 @@ class UsageLog {
     this.distanceKm,
     this.location,
     this.source = UsageSource.manual,
+    this.stravaActivityId,
   });
 
   Map<String, dynamic> toMap() {
@@ -54,6 +56,7 @@ class UsageLog {
       'distance_km': distanceKm,
       'location': location,
       'source': source.value,
+      'strava_activity_id': stravaActivityId,
     };
   }
 
@@ -70,6 +73,7 @@ class UsageLog {
       source: UsageSourceExtension.fromString(
         map['source'] as String? ?? 'manual',
       ),
+      stravaActivityId: map['strava_activity_id'] as String?,
     );
   }
 
@@ -81,6 +85,7 @@ class UsageLog {
     double? distanceKm,
     String? location,
     UsageSource? source,
+    String? stravaActivityId,
   }) {
     return UsageLog(
       id: id ?? this.id,
@@ -90,6 +95,7 @@ class UsageLog {
       distanceKm: distanceKm ?? this.distanceKm,
       location: location ?? this.location,
       source: source ?? this.source,
+      stravaActivityId: stravaActivityId ?? this.stravaActivityId,
     );
   }
 

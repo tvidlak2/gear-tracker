@@ -6,7 +6,9 @@
       "Read(//c/Users/tomas/AppData/Local/flutter/bin/**)",
       "Read(//c/flutter/bin/**)",
       "WebSearch",
-      "WebFetch(domain:pub.dev)"
+      "WebFetch(domain:pub.dev)",
+      "Bash(flutter analyze:*)",
+      "Bash(flutter pub:*)"
     ]
   }
 }

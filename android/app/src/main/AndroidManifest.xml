@@ -1,5 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- ── Síť ──────────────────────────────────────────────────────────── -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- ── Média / fotky ─────────────────────────────────────────────────── -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
@@ -47,6 +50,25 @@
             ScheduledNotificationBootReceiver) automaticky přes manifest merger Gradle.
             Není třeba je uvádět ručně.
         -->
+
+        <!--
+            flutter_web_auth_2: zachytí OAuth2 redirect zpět do aplikace
+            po autentizaci na Strava (geartracker://strava-callback).
+            Redirect URI musí být zaregistrována v Strava API nastavení:
+              Authorization Callback Domain = strava-callback
+        -->
+        <activity
+            android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
+            android:exported="true">
+            <intent-filter android:label="flutter_web_auth_2">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="geartracker"
+                    android:host="strava-callback" />
+            </intent-filter>
+        </activity>
 
         <meta-data
             android:name="flutterEmbedding"

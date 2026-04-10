@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:go_router/go_router.dart';
 
 import 'database/db_factory.dart';
@@ -12,8 +13,10 @@ import 'screens/add_gear_screen.dart';
 import 'screens/maintenance_screen.dart';
 import 'screens/activities_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/strava_callback_screen.dart';
 
 void main() async {
+  usePathUrlStrategy(); // path-based URLs on web (no #); must be first
   WidgetsFlutterBinding.ensureInitialized();
   await initDatabaseFactory();
   await MockDataSeeder.seedIfEmpty();
@@ -57,6 +60,18 @@ final _router = GoRouter(
     GoRoute(
       path: '/gear/:id/usage/add',
       builder: (_, s) => AddUsageLogScreen(gearItemId: int.parse(s.pathParameters['id']!)),
+    ),
+
+    // ── Strava OAuth2 web callback ────────────────────────────────────────────
+    // Strava redirects the browser here after authorisation:
+    //   http://localhost:PORT/strava-callback?code=XXX
+    // Only used on the web platform; Android uses the geartracker:// deep link.
+    GoRoute(
+      path: '/strava-callback',
+      builder: (_, state) => StravaCallbackScreen(
+        code:        state.uri.queryParameters['code'],
+        oauthError:  state.uri.queryParameters['error'],
+      ),
     ),
   ],
 );
