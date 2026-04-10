@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -7,7 +10,10 @@ import '../models/gear_item.dart';
 import '../models/maintenance_rule.dart';
 import '../models/maintenance_log.dart';
 import '../models/usage_log.dart';
+import '../services/igc_parser.dart';
+import '../services/gpx_parser.dart';
 import '../services/maintenance_service.dart';
+import '../theme/app_theme.dart';
 import '../widgets/maintenance_badge.dart';
 
 /// Globální přehled všeho vybavení, které potřebuje servis.
@@ -553,16 +559,17 @@ class AddUsageLogScreen extends StatefulWidget {
 }
 
 class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _db = DatabaseHelper.instance;
+  final _formKey     = GlobalKey<FormState>();
+  final _db          = DatabaseHelper.instance;
 
   final _durationCtrl = TextEditingController();
   final _distanceCtrl = TextEditingController();
   final _locationCtrl = TextEditingController();
 
-  DateTime _date = DateTime.now();
-  UsageSource _source = UsageSource.manual;
-  bool _loading = false;
+  DateTime    _date    = DateTime.now();
+  UsageSource _source  = UsageSource.manual;
+  String?     _importedFileName;   // shown in the import banner
+  bool        _loading = false;
 
   static final _dateFormat = DateFormat('d. M. yyyy');
 
@@ -573,6 +580,118 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
     _locationCtrl.dispose();
     super.dispose();
   }
+
+  // ── File import ─────────────────────────────────────────────────────────
+
+  Future<void> _onSourceChanged(UsageSource? v) async {
+    if (v == null) return;
+    if (v == UsageSource.igc) {
+      setState(() => _source = v);
+      await _importIgc();
+    } else if (v == UsageSource.gpx) {
+      setState(() => _source = v);
+      await _importGpx();
+    } else {
+      setState(() {
+        _source = v;
+        _importedFileName = null;
+      });
+    }
+  }
+
+  Future<void> _importIgc() async {
+    FilePickerResult? result;
+    try {
+      result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['igc'],
+        withData: true,
+      );
+    } catch (_) {}
+
+    if (result == null || result.files.isEmpty) {
+      // Cancelled – revert source
+      setState(() { _source = UsageSource.manual; _importedFileName = null; });
+      return;
+    }
+
+    final bytes = result.files.first.bytes;
+    final name  = result.files.first.name;
+    if (bytes == null) {
+      setState(() { _source = UsageSource.manual; _importedFileName = null; });
+      return;
+    }
+
+    final content = utf8.decode(bytes, allowMalformed: true);
+    final flight  = IgcParser.parse(content);
+
+    if (flight == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nepodařilo se načíst IGC soubor.')),
+        );
+      }
+      setState(() { _source = UsageSource.manual; _importedFileName = null; });
+      return;
+    }
+
+    // Autofill fields
+    setState(() {
+      _date = flight.flightDate;
+      _durationCtrl.text = flight.durationMinutes.toString();
+      if (_locationCtrl.text.isEmpty) {
+        _locationCtrl.text = 'IGC import';
+      }
+      _importedFileName = name;
+    });
+  }
+
+  Future<void> _importGpx() async {
+    FilePickerResult? result;
+    try {
+      result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['gpx'],
+        withData: true,
+      );
+    } catch (_) {}
+
+    if (result == null || result.files.isEmpty) {
+      setState(() { _source = UsageSource.manual; _importedFileName = null; });
+      return;
+    }
+
+    final bytes = result.files.first.bytes;
+    final name  = result.files.first.name;
+    if (bytes == null) {
+      setState(() { _source = UsageSource.manual; _importedFileName = null; });
+      return;
+    }
+
+    final content  = utf8.decode(bytes, allowMalformed: true);
+    final activity = GpxParser.parse(content);
+
+    // Autofill whatever was parsed
+    setState(() {
+      if (activity.date != null) _date = activity.date!;
+      if (activity.durationMinutes != null) {
+        _durationCtrl.text = activity.durationMinutes.toString();
+      }
+      if (activity.distanceKm != null) {
+        _distanceCtrl.text =
+            activity.distanceKm!.toStringAsFixed(1);
+      }
+      if (_locationCtrl.text.isEmpty) {
+        _locationCtrl.text =
+            activity.trackName?.isNotEmpty == true
+                ? activity.trackName!
+                : 'GPX import';
+      }
+      _importedFileName = name;
+    });
+  }
+
+  // ── Save ─────────────────────────────────────────────────────────────────
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
@@ -597,6 +716,8 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
     if (mounted) context.pop();
   }
 
+  // ── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -620,32 +741,59 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // ── Import banner ─────────────────────────────────────────────
+            if (_importedFileName != null) ...[
+              _ImportBanner(
+                fileName: _importedFileName!,
+                source: _source,
+                onClear: () => setState(() {
+                  _source            = UsageSource.manual;
+                  _importedFileName  = null;
+                  _durationCtrl.clear();
+                  _distanceCtrl.clear();
+                  _locationCtrl.clear();
+                  _date = DateTime.now();
+                }),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // ── Datum ─────────────────────────────────────────────────────
             InkWell(
+              borderRadius: BorderRadius.circular(10),
               onTap: () async {
                 final picked = await showDatePicker(
                   context: context,
                   initialDate: _date,
                   firstDate: DateTime(2000),
                   lastDate: DateTime.now(),
+                  builder: (ctx, child) => Theme(
+                    data: Theme.of(ctx).copyWith(
+                      colorScheme: Theme.of(ctx)
+                          .colorScheme
+                          .copyWith(primary: AppColors.primary),
+                    ),
+                    child: child!,
+                  ),
                 );
                 if (picked != null) setState(() => _date = picked);
               },
               child: InputDecorator(
                 decoration: const InputDecoration(
                   labelText: 'Datum aktivity',
-                  border: OutlineInputBorder(),
-                  suffixIcon: Icon(Icons.calendar_today, size: 18),
+                  suffixIcon: Icon(Icons.calendar_today_outlined, size: 18),
                 ),
                 child: Text(_dateFormat.format(_date)),
               ),
             ),
             const SizedBox(height: 12),
+
+            // ── Délka ─────────────────────────────────────────────────────
             TextFormField(
               controller: _durationCtrl,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'Délka aktivity (minuty)',
-                border: OutlineInputBorder(),
+                labelText: 'Délka aktivity',
                 suffixText: 'min',
               ),
               validator: (v) {
@@ -656,13 +804,14 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
               },
             ),
             const SizedBox(height: 12),
+
+            // ── Vzdálenost ────────────────────────────────────────────────
             TextFormField(
               controller: _distanceCtrl,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
-                labelText: 'Vzdálenost (km)',
-                border: OutlineInputBorder(),
+                labelText: 'Vzdálenost',
                 suffixText: 'km',
               ),
               validator: (v) {
@@ -673,28 +822,118 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
               },
             ),
             const SizedBox(height: 12),
+
+            // ── Místo ─────────────────────────────────────────────────────
             TextFormField(
               controller: _locationCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Místo',
-                border: OutlineInputBorder(),
-              ),
+              decoration: const InputDecoration(labelText: 'Místo'),
             ),
             const SizedBox(height: 12),
+
+            // ── Zdroj ─────────────────────────────────────────────────────
             DropdownButtonFormField<UsageSource>(
               value: _source,
-              decoration: const InputDecoration(
-                labelText: 'Zdroj',
-                border: OutlineInputBorder(),
-              ),
+              decoration: const InputDecoration(labelText: 'Zdroj'),
               items: UsageSource.values
-                  .map((s) =>
-                      DropdownMenuItem(value: s, child: Text(s.label)))
+                  .map((s) => DropdownMenuItem(
+                        value: s,
+                        child: Row(children: [
+                          _sourceIcon(s),
+                          const SizedBox(width: 8),
+                          Text(s.label),
+                        ]),
+                      ))
                   .toList(),
-              onChanged: (v) => setState(() => _source = v ?? _source),
+              onChanged: _onSourceChanged,
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  static Widget _sourceIcon(UsageSource s) {
+    final (icon, color) = switch (s) {
+      UsageSource.manual => (Icons.edit_outlined,       AppColors.subtitleGray),
+      UsageSource.strava => (Icons.directions_run,      const Color(0xFFFC4C02)),
+      UsageSource.garmin => (Icons.watch_outlined,      const Color(0xFF006EBF)),
+      UsageSource.gpx    => (Icons.route_outlined,      const Color(0xFF5C6BC0)),
+      UsageSource.igc    => (Icons.flight_outlined,     const Color(0xFF00897B)),
+    };
+    return Icon(icon, size: 16, color: color);
+  }
+}
+
+// ─── Import banner ────────────────────────────────────────────────────────────
+
+class _ImportBanner extends StatelessWidget {
+  final String      fileName;
+  final UsageSource source;
+  final VoidCallback onClear;
+
+  const _ImportBanner({
+    required this.fileName,
+    required this.source,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final (color, bgColor, label) = switch (source) {
+      UsageSource.igc => (
+          const Color(0xFF00897B),
+          const Color(0xFFE0F2F1),
+          'IGC',
+        ),
+      UsageSource.gpx => (
+          const Color(0xFF5C6BC0),
+          const Color(0xFFEDE7F6),
+          'GPX',
+        ),
+      _ => (AppColors.primary, AppColors.primaryBg, 'Soubor'),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.check_circle_rounded, size: 18, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Importováno z $label',
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: color),
+                ),
+                Text(
+                  fileName,
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: color.withOpacity(0.8)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.close_rounded, size: 16, color: color),
+            onPressed: onClear,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
       ),
     );
   }

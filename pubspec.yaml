@@ -48,6 +48,9 @@ dependencies:
   # UUID pro generování ID
   uuid: ^4.4.0
 
+  # Výběr souborů (IGC import)
+  file_picker: ^8.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
