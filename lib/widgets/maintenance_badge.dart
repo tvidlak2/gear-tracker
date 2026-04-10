@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../services/maintenance_service.dart';
+import '../theme/app_theme.dart';
 
 class MaintenanceBadge extends StatelessWidget {
   final MaintenanceStatus status;
+
+  /// compact = true → malá barevná tečka (8 px)
+  /// compact = false → pill s textem (výchozí)
   final bool compact;
 
   const MaintenanceBadge({
@@ -14,37 +18,62 @@ class MaintenanceBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (icon, color, label) = switch (status) {
-      MaintenanceStatus.overdue => (Icons.warning, Colors.red, 'Servis!'),
-      MaintenanceStatus.warning => (Icons.info_outline, Colors.orange, 'Brzy'),
-      MaintenanceStatus.ok => (Icons.check_circle_outline, Colors.green, 'OK'),
+    // Přesné barvy dle design specifikace (light mode),
+    // tmavší varianty v dark mode přes SemanticColors extension.
+    final textColor = switch (status) {
+      MaintenanceStatus.overdue => context.isDark
+          ? AppColors.dangerDark
+          : const Color(0xFFA32D2D),
+      MaintenanceStatus.warning => context.isDark
+          ? AppColors.warningDark
+          : const Color(0xFF854F0B),
+      MaintenanceStatus.ok      => context.isDark
+          ? AppColors.successDark
+          : const Color(0xFF3B6D11),
+    };
+
+    final bgColor = switch (status) {
+      MaintenanceStatus.overdue => context.isDark
+          ? AppColors.dangerBgDark
+          : const Color(0xFFFCEBEB),
+      MaintenanceStatus.warning => context.isDark
+          ? AppColors.warningBgDark
+          : const Color(0xFFFAEEDA),
+      MaintenanceStatus.ok      => context.isDark
+          ? AppColors.successBgDark
+          : const Color(0xFFEAF3DE),
+    };
+
+    final label = switch (status) {
+      MaintenanceStatus.overdue => 'Po termínu',
+      MaintenanceStatus.warning => 'Brzy',
+      MaintenanceStatus.ok      => 'OK',
     };
 
     if (compact) {
-      return Icon(icon, color: color, size: 18);
+      // Malá barevná tečka – beze změny
+      return Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(color: textColor, shape: BoxShape.circle),
+      );
     }
 
+    // Pill tvar – border-radius 20px
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.4)),
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 14),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: textColor,
+          height: 1.2,
+        ),
       ),
     );
   }

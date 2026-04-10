@@ -1,10 +1,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Čtení galerie / fotek -->
+    <!-- ── Média / fotky ─────────────────────────────────────────────────── -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <!-- Pro Android < 13 -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
+
+    <!-- ── Notifikace ────────────────────────────────────────────────────── -->
+    <!-- Zobrazení notifikace (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Přesné plánování alarmu (Android 12+) – nutné pro zonedSchedule -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Udržení CPU při doručení naplánované notifikace -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Přeplánování notifikací po restartu zařízení -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:label="GearTracker"
@@ -32,6 +41,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            flutter_local_notifications přidá vlastní receivery (ScheduledNotificationReceiver,
+            ScheduledNotificationBootReceiver) automaticky přes manifest merger Gradle.
+            Není třeba je uvádět ručně.
+        -->
 
         <meta-data
             android:name="flutterEmbedding"

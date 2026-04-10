@@ -15,6 +15,14 @@ dependencies:
   sqflite_common_ffi_web: ^1.1.1   # web podpora
   path: ^1.9.0
 
+  # Push notifikace
+  flutter_local_notifications: ^17.0.0
+  timezone: ^0.9.4
+  flutter_timezone: ^1.0.4
+
+  # Uložení nastavení (toggle notifikací)
+  shared_preferences: ^2.2.3
+
   # Navigace
   go_router: ^13.2.0
 
