@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<!--
+  flutter_web_auth_2 OAuth2 callback page.
+
+  After Strava (or any OAuth provider) redirects here, this page immediately
+  posts the full current URL back to the opener Flutter window via
+  window.postMessage, then closes itself.
+
+  The opener's FlutterWebAuth2.authenticate() is listening for exactly this
+  message (checks that message starts with the callbackUrlScheme).
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Přihlašování…</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: sans-serif;
+      color: #555;
+      background: #fafafa;
+    }
+  </style>
+</head>
+<body>
+  <p>Přihlašování, prosím počkej…</p>
+  <script>
+    (function () {
+      // Post the full callback URL (including ?code=... params) back to Flutter.
+      // '*' as targetOrigin is intentional – the opener may be on a different
+      // port during development; the Flutter app validates the code server-side.
+      if (window.opener) {
+        window.opener.postMessage(window.location.href, '*');
+      }
+      window.close();
+    })();
+  </script>
+</body>
+</html>

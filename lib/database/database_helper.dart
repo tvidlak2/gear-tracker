@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -5,11 +7,12 @@ import '../models/category.dart';
 import '../models/gear_item.dart';
 import '../models/maintenance_log.dart';
 import '../models/maintenance_rule.dart';
+import '../models/strava_models.dart';
 import '../models/usage_log.dart';
 
 class DatabaseHelper {
   static const _databaseName = 'gear_tracker.db';
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
@@ -27,8 +30,27 @@ class DatabaseHelper {
       path,
       version: _databaseVersion,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
       onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
     );
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Add strava_activity_id to usage_logs
+      await db.execute(
+        'ALTER TABLE usage_logs ADD COLUMN strava_activity_id TEXT',
+      );
+      // Create gear_strava_settings table
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS gear_strava_settings (
+          gear_item_id   INTEGER PRIMARY KEY REFERENCES gear_items(id) ON DELETE CASCADE,
+          activity_types TEXT    NOT NULL DEFAULT '[]',
+          sync_enabled   INTEGER NOT NULL DEFAULT 0,
+          sync_from      TEXT
+        )
+      ''');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -84,13 +106,23 @@ class DatabaseHelper {
 
     await db.execute('''
       CREATE TABLE usage_logs (
-        id               INTEGER PRIMARY KEY AUTOINCREMENT,
-        gear_item_id     INTEGER NOT NULL REFERENCES gear_items(id) ON DELETE CASCADE,
-        date             TEXT    NOT NULL,
-        duration_minutes INTEGER,
-        distance_km      REAL,
-        location         TEXT,
-        source           TEXT    NOT NULL DEFAULT 'manual'
+        id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+        gear_item_id        INTEGER NOT NULL REFERENCES gear_items(id) ON DELETE CASCADE,
+        date                TEXT    NOT NULL,
+        duration_minutes    INTEGER,
+        distance_km         REAL,
+        location            TEXT,
+        source              TEXT    NOT NULL DEFAULT 'manual',
+        strava_activity_id  TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE gear_strava_settings (
+        gear_item_id   INTEGER PRIMARY KEY REFERENCES gear_items(id) ON DELETE CASCADE,
+        activity_types TEXT    NOT NULL DEFAULT '[]',
+        sync_enabled   INTEGER NOT NULL DEFAULT 0,
+        sync_from      TEXT
       )
     ''');
 
@@ -343,5 +375,81 @@ class DatabaseHelper {
   Future<int> deleteUsageLog(int id) async {
     final db = await database;
     return db.delete('usage_logs', where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Total number of usage logs that came from Strava (across all gear items).
+  Future<int> getTotalStravaActivityCount() async {
+    final db = await database;
+    final result = await db.rawQuery(
+      "SELECT COUNT(*) AS cnt FROM usage_logs WHERE source = 'strava'",
+    );
+    return (result.first['cnt'] as num).toInt();
+  }
+
+  // ────────────────────────── STRAVA SETTINGS ────────────────────────────────
+
+  Future<GearStravaSettings?> getGearStravaSettings(int gearItemId) async {
+    final db = await database;
+    final rows = await db.query(
+      'gear_strava_settings',
+      where: 'gear_item_id = ?',
+      whereArgs: [gearItemId],
+    );
+    if (rows.isEmpty) return null;
+    return _stravaSettingsFromRow(rows.first);
+  }
+
+  Future<void> upsertGearStravaSettings(GearStravaSettings settings) async {
+    final db = await database;
+    await db.insert(
+      'gear_strava_settings',
+      {
+        'gear_item_id':   settings.gearItemId,
+        'activity_types': jsonEncode(settings.activityTypes),
+        'sync_enabled':   settings.syncEnabled ? 1 : 0,
+        'sync_from':      settings.syncFrom?.toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  /// Returns the set of strava_activity_id values already stored for this gear.
+  Future<Set<String>> getStravaActivityIds(int gearItemId) async {
+    final db = await database;
+    final rows = await db.query(
+      'usage_logs',
+      columns: ['strava_activity_id'],
+      where: 'gear_item_id = ? AND strava_activity_id IS NOT NULL',
+      whereArgs: [gearItemId],
+    );
+    return rows
+        .map((r) => r['strava_activity_id'] as String)
+        .toSet();
+  }
+
+  /// Returns gear items that have Strava sync enabled.
+  Future<List<GearItem>> getGearItemsWithStravaSync() async {
+    final db = await database;
+    final rows = await db.rawQuery('''
+      SELECT gi.* FROM gear_items gi
+      INNER JOIN gear_strava_settings gss ON gss.gear_item_id = gi.id
+      WHERE gss.sync_enabled = 1
+    ''');
+    return rows.map(GearItem.fromMap).toList();
+  }
+
+  static GearStravaSettings _stravaSettingsFromRow(Map<String, dynamic> row) {
+    final typesJson = row['activity_types'] as String? ?? '[]';
+    final typesList = (jsonDecode(typesJson) as List<dynamic>)
+        .map((e) => e as String)
+        .toList();
+    return GearStravaSettings(
+      gearItemId:    row['gear_item_id'] as int,
+      activityTypes: typesList,
+      syncEnabled:   (row['sync_enabled'] as int) == 1,
+      syncFrom:      row['sync_from'] != null
+          ? DateTime.tryParse(row['sync_from'] as String)
+          : null,
+    );
   }
 }

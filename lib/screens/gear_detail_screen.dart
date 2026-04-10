@@ -10,9 +10,11 @@ import '../models/category.dart';
 import '../models/gear_item.dart';
 import '../models/maintenance_log.dart';
 import '../models/maintenance_rule.dart';
+import '../models/strava_models.dart';
 import '../models/usage_log.dart';
 import '../services/igc_parser.dart';
 import '../services/maintenance_service.dart';
+import '../services/strava_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/maintenance_badge.dart';
 
@@ -25,8 +27,9 @@ class GearDetailScreen extends StatefulWidget {
 }
 
 class _GearDetailScreenState extends State<GearDetailScreen> {
-  final _db  = DatabaseHelper.instance;
-  final _svc = MaintenanceService();
+  final _db        = DatabaseHelper.instance;
+  final _svc       = MaintenanceService();
+  final _stravaSvc = StravaService.instance;
 
   GearItem?                     _item;
   Category?                     _category;
@@ -37,16 +40,43 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
   double _totalKm      = 0;
   int    _usageCount   = 0;
 
+  // Strava
+  GearStravaSettings? _stravaSettings;
+  bool _stravaConnected = false;
+  bool _stravaSyncing   = false;
+
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadData(initial: true);
+    // Reload when the global Strava sync (triggered from HomeScreen) finishes
+    StravaService.isSyncing.addListener(_onGlobalSyncChanged);
   }
 
-  Future<void> _loadData() async {
-    setState(() => _loading = true);
+  @override
+  void dispose() {
+    StravaService.isSyncing.removeListener(_onGlobalSyncChanged);
+    super.dispose();
+  }
+
+  /// Called when [StravaService.isSyncing] changes.
+  /// Reloads usage data silently once the sync finishes.
+  void _onGlobalSyncChanged() {
+    if (!StravaService.isSyncing.value && mounted) {
+      _loadData();
+    }
+  }
+
+  /// Full data reload.
+  ///
+  /// [initial] = true  → shows the full-screen spinner (first open).
+  /// [initial] = false → refreshes in-place; the existing UI stays visible.
+  ///   Used for pull-to-refresh, post-sync reloads, etc.
+  Future<void> _loadData({bool initial = false}) async {
+    if (initial) setState(() => _loading = true);
+
     final item = await _db.getGearItemById(widget.gearItemId);
     if (item == null) { if (mounted) context.pop(); return; }
 
@@ -58,15 +88,56 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
     final totalKm      = await _db.getTotalDistanceKm(item.id!);
     final usageCount   = await _db.getUsageCount(item.id!);
 
+    final stravaSettings  = await _db.getGearStravaSettings(widget.gearItemId);
+    final stravaConnected = await _stravaSvc.isConnected;
+
     if (mounted) {
       setState(() {
-        _item = item;              _category = category;
+        _item = item;                  _category = category;
         _maintenanceResults = results; _maintenanceLogs = logs;
-        _usageLogs = usageLogs;    _totalMinutes = totalMinutes;
-        _totalKm = totalKm;        _usageCount = usageCount;
+        _usageLogs = usageLogs;        _totalMinutes = totalMinutes;
+        _totalKm = totalKm;            _usageCount = usageCount;
+        _stravaSettings  = stravaSettings;
+        _stravaConnected = stravaConnected;
         _loading = false;
       });
     }
+  }
+
+  // ── Strava helpers ─────────────────────────────────────────────────────────
+
+  Future<void> _saveStravaSettings(GearStravaSettings s) async {
+    await _db.upsertGearStravaSettings(s);
+    setState(() => _stravaSettings = s);
+  }
+
+  Future<void> _syncStrava() async {
+    setState(() => _stravaSyncing = true);
+    final result = await _stravaSvc.syncGear(widget.gearItemId);
+    await _loadData();
+    if (!mounted) return;
+    setState(() => _stravaSyncing = false);
+
+    final String message;
+    if (result.hasError) {
+      message = 'Chyba synchronizace: ${result.error}';
+    } else if (result.added > 0) {
+      final newestStr = result.newestActivityDate != null
+          ? DateFormat('d. M. yyyy').format(result.newestActivityDate!)
+          : null;
+      message = newestStr != null
+          ? 'Synchronizováno: ${result.added} aktivit (nejnovější: $newestStr)'
+          : 'Synchronizováno: ${result.added} aktivit';
+    } else {
+      message = 'Žádné nové aktivity.';
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   @override
@@ -84,8 +155,10 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
         : dateResults.reduce((a, b) => a.remaining < b.remaining ? a : b);
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
+      body: RefreshIndicator(
+        onRefresh: _loadData,
+        child: CustomScrollView(
+          slivers: [
           // ── Coloured header ──────────────────────────────────────────────
           _buildHeader(item, context),
 
@@ -118,7 +191,7 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
           // ── Activity history ─────────────────────────────────────────────
           SliverToBoxAdapter(
             child: _ActivityHistorySection(
-              logs: _usageLogs.take(5).toList(),
+              logs: _usageLogs,
               onAdd: () => context
                   .push('/gear/${item.id}/usage/add')
                   .then((_) => _loadData()),
@@ -126,8 +199,22 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
             ),
           ),
 
-          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+          // ── Strava sync ──────────────────────────────────────────────────
+          SliverToBoxAdapter(
+            child: _StravaGearSection(
+              connected:    _stravaConnected,
+              settings:     _stravaSettings,
+              syncing:      _stravaSyncing,
+              categoryIcon: _category?.icon,
+              onSave:       _saveStravaSettings,
+              onSync:       _syncStrava,
+              gearItemId:   item.id!,
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
+        ),
       ),
       bottomNavigationBar: _BottomActions(
         onAddActivity: () => context
@@ -674,7 +761,7 @@ class _MaintenanceRuleCard extends StatelessWidget {
 
 // ─── Activity history section ─────────────────────────────────────────────────
 
-class _ActivityHistorySection extends StatelessWidget {
+class _ActivityHistorySection extends StatefulWidget {
   final List<UsageLog> logs;
   final VoidCallback   onAdd;
   final VoidCallback   onImportIgc;
@@ -686,13 +773,27 @@ class _ActivityHistorySection extends StatelessWidget {
   });
 
   @override
+  State<_ActivityHistorySection> createState() => _ActivityHistorySectionState();
+}
+
+class _ActivityHistorySectionState extends State<_ActivityHistorySection> {
+  static const _previewCount = 5;
+  bool _showAll = false;
+
+  @override
   Widget build(BuildContext context) {
+    final logs        = widget.logs;
+    final hasMore     = logs.length > _previewCount;
+    final visibleLogs = (_showAll || !hasMore)
+        ? logs
+        : logs.take(_previewCount).toList();
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Custom header with two buttons
+          // ── Header row with IGC + Add buttons ───────────────────────────
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Row(
@@ -704,7 +805,7 @@ class _ActivityHistorySection extends StatelessWidget {
                   ),
                 ),
                 TextButton.icon(
-                  onPressed: onImportIgc,
+                  onPressed: widget.onImportIgc,
                   icon: const Icon(Icons.flight_outlined, size: 15),
                   label: const Text('IGC', style: TextStyle(fontSize: 12)),
                   style: TextButton.styleFrom(
@@ -717,7 +818,7 @@ class _ActivityHistorySection extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 TextButton.icon(
-                  onPressed: onAdd,
+                  onPressed: widget.onAdd,
                   icon: const Icon(Icons.add_rounded, size: 16),
                   label: const Text('Přidat', style: TextStyle(fontSize: 12)),
                   style: TextButton.styleFrom(
@@ -731,13 +832,38 @@ class _ActivityHistorySection extends StatelessWidget {
               ],
             ),
           ),
+
+          // ── Log rows ─────────────────────────────────────────────────────
           if (logs.isEmpty)
             _EmptyHint('Žádné záznamy o použití.')
-          else
-            ...logs.map((l) => Padding(
+          else ...[
+            ...visibleLogs.map((l) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: _ActivityRow(log: l),
                 )),
+
+            // ── "Zobrazit vše" / "Skrýt" button ─────────────────────────
+            if (hasMore)
+              Padding(
+                padding: const EdgeInsets.only(top: 4, bottom: 4),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => setState(() => _showAll = !_showAll),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                    child: Text(
+                      _showAll
+                          ? 'Skrýt'
+                          : 'Zobrazit vše (${logs.length} aktivit)',
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ],
       ),
     );
@@ -1079,6 +1205,270 @@ class _EmptyHint extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Text(text,
           style: TextStyle(color: context.subtitleColor, fontSize: 13)),
+    );
+  }
+}
+
+// ─── Strava gear section ──────────────────────────────────────────────────────
+
+class _StravaGearSection extends StatefulWidget {
+  final bool                               connected;
+  final GearStravaSettings?                settings;
+  final bool                               syncing;
+  final String?                            categoryIcon;
+  final Future<void> Function(GearStravaSettings) onSave;
+  final VoidCallback                       onSync;
+  final int                                gearItemId;
+
+  const _StravaGearSection({
+    required this.connected,
+    required this.settings,
+    required this.syncing,
+    required this.categoryIcon,
+    required this.onSave,
+    required this.onSync,
+    required this.gearItemId,
+  });
+
+  @override
+  State<_StravaGearSection> createState() => _StravaGearSectionState();
+}
+
+class _StravaGearSectionState extends State<_StravaGearSection> {
+  late List<String> _selectedTypes;
+  late bool         _syncEnabled;
+  DateTime?         _syncFrom;
+
+  static const _stravaOrange = Color(0xFFFC4C02);
+
+  @override
+  void initState() {
+    super.initState();
+    _initFromSettings();
+  }
+
+  @override
+  void didUpdateWidget(_StravaGearSection old) {
+    super.didUpdateWidget(old);
+    if (old.settings != widget.settings) _initFromSettings();
+  }
+
+  void _initFromSettings() {
+    final s = widget.settings;
+    _selectedTypes = List<String>.from(s?.activityTypes ?? []);
+    _syncEnabled   = s?.syncEnabled ?? false;
+    _syncFrom      = s?.syncFrom;
+
+    // Auto-suggest types from category if empty
+    if (_selectedTypes.isEmpty && widget.categoryIcon != null) {
+      _selectedTypes =
+          List<String>.from(StravaActivityTypes.forIcon(widget.categoryIcon!));
+    }
+  }
+
+  Future<void> _save() async {
+    await widget.onSave(GearStravaSettings(
+      gearItemId:    widget.gearItemId,
+      activityTypes: _selectedTypes,
+      syncEnabled:   _syncEnabled,
+      syncFrom:      _syncFrom,
+    ));
+  }
+
+  Future<void> _pickSyncFrom() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _syncFrom ?? DateTime.now().subtract(const Duration(days: 365)),
+      firstDate: DateTime(2010),
+      lastDate: DateTime.now(),
+      helpText: 'Synchronizovat aktivity od',
+    );
+    if (picked != null) {
+      setState(() => _syncFrom = picked);
+      _save();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section title
+          Row(
+            children: [
+              const Icon(Icons.directions_run, size: 16, color: _stravaOrange),
+              const SizedBox(width: 6),
+              const Text(
+                'Strava synchronizace',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          if (!widget.connected)
+            // Not connected → prompt
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: context.isDark ? AppColors.darkCard : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: context.cardBorderColor, width: 0.5),
+              ),
+              child: Text(
+                'Strava není připojena. Přejdi do Nastavení → Propojené služby.',
+                style: TextStyle(
+                    fontSize: 13, color: context.subtitleColor),
+              ),
+            )
+          else ...[
+            // Sync enable switch
+            Container(
+              decoration: BoxDecoration(
+                color: context.isDark ? AppColors.darkCard : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: context.cardBorderColor, width: 0.5),
+              ),
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    title: const Text(
+                      'Automatická synchronizace',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: const Text(
+                      'Importuj aktivity ze Stravy jako záznamy použití',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    value: _syncEnabled,
+                    activeColor: _stravaOrange,
+                    onChanged: (v) {
+                      setState(() => _syncEnabled = v);
+                      _save();
+                    },
+                  ),
+
+                  if (_syncEnabled) ...[
+                    const Divider(height: 0),
+
+                    // Sync from date
+                    ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.calendar_today_outlined,
+                          size: 18, color: _stravaOrange),
+                      title: const Text('Synchronizovat od',
+                          style: TextStyle(fontSize: 13)),
+                      trailing: Text(
+                        _syncFrom != null
+                            ? DateFormat('d. M. yyyy').format(_syncFrom!)
+                            : 'Vybrat datum',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: _stravaOrange,
+                        ),
+                      ),
+                      onTap: _pickSyncFrom,
+                    ),
+
+                    const Divider(height: 0),
+
+                    // Activity type chips
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Typy aktivit',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: context.subtitleColor,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: StravaActivityTypes.all.map((type) {
+                              final selected = _selectedTypes.contains(type);
+                              return FilterChip(
+                                label: Text(
+                                  StravaActivityTypes.label(type),
+                                  style: const TextStyle(fontSize: 11),
+                                ),
+                                selected: selected,
+                                selectedColor:
+                                    _stravaOrange.withOpacity(0.15),
+                                checkmarkColor: _stravaOrange,
+                                side: BorderSide(
+                                  color: selected
+                                      ? _stravaOrange
+                                      : context.cardBorderColor,
+                                ),
+                                showCheckmark: true,
+                                onSelected: (v) {
+                                  setState(() {
+                                    if (v) {
+                                      _selectedTypes.add(type);
+                                    } else {
+                                      _selectedTypes.remove(type);
+                                    }
+                                  });
+                                  _save();
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Manual sync button
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: (_syncEnabled && !widget.syncing)
+                    ? widget.onSync
+                    : null,
+                style: FilledButton.styleFrom(
+                  backgroundColor: _stravaOrange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: widget.syncing
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.sync, size: 18),
+                label: Text(
+                  widget.syncing
+                      ? 'Synchronizuji…'
+                      : 'Synchronizovat nyní',
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
