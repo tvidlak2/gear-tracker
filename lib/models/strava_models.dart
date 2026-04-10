@@ -21,24 +21,33 @@ class StravaAthlete {
 class StravaActivity {
   final int      id;
   final String   name;
-  final String   type;          // e.g. "Ride", "Run"
+  final String   type;               // e.g. "Ride", "Run"
   final DateTime startDateUtc;
-  final int      movingTimeSec; // seconds
-  final double   distanceM;     // metres
+  final int      movingTimeSec;      // seconds
+  final double   distanceM;          // metres
+  final double   totalElevationGainM; // metres (0 when not recorded)
 
-  const StravaActivity({required this.id, required this.name, required this.type,
-    required this.startDateUtc, required this.movingTimeSec, required this.distanceM});
+  const StravaActivity({
+    required this.id,
+    required this.name,
+    required this.type,
+    required this.startDateUtc,
+    required this.movingTimeSec,
+    required this.distanceM,
+    this.totalElevationGainM = 0,
+  });
 
   int    get durationMinutes => (movingTimeSec / 60).round();
   double get distanceKm      => distanceM / 1000.0;
 
   factory StravaActivity.fromJson(Map<String, dynamic> j) => StravaActivity(
-    id:            j['id']            as int,
-    name:          j['name']          as String? ?? '',
-    type:          j['type']          as String? ?? '',
-    startDateUtc:  DateTime.parse(j['start_date'] as String).toLocal(),
-    movingTimeSec: j['moving_time']   as int,
-    distanceM:     (j['distance'] as num).toDouble(),
+    id:                   j['id']            as int,
+    name:                 j['name']          as String? ?? '',
+    type:                 j['type']          as String? ?? '',
+    startDateUtc:         DateTime.parse(j['start_date'] as String).toLocal(),
+    movingTimeSec:        j['moving_time']   as int,
+    distanceM:            (j['distance'] as num).toDouble(),
+    totalElevationGainM:  (j['total_elevation_gain'] as num?)?.toDouble() ?? 0.0,
   );
 }
 

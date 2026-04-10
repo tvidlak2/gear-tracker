@@ -57,6 +57,9 @@ dependencies:
   flutter_web_auth_2: ^3.1.2
   url_launcher: ^6.3.0          # web OAuth redirect (same-tab)
 
+  # Grafy
+  fl_chart: ^0.69.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

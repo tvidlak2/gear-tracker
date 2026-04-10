@@ -12,7 +12,7 @@ import '../models/usage_log.dart';
 
 class DatabaseHelper {
   static const _databaseName = 'gear_tracker.db';
-  static const _databaseVersion = 2;
+  static const _databaseVersion = 3;
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
@@ -50,6 +50,12 @@ class DatabaseHelper {
           sync_from      TEXT
         )
       ''');
+    }
+    if (oldVersion < 3) {
+      // Add elevation_gain column to usage_logs (metres, nullable)
+      await db.execute(
+        'ALTER TABLE usage_logs ADD COLUMN elevation_gain REAL',
+      );
     }
   }
 
@@ -111,6 +117,7 @@ class DatabaseHelper {
         date                TEXT    NOT NULL,
         duration_minutes    INTEGER,
         distance_km         REAL,
+        elevation_gain      REAL,
         location            TEXT,
         source              TEXT    NOT NULL DEFAULT 'manual',
         strava_activity_id  TEXT
