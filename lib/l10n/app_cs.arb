@@ -1,0 +1,551 @@
+{
+  "@@locale": "cs",
+
+  "appTitle": "GearTracker",
+  "@appTitle": {"description": "App name"},
+
+  "navOverview": "Přehled",
+  "@navOverview": {"description": "Bottom nav: overview tab"},
+
+  "navActivities": "Aktivity",
+  "@navActivities": {"description": "Bottom nav: activities tab"},
+
+  "navMaintenance": "Servis",
+  "@navMaintenance": {"description": "Bottom nav: maintenance tab"},
+
+  "navSettings": "Nastavení",
+  "@navSettings": {"description": "Bottom nav: settings tab"},
+
+  "myGear": "Moje vybavení",
+  "@myGear": {"description": "Gear list screen title"},
+
+  "addGear": "Přidat vybavení",
+  "@addGear": {"description": "Button/FAB to add gear"},
+
+  "add": "Přidat",
+  "@add": {"description": "Generic add button"},
+
+  "edit": "Upravit",
+  "@edit": {"description": "Generic edit button"},
+
+  "delete": "Smazat",
+  "@delete": {"description": "Generic delete button"},
+
+  "save": "Uložit",
+  "@save": {"description": "Generic save button"},
+
+  "cancel": "Zrušit",
+  "@cancel": {"description": "Generic cancel button"},
+
+  "confirm": "Potvrdit",
+  "@confirm": {"description": "Generic confirm button"},
+
+  "close": "Zavřít",
+  "@close": {"description": "Generic close button"},
+
+  "retry": "Zkusit znovu",
+  "@retry": {"description": "Retry button"},
+
+  "loading": "Načítání…",
+  "@loading": {"description": "Loading indicator text"},
+
+  "noData": "Žádná data",
+  "@noData": {"description": "Empty state: no data"},
+
+  "statusActive": "Aktivní",
+  "@statusActive": {"description": "Gear status: active"},
+
+  "statusRetired": "Vyřazeno",
+  "@statusRetired": {"description": "Gear status: retired"},
+
+  "statusLost": "Ztraceno",
+  "@statusLost": {"description": "Gear status: lost"},
+
+  "gearStatus": "Stav vybavení",
+  "@gearStatus": {"description": "Label for gear status field"},
+
+  "gearName": "Název",
+  "@gearName": {"description": "Label for gear name field"},
+
+  "gearBrand": "Značka",
+  "@gearBrand": {"description": "Label for gear brand field"},
+
+  "gearModel": "Model",
+  "@gearModel": {"description": "Label for gear model field"},
+
+  "gearCategory": "Kategorie",
+  "@gearCategory": {"description": "Label for gear category field"},
+
+  "gearNotes": "Poznámky",
+  "@gearNotes": {"description": "Label for gear notes field"},
+
+  "gearSerialNumber": "Sériové číslo",
+  "@gearSerialNumber": {"description": "Label for serial number field"},
+
+  "gearPurchaseDate": "Datum koupě",
+  "@gearPurchaseDate": {"description": "Label for purchase date field"},
+
+  "gearManufacturedDate": "Datum výroby",
+  "@gearManufacturedDate": {"description": "Label for manufacture date field"},
+
+  "gearPhoto": "Fotografie",
+  "@gearPhoto": {"description": "Label for gear photo"},
+
+  "gearAge": "Stáří",
+  "@gearAge": {"description": "Label for gear age"},
+
+  "requiresAttention": "Vyžaduje pozornost",
+  "@requiresAttention": {"description": "Maintenance alert: requires attention"},
+
+  "allGoodTitle": "Vše v pořádku",
+  "@allGoodTitle": {"description": "Empty maintenance state title"},
+
+  "allGoodSubtitle": "Žádné servisní připomínky",
+  "@allGoodSubtitle": {"description": "Empty maintenance state subtitle"},
+
+  "noGearYet": "Zatím žádné vybavení",
+  "@noGearYet": {"description": "Empty gear list state"},
+
+  "addFirstGear": "Přidej své první vybavení",
+  "@addFirstGear": {"description": "Empty gear list CTA"},
+
+  "statusOverdue": "Po termínu",
+  "@statusOverdue": {"description": "Maintenance status: overdue"},
+
+  "statusWarning": "Brzy",
+  "@statusWarning": {"description": "Maintenance status: coming soon"},
+
+  "statusOk": "OK",
+  "@statusOk": {"description": "Maintenance status: OK"},
+
+  "totalHours": "Celkem hodin",
+  "@totalHours": {"description": "Stat label: total hours"},
+
+  "totalKm": "Celkem km",
+  "@totalKm": {"description": "Stat label: total km"},
+
+  "age": "Stáří",
+  "@age": {"description": "Stat label: age"},
+
+  "usageCount": "Počet použití",
+  "@usageCount": {"description": "Stat label: usage count"},
+
+  "hours": "Hodiny",
+  "@hours": {"description": "Unit label: hours"},
+
+  "km": "Km",
+  "@km": {"description": "Unit label: km"},
+
+  "elevation": "Nastoupáno",
+  "@elevation": {"description": "Stat label: elevation gained"},
+
+  "activities": "Aktivity",
+  "@activities": {"description": "Stat label: activities"},
+
+  "maintenancePlan": "Plán údržby",
+  "@maintenancePlan": {"description": "Section header: maintenance plan"},
+
+  "addMaintenanceRule": "Přidat pravidlo",
+  "@addMaintenanceRule": {"description": "Button to add maintenance rule"},
+
+  "logService": "Zapsat servis",
+  "@logService": {"description": "Button to log a service"},
+
+  "noMaintenanceRules": "Žádná pravidla údržby",
+  "@noMaintenanceRules": {"description": "Empty state: no maintenance rules"},
+
+  "addFirstRule": "Přidej první pravidlo pro sledování servisu",
+  "@addFirstRule": {"description": "Empty maintenance rules CTA"},
+
+  "triggerTypeDate": "Datum",
+  "@triggerTypeDate": {"description": "Trigger type: date"},
+
+  "triggerTypeHours": "Hodiny",
+  "@triggerTypeHours": {"description": "Trigger type: hours"},
+
+  "triggerTypeKm": "Km",
+  "@triggerTypeKm": {"description": "Trigger type: km"},
+
+  "triggerTypeCount": "Počet",
+  "@triggerTypeCount": {"description": "Trigger type: count"},
+
+  "safetyeCritical": "Bezpečnostně kritické",
+  "@safetyeCritical": {"description": "Label: safety critical checkbox"},
+
+  "warningBefore": "Varovat předem",
+  "@warningBefore": {"description": "Label: warn before due"},
+
+  "ruleName": "Název pravidla",
+  "@ruleName": {"description": "Field label: rule name"},
+
+  "triggerValue": "Hodnota",
+  "@triggerValue": {"description": "Field label: trigger value"},
+
+  "nextService": "Příští servis",
+  "@nextService": {"description": "Label: next service"},
+
+  "lastService": "Poslední servis",
+  "@lastService": {"description": "Label: last service"},
+
+  "serviceHistory": "Historie servisu",
+  "@serviceHistory": {"description": "Section header: service history"},
+
+  "noServiceHistory": "Žádná historie servisu",
+  "@noServiceHistory": {"description": "Empty state: no service history"},
+
+  "overdueBy": "Po termínu o {days} dní",
+  "@overdueBy": {
+    "description": "Overdue message with day count",
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+
+  "dueInDays": "Za {days} dní",
+  "@dueInDays": {
+    "description": "Due in N days message",
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+
+  "activityHistory": "Historie aktivit",
+  "@activityHistory": {"description": "Section header: activity history"},
+
+  "addActivity": "Přidat aktivitu",
+  "@addActivity": {"description": "Button to add activity"},
+
+  "noActivities": "Žádné záznamy o použití",
+  "@noActivities": {"description": "Empty state: no activities"},
+
+  "importIgc": "Importovat IGC",
+  "@importIgc": {"description": "Button to import IGC file"},
+
+  "showAll": "Zobrazit vše ({count} aktivit)",
+  "@showAll": {
+    "description": "Button to show all activities",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "hide": "Skrýt",
+  "@hide": {"description": "Button to hide/collapse"},
+
+  "loadMore": "Načíst více ({count} zbývá)",
+  "@loadMore": {
+    "description": "Button to load more items",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "sourceManual": "Ručně",
+  "@sourceManual": {"description": "Activity source: manual"},
+
+  "sourceStrava": "Strava",
+  "@sourceStrava": {"description": "Activity source: Strava"},
+
+  "sourceIgc": "IGC",
+  "@sourceIgc": {"description": "Activity source: IGC"},
+
+  "sourceGarmin": "Garmin",
+  "@sourceGarmin": {"description": "Activity source: Garmin"},
+
+  "sourceGpx": "GPX",
+  "@sourceGpx": {"description": "Activity source: GPX"},
+
+  "stravaSync": "Strava synchronizace",
+  "@stravaSync": {"description": "Strava sync section title"},
+
+  "stravaConnect": "Připojit Strava",
+  "@stravaConnect": {"description": "Button to connect Strava"},
+
+  "stravaDisconnect": "Odpojit",
+  "@stravaDisconnect": {"description": "Button to disconnect Strava"},
+
+  "stravaConnected": "Připojeno",
+  "@stravaConnected": {"description": "Strava connected badge"},
+
+  "stravasyncActivities": "Synchronizovat aktivity",
+  "@stravasyncActivities": {"description": "Button to sync Strava activities"},
+
+  "stravaAutoSync": "Automatická synchronizace",
+  "@stravaAutoSync": {"description": "Label: auto sync toggle"},
+
+  "stravaSyncFrom": "Synchronizovat od",
+  "@stravaSyncFrom": {"description": "Label: sync from date"},
+
+  "stravaSyncTypes": "Typy aktivit",
+  "@stravaSyncTypes": {"description": "Label: activity types to sync"},
+
+  "stravaSyncSuccess": "Synchronizováno: {count} aktivit (nejnovější: {date})",
+  "@stravaSyncSuccess": {
+    "description": "Strava sync success message",
+    "placeholders": {
+      "count": {"type": "int"},
+      "date": {"type": "String"}
+    }
+  },
+
+  "stravaSyncNoNew": "Žádné nové aktivity",
+  "@stravaSyncNoNew": {"description": "Strava sync: no new activities"},
+
+  "stravaSyncError": "Chyba synchronizace: {error}",
+  "@stravaSyncError": {
+    "description": "Strava sync error message",
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+
+  "stravaCredentials": "API přihlašovací údaje",
+  "@stravaCredentials": {"description": "Label: Strava API credentials"},
+
+  "stravaClientId": "Client ID",
+  "@stravaClientId": {"description": "Label: Strava client ID"},
+
+  "stravaClientSecret": "Client Secret",
+  "@stravaClientSecret": {"description": "Label: Strava client secret"},
+
+  "stravaSaved": "Přihlašovací údaje uloženy",
+  "@stravaSaved": {"description": "Snackbar: credentials saved"},
+
+  "connectedServices": "Propojené služby",
+  "@connectedServices": {"description": "Section header: connected services"},
+
+  "notifications": "Notifikace",
+  "@notifications": {"description": "Section header: notifications"},
+
+  "notificationsEnabled": "Notifikace zapnuty",
+  "@notificationsEnabled": {"description": "Label: notifications enabled"},
+
+  "backupExport": "Záloha a export",
+  "@backupExport": {"description": "Settings tile: backup and export"},
+
+  "exportData": "Exportovat data",
+  "@exportData": {"description": "Button to export data"},
+
+  "importData": "Importovat data",
+  "@importData": {"description": "Button to import data"},
+
+  "clearAllData": "Vymazat všechna data",
+  "@clearAllData": {"description": "Button to clear all data"},
+
+  "clearAllDataConfirm": "Opravdu chceš smazat všechna data? Tato akce je nevratná.",
+  "@clearAllDataConfirm": {"description": "Confirmation dialog: clear all data"},
+
+  "exportSuccess": "Data exportována",
+  "@exportSuccess": {"description": "Snackbar: export success"},
+
+  "importSuccess": "Data importována",
+  "@importSuccess": {"description": "Snackbar: import success"},
+
+  "dataCleared": "Všechna data smazána",
+  "@dataCleared": {"description": "Snackbar: data cleared"},
+
+  "language": "Jazyk",
+  "@language": {"description": "Settings tile: language"},
+
+  "statistics": "Statistiky",
+  "@statistics": {"description": "Screen title: statistics"},
+
+  "activityOverTime": "Aktivita v čase",
+  "@activityOverTime": {"description": "Chart label: activity over time"},
+
+  "byGear": "Podle vybavení",
+  "@byGear": {"description": "Filter label: by gear"},
+
+  "recentActivities": "Nedávné aktivity",
+  "@recentActivities": {"description": "Section header: recent activities"},
+
+  "records": "Rekordy",
+  "@records": {"description": "Section header: records"},
+
+  "longestActivity": "Nejdelší aktivita",
+  "@longestActivity": {"description": "Record label: longest activity"},
+
+  "longestDistance": "Nejdelší vzdálenost",
+  "@longestDistance": {"description": "Record label: longest distance"},
+
+  "mostActiveMonth": "Nejaktivnější měsíc",
+  "@mostActiveMonth": {"description": "Record label: most active month"},
+
+  "mostUsedGear": "Nejpoužívanější",
+  "@mostUsedGear": {"description": "Record label: most used gear"},
+
+  "gearCount": "Kusů vybavení",
+  "@gearCount": {"description": "Stat label: gear count"},
+
+  "maintenanceCount": "Servisních záznamů",
+  "@maintenanceCount": {"description": "Stat label: maintenance records"},
+
+  "filterAll": "Vše",
+  "@filterAll": {"description": "Filter chip: all"},
+
+  "timeFilter3M": "3M",
+  "@timeFilter3M": {"description": "Time filter: 3 months"},
+
+  "timeFilter6M": "6M",
+  "@timeFilter6M": {"description": "Time filter: 6 months"},
+
+  "timeFilter1Y": "1R",
+  "@timeFilter1Y": {"description": "Time filter: 1 year"},
+
+  "timeFilter2Y": "2R",
+  "@timeFilter2Y": {"description": "Time filter: 2 years"},
+
+  "timeFilterAll": "Vše",
+  "@timeFilterAll": {"description": "Time filter: all"},
+
+  "deleteGearConfirm": "Smazat {name}?",
+  "@deleteGearConfirm": {
+    "description": "Delete gear confirmation title",
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+
+  "deleteGearWarning": "Tato akce smaže vybavení a všechny záznamy.",
+  "@deleteGearWarning": {"description": "Delete gear warning text"},
+
+  "performedBy": "Provedl",
+  "@performedBy": {"description": "Field label: performed by"},
+
+  "cost": "Cena",
+  "@cost": {"description": "Field label: cost"},
+
+  "nextDueDate": "Příští termín",
+  "@nextDueDate": {"description": "Label: next due date"},
+
+  "performedDate": "Datum provedení",
+  "@performedDate": {"description": "Label: date performed"},
+
+  "notes": "Poznámky",
+  "@notes": {"description": "Field label: notes"},
+
+  "durationHours": "{h} h",
+  "@durationHours": {
+    "description": "Duration formatted as hours",
+    "placeholders": {
+      "h": {"type": "String"}
+    }
+  },
+
+  "durationMinutes": "{m} min",
+  "@durationMinutes": {
+    "description": "Duration formatted as minutes",
+    "placeholders": {
+      "m": {"type": "int"}
+    }
+  },
+
+  "distanceKm": "{km} km",
+  "@distanceKm": {
+    "description": "Distance formatted as km",
+    "placeholders": {
+      "km": {"type": "String"}
+    }
+  },
+
+  "elevationM": "↑ {m} m",
+  "@elevationM": {
+    "description": "Elevation formatted as meters",
+    "placeholders": {
+      "m": {"type": "int"}
+    }
+  },
+
+  "stravaCallbackProcessing": "Dokončuji přihlášení ke Stravě…",
+  "@stravaCallbackProcessing": {"description": "Strava callback: processing login"},
+
+  "stravaCallbackExchanging": "Vyměňuji autorizační kód za přístupový token.",
+  "@stravaCallbackExchanging": {"description": "Strava callback: exchanging code"},
+
+  "stravaCallbackRedirecting": "Přesměrovávám zpět do nastavení…",
+  "@stravaCallbackRedirecting": {"description": "Strava callback: redirecting"},
+
+  "stravaAccessDenied": "Strava odmítla přístup: {error}",
+  "@stravaAccessDenied": {
+    "description": "Strava access denied error",
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+
+  "stravaMissingCode": "Autorizační kód chybí. Zkus přihlášení znovu.",
+  "@stravaMissingCode": {"description": "Strava error: missing auth code"},
+
+  "maintenanceOverview": "Přehled servisu",
+  "@maintenanceOverview": {"description": "Screen title: maintenance overview"},
+
+  "allGear": "Vše v pořádku",
+  "@allGear": {"description": "Maintenance overview: all gear good"},
+
+  "itemsNeedAttention": "{count} položek vyžaduje pozornost",
+  "@itemsNeedAttention": {
+    "description": "Maintenance: N items need attention",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "sportClimbing": "Lezení",
+  "@sportClimbing": {"description": "Sport category: climbing"},
+
+  "sportSkiAlpinism": "Skialpinismus",
+  "@sportSkiAlpinism": {"description": "Sport category: ski alpinism"},
+
+  "sportCycling": "Cyklistika",
+  "@sportCycling": {"description": "Sport category: cycling"},
+
+  "sportParagliding": "Paragliding",
+  "@sportParagliding": {"description": "Sport category: paragliding"},
+
+  "sportGeneral": "Obecné",
+  "@sportGeneral": {"description": "Sport category: general"},
+
+  "deleteConfirmTitle": "Potvrdit smazání",
+  "@deleteConfirmTitle": {"description": "Dialog title: confirm delete"},
+
+  "yes": "Ano",
+  "@yes": {"description": "Generic yes button"},
+
+  "no": "Ne",
+  "@no": {"description": "Generic no button"},
+
+  "addGearTitle": "Nové vybavení",
+  "@addGearTitle": {"description": "Screen title: add gear"},
+
+  "editGearTitle": "Upravit vybavení",
+  "@editGearTitle": {"description": "Screen title: edit gear"},
+
+  "gearSaved": "Vybavení uloženo",
+  "@gearSaved": {"description": "Snackbar: gear saved"},
+
+  "locationLabel": "Místo",
+  "@locationLabel": {"description": "Field label: location"},
+
+  "dateLabel": "Datum",
+  "@dateLabel": {"description": "Field label: date"},
+
+  "durationLabel": "Délka",
+  "@durationLabel": {"description": "Field label: duration"},
+
+  "distanceLabel": "Vzdálenost",
+  "@distanceLabel": {"description": "Field label: distance"},
+
+  "notificationsDisabled": "Notifikace vypnuty",
+  "@notificationsDisabled": {"description": "Snackbar: notifications disabled"},
+
+  "stravaSyncedCount": "Synchronizováno {count} aktivit",
+  "@stravaSyncedCount": {
+    "description": "Strava: N activities synced",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "stravaSyncedNone": "Žádné synchronizované aktivity",
+  "@stravaSyncedNone": {"description": "Strava: no activities synced yet"}
+}

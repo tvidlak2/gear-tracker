@@ -11,8 +11,11 @@
     <!-- ── Notifikace ────────────────────────────────────────────────────── -->
     <!-- Zobrazení notifikace (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Přesné plánování alarmu (Android 12+) – nutné pro zonedSchedule -->
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Přesné plánování alarmu (Android 12, API 31-32) – vyžaduje souhlas uživatele -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
+    <!-- Přesné plánování alarmu (Android 13+, API 33+) – automaticky uděleno -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <!-- Udržení CPU při doručení naplánované notifikace -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Přeplánování notifikací po restartu zařízení -->

@@ -19,6 +19,7 @@ android/app/profile/
 android/app/release/
 android/key.jks
 android/key.properties
+android/app/gear-tracker.keystore
 
 # Assets generované při buildu
 assets/icons/

@@ -8,7 +8,21 @@
       "WebSearch",
       "WebFetch(domain:pub.dev)",
       "Bash(flutter analyze:*)",
-      "Bash(flutter pub:*)"
+      "Bash(flutter pub:*)",
+      "Bash(python -c \"import PIL; print\\('PIL ok'\\)\")",
+      "Bash(python -c \"from PIL import Image, ImageDraw; print\\('Pillow ok'\\)\")",
+      "Bash(py --version)",
+      "Bash(dart --version)",
+      "Bash(dart run:*)",
+      "Bash(python -c ':*)",
+      "Bash(powershell -Command ':*)",
+      "Bash(keytool -genkey -v -keystore android/app/gear-tracker.keystore -alias gear-tracker -keyalg RSA -keysize 2048 -validity 10000 -storepass \"AsYL3M480NDtg-RP2zx78U!DAT\" -keypass \"UriwX2@_z6TVHc1jFSWB6sG3iM\" -dname \"CN=Tomas Vidlak, O=GearTracker, L=Brno, C=CZ\")",
+      "Bash(powershell -Command 'Get-Command keytool -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source; $env:JAVA_HOME; where.exe keytool 2>&1')",
+      "Bash(powershell -Command \"Get-ChildItem 'C:\\\\Program Files\\\\Java' -Recurse -Filter 'keytool.exe' -ErrorAction SilentlyContinue | Select-Object -First 3 FullName; Get-ChildItem 'C:\\\\Program Files\\\\Android' -Recurse -Filter 'keytool.exe' -ErrorAction SilentlyContinue | Select-Object -First 3 FullName\")",
+      "Bash(\"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\\\\bin\\\\keytool.exe\" -genkey -v -keystore android/app/gear-tracker.keystore -alias gear-tracker -keyalg RSA -keysize 2048 -validity 10000 -storepass \"AsYL3M480NDtg-RP2zx78U!DAT\" -keypass \"UriwX2@_z6TVHc1jFSWB6sG3iM\" -dname \"CN=Tomas Vidlak, O=GearTracker, L=Brno, C=CZ\")",
+      "Bash(flutter build:*)",
+      "Bash(flutter doctor:*)",
+      "Bash(\"C:/Program Files/Android/Android Studio/jbr/bin/keytool.exe\" -printcert -jarfile \"C:/Users/tomas/gear-tracker/.claude/worktrees/friendly-jackson/build/app/outputs/bundle/release/app-release.aab\")"
     ]
   }
 }

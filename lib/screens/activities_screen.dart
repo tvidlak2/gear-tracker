@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../database/database_helper.dart';
+import '../l10n/app_localizations.dart';
 import '../models/category.dart';
 import '../models/gear_item.dart';
 import '../models/maintenance_log.dart';
@@ -381,8 +382,9 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Statistiky')),
+      appBar: AppBar(title: Text(l10n.statistics)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -524,6 +526,7 @@ class _SummaryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       children: [
         _Row3(cards: [
@@ -531,19 +534,19 @@ class _SummaryGrid extends StatelessWidget {
             icon:      Icons.schedule_rounded,
             iconColor: AppColors.primary,
             value:     _fmtH(totalHours),
-            label:     'Celkem hodin',
+            label:     l10n.totalHours,
           ),
           _StatCard(
             icon:      Icons.route_rounded,
             iconColor: const Color(0xFF42A5F5),
             value:     _fmtKm(totalKm),
-            label:     'Celkem km',
+            label:     l10n.totalKm,
           ),
           _StatCard(
             icon:      Icons.trending_up_rounded,
             iconColor: const Color(0xFFFF7043),
             value:     _fmtElev(totalElevM),
-            label:     'Nastoupáno',
+            label:     l10n.elevation,
           ),
         ]),
         const SizedBox(height: 10),
@@ -552,19 +555,19 @@ class _SummaryGrid extends StatelessWidget {
             icon:      Icons.directions_run_rounded,
             iconColor: const Color(0xFF26A69A),
             value:     '$activityCount',
-            label:     'Aktivit',
+            label:     l10n.activities,
           ),
           _StatCard(
             icon:      Icons.inventory_2_outlined,
             iconColor: const Color(0xFFAB47BC),
             value:     '$gearCount',
-            label:     'Vybavení',
+            label:     l10n.gearCount,
           ),
           _StatCard(
             icon:      Icons.build_outlined,
             iconColor: AppColors.warning,
             value:     '$maintenanceCount',
-            label:     'Servisy',
+            label:     l10n.maintenanceCount,
           ),
         ]),
       ],
@@ -740,15 +743,15 @@ class _ChartSectionState extends State<_ChartSection> {
               padding: const EdgeInsets.only(left: 4, right: 4),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Aktivita v čase',
-                      style: TextStyle(
+                      AppLocalizations.of(context).activityOverTime,
+                      style: const TextStyle(
                           fontSize: 15, fontWeight: FontWeight.w700),
                     ),
                   ),
                   _TogglePill(
-                    options:  const ['Hodiny', 'Km'],
+                    options:  [AppLocalizations.of(context).hours, AppLocalizations.of(context).km],
                     selected: showHours ? 0 : 1,
                     onChanged: (i) =>
                         setState(() => _showHours = i == 0),
@@ -951,7 +954,7 @@ class _GearRankingSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionHeader(title: 'Podle vybavení'),
+          _SectionHeader(title: AppLocalizations.of(context).byGear),
           const SizedBox(height: 12),
           Container(
             decoration: BoxDecoration(
@@ -1038,7 +1041,7 @@ class _GearStatRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      '${stat.count} aktivit',
+                      '${stat.count} ${AppLocalizations.of(context).activities}',
                       style: TextStyle(
                           fontSize: 11, color: context.subtitleColor),
                     ),
@@ -1091,6 +1094,7 @@ class _RecordsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final byDur = entries
         .where((e) => e.log.durationMinutes != null)
         .toList()
@@ -1139,13 +1143,13 @@ class _RecordsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionHeader(title: 'Rekordy'),
+          _SectionHeader(title: l10n.records),
           const SizedBox(height: 12),
           Row(children: [
             Expanded(
               child: card(
                 Icons.timer_outlined, AppColors.primary,
-                'Nejdelší aktivita',
+                l10n.longestActivity,
                 byDur.isNotEmpty
                     ? _fmtDuration(byDur.first.log.durationMinutes!)
                     : '–',
@@ -1156,7 +1160,7 @@ class _RecordsSection extends StatelessWidget {
             Expanded(
               child: card(
                 Icons.route_rounded, const Color(0xFF42A5F5),
-                'Nejdelší vzdálenost',
+                l10n.longestDistance,
                 byKm.isNotEmpty
                     ? '${byKm.first.log.distanceKm!.toStringAsFixed(1)} km'
                     : '–',
@@ -1169,8 +1173,8 @@ class _RecordsSection extends StatelessWidget {
             Expanded(
               child: card(
                 Icons.calendar_month_outlined, const Color(0xFF26A69A),
-                'Nejaktivnější měsíc',
-                bestMonthKey != null ? '$bestMonthCount aktivit' : '–',
+                l10n.mostActiveMonth,
+                bestMonthKey != null ? '$bestMonthCount ${l10n.activities}' : '–',
                 bestMonthKey != null ? fmtMonth(bestMonthKey!) : null,
               ),
             ),
@@ -1178,7 +1182,7 @@ class _RecordsSection extends StatelessWidget {
             Expanded(
               child: card(
                 Icons.star_outline_rounded, AppColors.warning,
-                'Nejpoužívanější',
+                l10n.mostUsedGear,
                 topGear != null
                     ? '${topGear.totalHours.toStringAsFixed(0)} h'
                     : '–',
@@ -1284,7 +1288,7 @@ class _RecentSectionState extends State<_RecentSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionHeader(title: 'Nedávné aktivity'),
+          _SectionHeader(title: AppLocalizations.of(context).recentActivities),
           const SizedBox(height: 10),
 
           // ── Sport filter chips ──────────────────────────────────────
@@ -1294,7 +1298,7 @@ class _RecentSectionState extends State<_RecentSection> {
               child: Row(
                 children: [
                   _SportFilterChip(
-                    label:    'Vše',
+                    label:    AppLocalizations.of(context).filterAll,
                     selected: _filterSport == null,
                     onTap:    () => setState(() {
                       _filterSport  = null;
@@ -1330,7 +1334,7 @@ class _RecentSectionState extends State<_RecentSection> {
                 border:       Border.all(
                     color: context.cardBorderColor, width: 0.5),
               ),
-              child: Text('Žádné aktivity.',
+              child: Text(AppLocalizations.of(context).noActivities,
                   style: TextStyle(color: context.subtitleColor)),
             )
           else
@@ -1358,8 +1362,7 @@ class _RecentSectionState extends State<_RecentSection> {
                         foregroundColor: AppColors.primary,
                       ),
                       child: Text(
-                        'Načíst více '
-                        '(${filtered.length - _visibleCount} zbývá)',
+                        AppLocalizations.of(context).loadMore(filtered.length - _visibleCount),
                       ),
                     ),
                   ],
@@ -1377,17 +1380,18 @@ class _RecentRow extends StatelessWidget {
   static final _dateFmt = DateFormat('d. M.');
   const _RecentRow({required this.entry});
 
-  static (String, Color) _sourceBadge(UsageSource source) =>
+  (String, Color) _sourceBadge(UsageSource source, AppLocalizations l10n) =>
       switch (source) {
-        UsageSource.strava => ('Strava', const Color(0xFFFC4C02)),
-        UsageSource.igc    => ('IGC',    const Color(0xFF1976D2)),
-        UsageSource.garmin => ('Garmin', AppColors.primary),
-        UsageSource.gpx    => ('GPX',    AppColors.primary),
-        _                  => ('Ručně',  AppColors.subtitleGray),
+        UsageSource.strava => (l10n.sourceStrava, const Color(0xFFFC4C02)),
+        UsageSource.igc    => (l10n.sourceIgc,    const Color(0xFF1976D2)),
+        UsageSource.garmin => (l10n.sourceGarmin, AppColors.primary),
+        UsageSource.gpx    => (l10n.sourceGpx,    AppColors.primary),
+        _                  => (l10n.sourceManual,  AppColors.subtitleGray),
       };
 
   @override
   Widget build(BuildContext context) {
+    final l10n  = AppLocalizations.of(context);
     final l     = entry.log;
     final color = _sportColor(entry.sport);
 
@@ -1406,7 +1410,7 @@ class _RecentRow extends StatelessWidget {
       if (l.location != null && l.location!.isNotEmpty) l.location!,
     ];
 
-    final badge = _sourceBadge(l.source);
+    final badge = _sourceBadge(l.source, l10n);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
