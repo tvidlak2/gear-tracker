@@ -10,7 +10,9 @@ import '../l10n/app_localizations.dart';
 import '../main.dart' show localeNotifier;
 import '../models/strava_models.dart';
 import '../services/notification_service.dart';
+import '../services/purchase_service.dart';
 import '../services/strava_service.dart';
+import 'paywall_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -26,6 +28,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   bool _notificationsEnabled = false;
   bool _notifLoading = true;
+
+  // Premium state
+  bool _isPremium       = false;
+  bool _premiumLoading  = true;
 
   // Language state
   String _currentLocale = 'cs';
@@ -56,6 +62,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _loadNotificationState();
     _loadStravaState();
     _loadLocale();
+    _loadPremiumState();
+  }
+
+  Future<void> _loadPremiumState() async {
+    final premium = await PurchaseService.instance.isPremium();
+    if (mounted) setState(() { _isPremium = premium; _premiumLoading = false; });
   }
 
   Future<void> _loadLocale() async {
@@ -448,6 +460,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(title: Text(l10n.navSettings)),
       body: ListView(
         children: [
+          // ── Premium banner / badge ───────────────────────────────────────
+          if (!_premiumLoading)
+            _isPremium
+                ? const _PremiumBadgeTile()
+                : _UpgradeBannerTile(
+                    onTap: () async {
+                      final unlocked = await Navigator.of(context).push<bool>(
+                        MaterialPageRoute(
+                          fullscreenDialog: true,
+                          builder: (_) => const PaywallScreen(),
+                        ),
+                      );
+                      if (unlocked == true) _loadPremiumState();
+                    },
+                  ),
+
           // ── Sekce: Aplikace ─────────────────────────────────────────────
           _SectionHeader('Aplikace'),
           _SettingsTile(
@@ -1018,6 +1046,161 @@ class _ConnectedBadge extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Premium badge tile (shown when user has Premium) ─────────────────────────
+
+class _PremiumBadgeTile extends StatelessWidget {
+  const _PremiumBadgeTile();
+
+  static const _kGold = Color(0xFFD4AF37);
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF2C2500), const Color(0xFF1A1600)]
+              : [const Color(0xFFFFF8E1), const Color(0xFFFFF3CD)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _kGold.withAlpha(130)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: _kGold.withAlpha(30),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Text('👑', style: TextStyle(fontSize: 20)),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Premium ⭐',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                    color: Color(0xFF8B6914),
+                  ),
+                ),
+                Text(
+                  'Máš odemknuté všechny funkce',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: const Color(0xFF8B6914).withAlpha(180),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.check_circle_rounded, color: _kGold),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Upgrade banner tile (shown for free users) ───────────────────────────────
+
+class _UpgradeBannerTile extends StatelessWidget {
+  final VoidCallback onTap;
+  const _UpgradeBannerTile({required this.onTap});
+
+  static const _kGold = Color(0xFFD4AF37);
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark
+                ? [const Color(0xFF2C2500), const Color(0xFF1A1600)]
+                : [const Color(0xFFFFF8E1), const Color(0xFFFEECB0)],
+          ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _kGold.withAlpha(150)),
+          boxShadow: [
+            BoxShadow(
+              color: _kGold.withAlpha(30),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _kGold.withAlpha(40),
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Text('👑', style: TextStyle(fontSize: 20)),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Upgradovat na Premium',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                      color: Color(0xFF7A5C00),
+                    ),
+                  ),
+                  Text(
+                    'Neomezené vybavení, celá historie aktivit a více',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: const Color(0xFF7A5C00).withAlpha(180),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: _kGold,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'Upgrade',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

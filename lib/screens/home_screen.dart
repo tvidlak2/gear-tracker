@@ -8,11 +8,13 @@ import '../models/category.dart';
 import '../models/gear_item.dart';
 import '../models/maintenance_rule.dart';
 import '../services/maintenance_service.dart';
+import '../services/purchase_service.dart';
 import '../services/strava_service.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../widgets/gear_card.dart';
 import '../widgets/maintenance_badge.dart';
+import 'paywall_screen.dart';
 
 // ─── View model ───────────────────────────────────────────────────────────────
 
@@ -107,6 +109,32 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     if (mounted) setState(() { _gear = gear; _loading = false; });
+  }
+
+  /// Navigates to Add Gear, but shows paywall if free limit is reached.
+  Future<void> _addGearWithPremiumCheck() async {
+    final isPremium = await PurchaseService.instance.isPremium();
+    if (!mounted) return;
+
+    if (!isPremium && _gear.length >= FreeLimit.maxGear) {
+      final unlocked = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => const PaywallScreen(
+            contextMessage:
+                'Bezplatná verze umožňuje přidat max. ${FreeLimit.maxGear} kusů vybavení.',
+          ),
+        ),
+      );
+      if (unlocked == true) {
+        // Reload and then open Add Gear
+        await _loadData();
+        if (mounted) context.push('/gear/add').then((_) => _loadData());
+      }
+      return;
+    }
+
+    context.push('/gear/add').then((_) => _loadData());
   }
 
   static MaintenanceStatus _worstOf(List<MaintenanceStatusResult> r) {
@@ -250,7 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Padding(
           padding: const EdgeInsets.only(right: 12),
           child: FilledButton.icon(
-            onPressed: () => context.push('/gear/add').then((_) => _loadData()),
+            onPressed: () => _addGearWithPremiumCheck(),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,

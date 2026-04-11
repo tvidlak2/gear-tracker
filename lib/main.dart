@@ -7,6 +7,7 @@ import 'database/db_factory.dart';
 import 'l10n/app_localizations.dart';
 import 'mock_data.dart';
 import 'services/notification_service.dart';
+import 'services/purchase_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/gear_list_screen.dart';
@@ -15,6 +16,7 @@ import 'screens/add_gear_screen.dart';
 import 'screens/maintenance_screen.dart';
 import 'screens/activities_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/paywall_screen.dart';
 import 'screens/strava_callback_screen.dart';
 
 /// Global locale notifier – updated by SettingsScreen when the user picks a language.
@@ -32,6 +34,13 @@ void main() async {
   await initDatabaseFactory();
   await MockDataSeeder.seedIfEmpty();
   await _loadLocale();
+
+  // RevenueCat – initialize before runApp so isPremium() works immediately
+  try {
+    await PurchaseService.instance.init();
+  } catch (e) {
+    debugPrint('PurchaseService init failed (non-fatal): $e');
+  }
 
   // Notifications are an optional feature – never crash the app if they fail
   // (e.g. exact-alarm permission not granted, or platform doesn't support them)
@@ -81,6 +90,14 @@ final _router = GoRouter(
     GoRoute(
       path: '/gear/:id/usage/add',
       builder: (_, s) => AddUsageLogScreen(gearItemId: int.parse(s.pathParameters['id']!)),
+    ),
+
+    // ── Premium paywall ───────────────────────────────────────────────────────
+    GoRoute(
+      path: '/paywall',
+      builder: (_, state) => PaywallScreen(
+        contextMessage: state.uri.queryParameters['msg'],
+      ),
     ),
 
     // ── Strava OAuth2 web callback ────────────────────────────────────────────

@@ -10,7 +10,9 @@ import '../models/category.dart';
 import '../models/gear_item.dart';
 import '../models/maintenance_log.dart';
 import '../models/usage_log.dart';
+import '../services/purchase_service.dart';
 import '../theme/app_theme.dart';
+import 'paywall_screen.dart';
 
 // ─── Time filter ──────────────────────────────────────────────────────────────
 
@@ -126,7 +128,8 @@ class ActivitiesScreen extends StatefulWidget {
 
 class _ActivitiesScreenState extends State<ActivitiesScreen> {
   final _db = DatabaseHelper.instance;
-  bool _loading = true;
+  bool _loading    = true;
+  bool _isPremium  = false;
 
   // ── Raw data (loaded once from DB) ───────────────────────────────────────
   List<UsageLog>       _allLogs      = [];
@@ -173,15 +176,29 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
       _db.getGearItems(),
       _db.getCategories(),
       _db.getMaintenanceLogs(),
+      PurchaseService.instance.isPremium(),
     ]);
 
     _allLogs      = results[0] as List<UsageLog>;
     _allGear      = results[1] as List<GearItem>;
     _allCats      = results[2] as List<Category>;
     _allMaintLogs = results[3] as List<MaintenanceLog>;
+    _isPremium    = results[4] as bool;
 
     _loading = false;
     _rebuildStats();  // calls setState
+  }
+
+  Future<void> _openPaywall() async {
+    final unlocked = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => const PaywallScreen(
+          contextMessage: 'Odemkni celou historii aktivit a pokročilé statistiky.',
+        ),
+      ),
+    );
+    if (unlocked == true) _loadData();
   }
 
   /// Recomputes all derived stats from raw data + current filter.
@@ -190,10 +207,20 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
     final now    = DateTime.now();
     final cutoff = _filter.cutoff(now);
 
+    // Free users: activities older than 90 days are hidden from stats
+    final freeCutoff = _isPremium
+        ? null
+        : now.subtract(const Duration(days: FreeLimit.activityHistoryDays));
+
     // Filter logs by date
     final logs = cutoff == null
-        ? _allLogs
-        : _allLogs.where((l) => !l.date.isBefore(cutoff)).toList();
+        ? (_isPremium
+            ? _allLogs
+            : _allLogs.where((l) => !l.date.isBefore(freeCutoff!)).toList())
+        : _allLogs.where((l) {
+            if (!_isPremium && freeCutoff != null && l.date.isBefore(freeCutoff)) return false;
+            return !l.date.isBefore(cutoff);
+          }).toList();
 
     // Lookup maps
     final catMap  = {for (final c in _allCats) c.id!: c};
@@ -391,6 +418,12 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
               onRefresh: _loadData,
               child: CustomScrollView(
                 slivers: [
+                  // ── Free plan: 90-day limit banner ────────────────────
+                  if (!_isPremium)
+                    SliverToBoxAdapter(
+                      child: _FreeLimitBanner(onUpgrade: _openPaywall),
+                    ),
+
                   // ── 6 summary cards ───────────────────────────────────
                   SliverToBoxAdapter(
                     child: Padding(
@@ -420,13 +453,19 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                     ),
                   ),
 
-                  // ── Bar chart ──────────────────────────────────────────
+                  // ── Bar chart (Premium gate for full history) ──────────
                   SliverToBoxAdapter(
-                    child: _ChartSection(
-                      chartBars:    _chartBars,
-                      activeSports: _activeSports,
-                      useWeeks:     _useWeeks,
-                      barWidth:     _barWidth,
+                    child: PremiumGate(
+                      isPremium: _isPremium,
+                      contextMessage:
+                          'Odemkni pokročilé grafy a celou historii aktivit.',
+                      onUnlocked: _loadData,
+                      child: _ChartSection(
+                        chartBars:    _chartBars,
+                        activeSports: _activeSports,
+                        useWeeks:     _useWeeks,
+                        barWidth:     _barWidth,
+                      ),
                     ),
                   ),
 
@@ -457,6 +496,75 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                 ],
               ),
             ),
+    );
+  }
+}
+
+// ─── Time filter bar ──────────────────────────────────────────────────────────
+
+// ─── Free limit banner ────────────────────────────────────────────────────────
+
+class _FreeLimitBanner extends StatelessWidget {
+  final VoidCallback onUpgrade;
+  const _FreeLimitBanner({required this.onUpgrade});
+
+  static const _kGold = Color(0xFFD4AF37);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onUpgrade,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFFF8E1), Color(0xFFFFF3CD)],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _kGold.withAlpha(120)),
+        ),
+        child: Row(
+          children: [
+            const Text('👑', style: TextStyle(fontSize: 18)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Bezplatná verze: pouze posledních 90 dní',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      color: Color(0xFF5D4A00),
+                    ),
+                  ),
+                  const Text(
+                    'Upgrade pro celou historii aktivit',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF7A6010)),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: _kGold,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'Upgrade',
+                style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    color: Colors.black),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
