@@ -50,6 +50,9 @@ dependencies:
   # UUID pro generování ID
   uuid: ^4.4.0
 
+  # Trvalé úložiště fotek
+  path_provider: ^2.1.4
+
   # Výběr souborů (IGC import)
   file_picker: ^8.1.2
 
@@ -63,6 +66,14 @@ dependencies:
   fl_chart: ^0.69.0
   purchases_flutter: ^9.16.1
   purchases_ui_flutter: ^9.16.1
+
+  # Google Drive záloha
+  google_sign_in: ^6.2.0
+  googleapis: ^12.0.0
+  archive: ^3.6.1
+
+  # Home screen widgets
+  home_widget: ^0.6.0
 
 dev_dependencies:
   flutter_test:

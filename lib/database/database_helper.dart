@@ -12,7 +12,7 @@ import '../models/usage_log.dart';
 
 class DatabaseHelper {
   static const _databaseName = 'gear_tracker.db';
-  static const _databaseVersion = 3;
+  static const _databaseVersion = 5;
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
@@ -57,6 +57,41 @@ class DatabaseHelper {
         'ALTER TABLE usage_logs ADD COLUMN elevation_gain REAL',
       );
     }
+    if (oldVersion < 4) {
+      // Add photo_path to maintenance_logs
+      await db.execute(
+        'ALTER TABLE maintenance_logs ADD COLUMN photo_path TEXT',
+      );
+    }
+    if (oldVersion < 5) {
+      // Add warranty columns to gear_items
+      await db.execute(
+        'ALTER TABLE gear_items ADD COLUMN warranty_expiry_date TEXT',
+      );
+      await db.execute(
+        'ALTER TABLE gear_items ADD COLUMN warranty_notes TEXT',
+      );
+      await db.execute(
+        'ALTER TABLE gear_items ADD COLUMN warranty_photo_path TEXT',
+      );
+      // Create insurances table
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS insurances (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          type TEXT NOT NULL,
+          insurance_company TEXT NOT NULL,
+          policy_number TEXT NOT NULL,
+          start_date TEXT NOT NULL,
+          expiry_date TEXT NOT NULL,
+          annual_premium REAL,
+          coverage_amount REAL,
+          notes TEXT,
+          photo_path TEXT,
+          gear_item_ids TEXT
+        )
+      ''');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -71,17 +106,20 @@ class DatabaseHelper {
 
     await db.execute('''
       CREATE TABLE gear_items (
-        id                INTEGER PRIMARY KEY AUTOINCREMENT,
-        name              TEXT    NOT NULL,
-        category_id       INTEGER NOT NULL REFERENCES categories(id),
-        brand             TEXT,
-        model             TEXT,
-        serial_number     TEXT,
-        manufactured_date TEXT,
-        purchase_date     TEXT,
-        status            TEXT    NOT NULL DEFAULT 'active',
-        notes             TEXT,
-        photo_path        TEXT
+        id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+        name                 TEXT    NOT NULL,
+        category_id          INTEGER NOT NULL REFERENCES categories(id),
+        brand                TEXT,
+        model                TEXT,
+        serial_number        TEXT,
+        manufactured_date    TEXT,
+        purchase_date        TEXT,
+        status               TEXT    NOT NULL DEFAULT 'active',
+        notes                TEXT,
+        photo_path           TEXT,
+        warranty_expiry_date TEXT,
+        warranty_notes       TEXT,
+        warranty_photo_path  TEXT
       )
     ''');
 
@@ -106,7 +144,8 @@ class DatabaseHelper {
         performed_by   TEXT,
         cost           REAL,
         notes          TEXT,
-        next_due_date  TEXT
+        next_due_date  TEXT,
+        photo_path     TEXT
       )
     ''');
 
@@ -130,6 +169,23 @@ class DatabaseHelper {
         activity_types TEXT    NOT NULL DEFAULT '[]',
         sync_enabled   INTEGER NOT NULL DEFAULT 0,
         sync_from      TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE insurances (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        insurance_company TEXT NOT NULL,
+        policy_number TEXT NOT NULL,
+        start_date TEXT NOT NULL,
+        expiry_date TEXT NOT NULL,
+        annual_premium REAL,
+        coverage_amount REAL,
+        notes TEXT,
+        photo_path TEXT,
+        gear_item_ids TEXT
       )
     ''');
 

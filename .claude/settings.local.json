@@ -22,7 +22,8 @@
       "Bash(\"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\\\\bin\\\\keytool.exe\" -genkey -v -keystore android/app/gear-tracker.keystore -alias gear-tracker -keyalg RSA -keysize 2048 -validity 10000 -storepass \"AsYL3M480NDtg-RP2zx78U!DAT\" -keypass \"UriwX2@_z6TVHc1jFSWB6sG3iM\" -dname \"CN=Tomas Vidlak, O=GearTracker, L=Brno, C=CZ\")",
       "Bash(flutter build:*)",
       "Bash(flutter doctor:*)",
-      "Bash(\"C:/Program Files/Android/Android Studio/jbr/bin/keytool.exe\" -printcert -jarfile \"C:/Users/tomas/gear-tracker/.claude/worktrees/friendly-jackson/build/app/outputs/bundle/release/app-release.aab\")"
+      "Bash(\"C:/Program Files/Android/Android Studio/jbr/bin/keytool.exe\" -printcert -jarfile \"C:/Users/tomas/gear-tracker/.claude/worktrees/friendly-jackson/build/app/outputs/bundle/release/app-release.aab\")",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }

@@ -2,16 +2,21 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../database/database_helper.dart';
 import '../l10n/app_localizations.dart';
 import '../main.dart' show localeNotifier;
 import '../models/strava_models.dart';
+import '../services/backup_service.dart';
 import '../services/notification_service.dart';
 import '../services/purchase_service.dart';
 import '../services/strava_service.dart';
+import '../services/widget_service.dart';
 import 'paywall_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -46,6 +51,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ('it', '🇮🇹', 'Italiano'),
   ];
 
+  // Backup state
+  final _backupSvc = BackupService.instance;
+  GoogleSignInAccount? _googleAccount;
+  bool   _backupLoading    = false;
+  bool   _restoreLoading   = false;
+  bool   _autoBackup       = false;
+  String? _lastBackupDate;
+  String? _backupError;
+
   // Strava state
   bool           _stravaConnected = false;
   bool           _stravaLoading   = true;
@@ -63,11 +77,90 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _loadStravaState();
     _loadLocale();
     _loadPremiumState();
+    _loadBackupState();
   }
 
   Future<void> _loadPremiumState() async {
     final premium = await PurchaseService.instance.isPremium();
     if (mounted) setState(() { _isPremium = premium; _premiumLoading = false; });
+  }
+
+  Future<void> _loadBackupState() async {
+    final lastDate  = await _backupSvc.getLastBackupDate();
+    final autoOn    = await _backupSvc.isAutoBackupEnabled();
+    // Try to restore sign-in silently
+    await _backupSvc.restoreSignIn();
+    if (mounted) {
+      setState(() {
+        _googleAccount  = _backupSvc.currentUser;
+        _lastBackupDate = lastDate;
+        _autoBackup     = autoOn;
+      });
+    }
+  }
+
+  Future<void> _signInGoogle() async {
+    final account = await _backupSvc.signIn();
+    if (mounted) setState(() => _googleAccount = account);
+  }
+
+  Future<void> _signOutGoogle() async {
+    await _backupSvc.signOut();
+    if (mounted) setState(() => _googleAccount = null);
+  }
+
+  Future<void> _runBackup() async {
+    setState(() { _backupLoading = true; _backupError = null; });
+    try {
+      await _backupSvc.backup();
+      final lastDate = await _backupSvc.getLastBackupDate();
+      if (mounted) setState(() { _lastBackupDate = lastDate; });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Záloha byla úspěšně nahrána na Google Drive.')),
+        );
+      }
+    } on BackupException catch (e) {
+      if (mounted) setState(() => _backupError = e.message);
+    } catch (e) {
+      if (mounted) setState(() => _backupError = 'Chyba: $e');
+    } finally {
+      if (mounted) setState(() => _backupLoading = false);
+    }
+  }
+
+  Future<void> _runRestore() async {
+    // Show confirmation dialog first
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Obnovit ze zálohy?'),
+        content: const Text(
+          'Tato akce nahradí aktuální databázi a fotky daty ze zálohy. Pokračovat?',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Zrušit')),
+          FilledButton(onPressed: () => Navigator.pop(context, true),  child: const Text('Obnovit')),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    setState(() { _restoreLoading = true; _backupError = null; });
+    try {
+      await _backupSvc.restore();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Data byla úspěšně obnovena. Restartuj aplikaci.')),
+        );
+      }
+    } on BackupException catch (e) {
+      if (mounted) setState(() => _backupError = e.message);
+    } catch (e) {
+      if (mounted) setState(() => _backupError = 'Chyba: $e');
+    } finally {
+      if (mounted) setState(() => _restoreLoading = false);
+    }
   }
 
   Future<void> _loadLocale() async {
@@ -476,6 +569,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     },
                   ),
 
+          // ── Sekce: Pojistky ─────────────────────────────────────────────
+          _SectionHeader('Pojistky'),
+          _SettingsTile(
+            icon: Icons.security_outlined,
+            title: 'Pojistky',
+            subtitle: 'Spravuj pojistky svého vybavení',
+            onTap: () => context.push('/insurance'),
+          ),
+
           // ── Sekce: Aplikace ─────────────────────────────────────────────
           _SectionHeader('Aplikace'),
           _SettingsTile(
@@ -520,14 +622,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
 
+          // ── Sekce: Záloha a export ──────────────────────────────────────
+          _SectionHeader('Záloha a export'),
+          if (!_premiumLoading)
+            _BackupSection(
+              isPremium:      _isPremium,
+              googleAccount:  _googleAccount,
+              backupLoading:  _backupLoading,
+              restoreLoading: _restoreLoading,
+              autoBackup:     _autoBackup,
+              lastBackupDate: _lastBackupDate,
+              backupError:    _backupError,
+              onSignIn:       _signInGoogle,
+              onSignOut:      _signOutGoogle,
+              onBackup:       _runBackup,
+              onRestore:      _runRestore,
+              onAutoBackupChanged: (v) async {
+                await _backupSvc.setAutoBackupEnabled(v);
+                setState(() => _autoBackup = v);
+              },
+              onUpgradeTap: () async {
+                final unlocked = await Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    fullscreenDialog: true,
+                    builder: (_) => const PaywallScreen(),
+                  ),
+                );
+                if (unlocked == true) _loadPremiumState();
+              },
+            ),
+
           // ── Sekce: Data ─────────────────────────────────────────────────
           _SectionHeader('Data'),
-          _SettingsTile(
-            icon: Icons.backup_outlined,
-            title: l10n.backupExport,
-            subtitle: 'Export do CSV nebo záloha do cloudu',
-            onTap: () {},
-          ),
           _SettingsTile(
             icon: Icons.upload_file_outlined,
             title: l10n.importData,
@@ -540,6 +666,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: 'Trvale odstraní vše z databáze',
             titleColor: cs.error,
             onTap: () {},
+          ),
+
+          // ── Sekce: Widget ───────────────────────────────────────────────
+          _SectionHeader('Widget'),
+          const ListTile(
+            leading: Icon(Icons.widgets_outlined),
+            title: Text('Přidání widgetu'),
+            subtitle: Text(
+              'Přidej widget na domovskou obrazovku: Dlouze stiskni plochu → Widgety → GearTracker',
+            ),
+            isThreeLine: true,
+          ),
+          ListTile(
+            leading: const Icon(Icons.refresh),
+            title: const Text('Aktualizovat widget nyní'),
+            onTap: () async {
+              await WidgetService.instance.updateWidget();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Widget aktualizován'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
           ),
 
           // ── Sekce: O aplikaci ───────────────────────────────────────────
@@ -1202,6 +1354,354 @@ class _UpgradeBannerTile extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ─── Backup section ───────────────────────────────────────────────────────────
+
+class _BackupSection extends StatelessWidget {
+  final bool                  isPremium;
+  final GoogleSignInAccount?  googleAccount;
+  final bool                  backupLoading;
+  final bool                  restoreLoading;
+  final bool                  autoBackup;
+  final String?               lastBackupDate;
+  final String?               backupError;
+  final VoidCallback          onSignIn;
+  final VoidCallback          onSignOut;
+  final VoidCallback          onBackup;
+  final VoidCallback          onRestore;
+  final ValueChanged<bool>    onAutoBackupChanged;
+  final VoidCallback          onUpgradeTap;
+
+  const _BackupSection({
+    required this.isPremium,
+    required this.googleAccount,
+    required this.backupLoading,
+    required this.restoreLoading,
+    required this.autoBackup,
+    required this.lastBackupDate,
+    required this.backupError,
+    required this.onSignIn,
+    required this.onSignOut,
+    required this.onBackup,
+    required this.onRestore,
+    required this.onAutoBackupChanged,
+    required this.onUpgradeTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    // ── Not premium ────────────────────────────────────────────────────────
+    if (!isPremium) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Column(
+          children: [
+            _LockedFeatureTile(
+              icon: Icons.cloud_upload_outlined,
+              title: 'Záloha na Google Drive',
+              onUpgradeTap: onUpgradeTap,
+            ),
+            // CSV export is always free
+            ListTile(
+              leading: Icon(Icons.table_chart_outlined, color: cs.onSurfaceVariant),
+              title: const Text('Exportovat jako CSV'),
+              subtitle: const Text('Export všech dat do CSV souboru'),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Funkce připravována')),
+                );
+              },
+            ),
+          ],
+        ),
+      );
+    }
+
+    // ── Premium: not signed in ─────────────────────────────────────────────
+    if (googleAccount == null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: cs.outlineVariant),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.cloud_outlined, color: cs.primary),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Google Drive záloha',
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Přihlaste se s Googlem, abyste mohli zálohovat data do Google Drive.',
+                  style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+                ),
+                const SizedBox(height: 14),
+                FilledButton.icon(
+                  onPressed: onSignIn,
+                  icon: const Icon(Icons.login, size: 16),
+                  label: const Text('Přihlásit se s Google'),
+                ),
+                const SizedBox(height: 12),
+                // CSV export (always available)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.table_chart_outlined,
+                      color: cs.onSurfaceVariant),
+                  title: const Text('Exportovat jako CSV'),
+                  trailing: const Icon(Icons.chevron_right, size: 20),
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Funkce připravována')),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // ── Premium: signed in ────────────────────────────────────────────────
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: cs.primary, width: 1.5),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Icon(Icons.cloud_done_outlined, color: cs.primary),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Google Drive záloha',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                  ),
+                  const Spacer(),
+                  _ConnectedBadge(),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Account info
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: cs.primaryContainer,
+                    backgroundImage: googleAccount!.photoUrl != null
+                        ? NetworkImage(googleAccount!.photoUrl!)
+                        : null,
+                    child: googleAccount!.photoUrl == null
+                        ? Text(
+                            (googleAccount!.displayName ?? 'G')[0].toUpperCase(),
+                            style: TextStyle(
+                                color: cs.onPrimaryContainer,
+                                fontWeight: FontWeight.w700),
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          googleAccount!.displayName ?? 'Google účet',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 14),
+                        ),
+                        Text(
+                          googleAccount!.email,
+                          style: TextStyle(
+                              fontSize: 12, color: cs.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              if (lastBackupDate != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Poslední záloha: ${_formatDate(lastBackupDate!)}',
+                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                ),
+              ],
+
+              const SizedBox(height: 14),
+              const Divider(height: 0),
+
+              // Auto-backup toggle
+              SwitchListTile(
+                dense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                title: const Text(
+                  'Automatická záloha (každých 7 dní)',
+                  style: TextStyle(fontSize: 13),
+                ),
+                value: autoBackup,
+                onChanged: onAutoBackupChanged,
+              ),
+
+              const Divider(height: 0),
+              const SizedBox(height: 12),
+
+              // Error message
+              if (backupError != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: cs.errorContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    backupError!,
+                    style: TextStyle(color: cs.onErrorContainer, fontSize: 13),
+                  ),
+                ),
+              ],
+
+              // Action buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: (backupLoading || restoreLoading) ? null : onBackup,
+                      icon: backupLoading
+                          ? const SizedBox(
+                              width: 14, height: 14,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.cloud_upload_outlined, size: 16),
+                      label: Text(backupLoading ? 'Nahrávám...' : 'Zálohovat'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: (backupLoading || restoreLoading) ? null : onRestore,
+                      icon: restoreLoading
+                          ? SizedBox(
+                              width: 14, height: 14,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: cs.primary))
+                          : const Icon(Icons.cloud_download_outlined, size: 16),
+                      label: Text(restoreLoading ? 'Obnovuji...' : 'Obnovit'),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+              // CSV export
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.table_chart_outlined,
+                    color: cs.onSurfaceVariant),
+                title: const Text('Exportovat jako CSV'),
+                trailing: const Icon(Icons.chevron_right, size: 20),
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Funkce připravována')),
+                  );
+                },
+              ),
+
+              const Divider(height: 0),
+              const SizedBox(height: 8),
+
+              // Sign-out
+              TextButton.icon(
+                onPressed: onSignOut,
+                style: TextButton.styleFrom(foregroundColor: cs.error),
+                icon: const Icon(Icons.logout, size: 16),
+                label: const Text('Odhlásit Google účet'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _formatDate(String isoDate) {
+    try {
+      final dt = DateTime.parse(isoDate).toLocal();
+      return DateFormat('d. M. yyyy HH:mm').format(dt);
+    } catch (_) {
+      return isoDate;
+    }
+  }
+}
+
+// ─── Locked feature tile ──────────────────────────────────────────────────────
+
+class _LockedFeatureTile extends StatelessWidget {
+  final IconData     icon;
+  final String       title;
+  final VoidCallback onUpgradeTap;
+
+  const _LockedFeatureTile({
+    required this.icon,
+    required this.title,
+    required this.onUpgradeTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return ListTile(
+      leading: Icon(icon, color: cs.onSurfaceVariant),
+      title: Text(title),
+      subtitle: const Text('Dostupné v Premium'),
+      trailing: GestureDetector(
+        onTap: onUpgradeTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFD4AF37),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Text(
+            'Upgrade',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Colors.black,
+            ),
+          ),
+        ),
+      ),
+      onTap: onUpgradeTap,
     );
   }
 }

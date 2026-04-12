@@ -36,6 +36,9 @@ class GearItem {
   final GearStatus status;
   final String? notes;
   final String? photoPath;
+  final DateTime? warrantyExpiryDate;
+  final String? warrantyNotes;
+  final String? warrantyPhotoPath;
 
   const GearItem({
     this.id,
@@ -49,6 +52,9 @@ class GearItem {
     this.status = GearStatus.active,
     this.notes,
     this.photoPath,
+    this.warrantyExpiryDate,
+    this.warrantyNotes,
+    this.warrantyPhotoPath,
   });
 
   Map<String, dynamic> toMap() {
@@ -64,6 +70,9 @@ class GearItem {
       'status': status.value,
       'notes': notes,
       'photo_path': photoPath,
+      'warranty_expiry_date': warrantyExpiryDate?.toIso8601String(),
+      'warranty_notes': warrantyNotes,
+      'warranty_photo_path': warrantyPhotoPath,
     };
   }
 
@@ -86,6 +95,11 @@ class GearItem {
       ),
       notes: map['notes'] as String?,
       photoPath: map['photo_path'] as String?,
+      warrantyExpiryDate: map['warranty_expiry_date'] != null
+          ? DateTime.parse(map['warranty_expiry_date'] as String)
+          : null,
+      warrantyNotes: map['warranty_notes'] as String?,
+      warrantyPhotoPath: map['warranty_photo_path'] as String?,
     );
   }
 
@@ -101,6 +115,9 @@ class GearItem {
     GearStatus? status,
     String? notes,
     String? photoPath,
+    DateTime? warrantyExpiryDate,
+    String? warrantyNotes,
+    String? warrantyPhotoPath,
   }) {
     return GearItem(
       id: id ?? this.id,
@@ -114,6 +131,9 @@ class GearItem {
       status: status ?? this.status,
       notes: notes ?? this.notes,
       photoPath: photoPath ?? this.photoPath,
+      warrantyExpiryDate: warrantyExpiryDate ?? this.warrantyExpiryDate,
+      warrantyNotes: warrantyNotes ?? this.warrantyNotes,
+      warrantyPhotoPath: warrantyPhotoPath ?? this.warrantyPhotoPath,
     );
   }
 
