@@ -64,6 +64,9 @@ dependencies:
 
   # Grafy
   fl_chart: ^0.69.0
+
+  # Sdílení obsahu
+  share_plus: ^10.0.0
   purchases_flutter: ^9.16.1
   purchases_ui_flutter: ^9.16.1
 

@@ -12,6 +12,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../database/database_helper.dart';
 import '../models/maintenance_rule.dart';
+import '../models/trip.dart';
 import 'maintenance_service.dart';
 
 // ─── Konstanty ──────────────────────────────────────────────────────────────
@@ -233,6 +234,46 @@ class NotificationService {
   /// Zruší všechny naplánované i zobrazené notifikace.
   Future<void> cancelAll() async {
     await _plugin.cancelAll();
+  }
+
+  // ── Trip reminders ────────────────────────────────────────────────────────
+
+  /// Schedule a notification 3 days before trip departure.
+  Future<void> scheduleTripReminder(Trip trip) async {
+    if (trip.departureDate == null) return;
+    try {
+      if (!_initialized) await init();
+      final reminderDate =
+          trip.departureDate!.subtract(const Duration(days: 3));
+      if (reminderDate.isBefore(DateTime.now())) return;
+
+      final scheduledDateTime = DateTime(
+        reminderDate.year,
+        reminderDate.month,
+        reminderDate.day,
+        9,
+        0,
+      );
+
+      await _scheduleAt(
+        id: trip.id.hashCode.abs() % 100000 + 900000,
+        title: 'Připomínka výletu: ${trip.name}',
+        body: 'Za 3 dny odjíždíš! Nezapomeň zkontrolovat vybavení.',
+        scheduledDate: scheduledDateTime,
+      );
+    } catch (e) {
+      debugPrint('scheduleTripReminder failed (non-fatal): $e');
+    }
+  }
+
+  /// Cancel a trip reminder by trip id.
+  Future<void> cancelTripReminder(String tripId) async {
+    try {
+      final notifId = tripId.hashCode.abs() % 100000 + 900000;
+      await _plugin.cancel(notifId);
+    } catch (e) {
+      debugPrint('cancelTripReminder failed (non-fatal): $e');
+    }
   }
 
   // ── Privátní pomocné metody ───────────────────────────────────────────────

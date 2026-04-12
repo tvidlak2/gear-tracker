@@ -33,6 +33,7 @@ class GearItem {
   final String? serialNumber;
   final DateTime? manufacturedDate;
   final DateTime? purchaseDate;
+  final double? purchasePrice;
   final GearStatus status;
   final String? notes;
   final String? photoPath;
@@ -49,6 +50,7 @@ class GearItem {
     this.serialNumber,
     this.manufacturedDate,
     this.purchaseDate,
+    this.purchasePrice,
     this.status = GearStatus.active,
     this.notes,
     this.photoPath,
@@ -67,6 +69,7 @@ class GearItem {
       'serial_number': serialNumber,
       'manufactured_date': manufacturedDate?.toIso8601String(),
       'purchase_date': purchaseDate?.toIso8601String(),
+      'purchase_price': purchasePrice,
       'status': status.value,
       'notes': notes,
       'photo_path': photoPath,
@@ -90,6 +93,7 @@ class GearItem {
       purchaseDate: map['purchase_date'] != null
           ? DateTime.parse(map['purchase_date'] as String)
           : null,
+      purchasePrice: (map['purchase_price'] as num?)?.toDouble(),
       status: GearStatusExtension.fromString(
         map['status'] as String? ?? 'active',
       ),
@@ -112,6 +116,7 @@ class GearItem {
     String? serialNumber,
     DateTime? manufacturedDate,
     DateTime? purchaseDate,
+    double? purchasePrice,
     GearStatus? status,
     String? notes,
     String? photoPath,
@@ -128,6 +133,7 @@ class GearItem {
       serialNumber: serialNumber ?? this.serialNumber,
       manufacturedDate: manufacturedDate ?? this.manufacturedDate,
       purchaseDate: purchaseDate ?? this.purchaseDate,
+      purchasePrice: purchasePrice ?? this.purchasePrice,
       status: status ?? this.status,
       notes: notes ?? this.notes,
       photoPath: photoPath ?? this.photoPath,
