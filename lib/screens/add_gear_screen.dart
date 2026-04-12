@@ -60,11 +60,12 @@ class _AddGearScreenState extends State<AddGearScreen> {
   final _formKey   = GlobalKey<FormState>();
   final _db        = DatabaseHelper.instance;
 
-  final _nameCtrl    = TextEditingController();
-  final _brandCtrl   = TextEditingController();
-  final _modelCtrl   = TextEditingController();
-  final _serialCtrl  = TextEditingController();
-  final _notesCtrl   = TextEditingController();
+  final _nameCtrl        = TextEditingController();
+  final _brandCtrl       = TextEditingController();
+  final _modelCtrl       = TextEditingController();
+  final _serialCtrl      = TextEditingController();
+  final _notesCtrl       = TextEditingController();
+  final _purchasePriceCtrl = TextEditingController();
 
   List<Category>   _categories       = [];
   int?             _selectedCatId;
@@ -107,6 +108,9 @@ class _AddGearScreenState extends State<AddGearScreen> {
         _status            = item.status;
         _manufacturedDate  = item.manufacturedDate;
         _purchaseDate          = item.purchaseDate;
+        if (item.purchasePrice != null) {
+          _purchasePriceCtrl.text = item.purchasePrice!.round().toString();
+        }
         _photoPath             = item.photoPath;
         _warrantyExpiryDate    = item.warrantyExpiryDate;
         _warrantyNotesCtrl.text = item.warrantyNotes ?? '';
@@ -131,6 +135,7 @@ class _AddGearScreenState extends State<AddGearScreen> {
   void dispose() {
     _nameCtrl.dispose(); _brandCtrl.dispose(); _modelCtrl.dispose();
     _serialCtrl.dispose(); _notesCtrl.dispose(); _warrantyNotesCtrl.dispose();
+    _purchasePriceCtrl.dispose();
     super.dispose();
   }
 
@@ -253,6 +258,9 @@ class _AddGearScreenState extends State<AddGearScreen> {
     }
     setState(() => _loading = true);
 
+    final priceText = _purchasePriceCtrl.text.trim();
+    final purchasePrice = priceText.isNotEmpty ? double.tryParse(priceText) : null;
+
     final item = GearItem(
       id: _existingItem?.id,
       name: _nameCtrl.text.trim(),
@@ -262,6 +270,7 @@ class _AddGearScreenState extends State<AddGearScreen> {
       serialNumber: _serialCtrl.text.trim().isEmpty ? null : _serialCtrl.text.trim(),
       manufacturedDate: _manufacturedDate,
       purchaseDate: _purchaseDate,
+      purchasePrice: purchasePrice,
       status: _status,
       notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
       photoPath: _photoPath,
@@ -656,6 +665,17 @@ class _AddGearScreenState extends State<AddGearScreen> {
                 dateFmt: _dateFmt,
               )),
             ]),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _purchasePriceCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: false),
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                labelText: 'Pořizovací cena (Kč)',
+                hintText: 'volitelné',
+                suffixText: 'Kč',
+              ),
+            ),
             const SizedBox(height: 12),
             DropdownButtonFormField<GearStatus>(
               value: _status,

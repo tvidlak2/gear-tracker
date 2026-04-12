@@ -5,6 +5,8 @@ library;
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/trip.dart';
+
 const _kEnabledKey = 'notifications_enabled';
 
 class NotificationService {
@@ -38,5 +40,13 @@ class NotificationService {
 
   Future<void> cancelAll() async {
     // no-op
+  }
+
+  Future<void> scheduleTripReminder(Trip trip) async {
+    // no-op on web
+  }
+
+  Future<void> cancelTripReminder(String tripId) async {
+    // no-op on web
   }
 }

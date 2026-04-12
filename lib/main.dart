@@ -23,7 +23,12 @@ import 'screens/strava_callback_screen.dart';
 import 'screens/insurance_list_screen.dart';
 import 'screens/add_edit_insurance_screen.dart';
 import 'screens/insurance_detail_screen.dart';
+import 'screens/trip_list_screen.dart';
+import 'screens/add_edit_trip_screen.dart';
+import 'screens/trip_detail_screen.dart';
+import 'screens/portfolio_screen.dart';
 import 'services/insurance_service.dart';
+import 'models/trip.dart';
 
 /// Global locale notifier – updated by SettingsScreen when the user picks a language.
 final localeNotifier = ValueNotifier<Locale>(const Locale('cs'));
@@ -87,6 +92,7 @@ final _router = GoRouter(
         GoRoute(path: '/',            builder: (_, __) => const HomeScreen()),
         GoRoute(path: '/activities',  builder: (_, __) => const ActivitiesScreen()),
         GoRoute(path: '/maintenance', builder: (_, __) => const MaintenanceOverviewScreen()),
+        GoRoute(path: '/trips',       builder: (_, __) => const TripListScreen()),
         GoRoute(path: '/settings',    builder: (_, __) => const SettingsScreen()),
       ],
     ),
@@ -111,6 +117,29 @@ final _router = GoRouter(
     GoRoute(
       path: '/gear/:id/usage/add',
       builder: (_, s) => AddUsageLogScreen(gearItemId: int.parse(s.pathParameters['id']!)),
+    ),
+
+    // ── Trips ─────────────────────────────────────────────────────────────────
+    GoRoute(
+      path: '/trips/add',
+      builder: (_, __) => const AddEditTripScreen(),
+    ),
+    GoRoute(
+      path: '/trips/:id',
+      builder: (_, s) => TripDetailScreen(tripId: s.pathParameters['id']!),
+    ),
+    GoRoute(
+      path: '/trips/:id/edit',
+      builder: (_, s) {
+        final trip = s.extra as Trip?;
+        return AddEditTripScreen(trip: trip);
+      },
+    ),
+
+    // ── Portfolio ─────────────────────────────────────────────────────────────
+    GoRoute(
+      path: '/portfolio',
+      builder: (_, __) => const PortfolioScreen(),
     ),
 
     // ── Insurance ─────────────────────────────────────────────────────────────
@@ -198,7 +227,8 @@ class _Shell extends StatelessWidget {
     final path = GoRouterState.of(context).uri.path;
     if (path.startsWith('/activities'))  return 1;
     if (path.startsWith('/maintenance')) return 2;
-    if (path.startsWith('/settings'))    return 3;
+    if (path.startsWith('/trips'))       return 3;
+    if (path.startsWith('/settings'))    return 4;
     return 0;
   }
 
@@ -213,7 +243,8 @@ class _Shell extends StatelessWidget {
             case 0: context.go('/');
             case 1: context.go('/activities');
             case 2: context.go('/maintenance');
-            case 3: context.go('/settings');
+            case 3: context.go('/trips');
+            case 4: context.go('/settings');
           }
         },
       ),
@@ -230,10 +261,11 @@ class _AppNavBar extends StatelessWidget {
   const _AppNavBar({required this.selectedIndex, required this.onTap});
 
   static const _icons = [
-    (Icons.home_outlined,           Icons.home_rounded),
-    (Icons.directions_run_outlined, Icons.directions_run_rounded),
-    (Icons.build_outlined,          Icons.build_rounded),
-    (Icons.settings_outlined,       Icons.settings_rounded),
+    (Icons.home_outlined,                Icons.home_rounded),
+    (Icons.directions_run_outlined,      Icons.directions_run_rounded),
+    (Icons.build_outlined,               Icons.build_rounded),
+    (Icons.flight_takeoff_outlined,      Icons.flight_takeoff_rounded),
+    (Icons.settings_outlined,            Icons.settings_rounded),
   ];
 
   @override
@@ -261,6 +293,7 @@ class _AppNavBar extends StatelessWidget {
                 l10n.navOverview,
                 l10n.navActivities,
                 l10n.navMaintenance,
+                'Výlety',
                 l10n.navSettings,
               ];
               final (inactiveIcon, activeIcon) = _icons[i];

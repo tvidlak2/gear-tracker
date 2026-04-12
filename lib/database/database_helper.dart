@@ -12,7 +12,7 @@ import '../models/usage_log.dart';
 
 class DatabaseHelper {
   static const _databaseName = 'gear_tracker.db';
-  static const _databaseVersion = 5;
+  static const _databaseVersion = 6;
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
@@ -92,6 +92,34 @@ class DatabaseHelper {
         )
       ''');
     }
+    if (oldVersion < 6) {
+      // Add purchase_price to gear_items for portfolio tracking
+      await db.execute(
+        'ALTER TABLE gear_items ADD COLUMN purchase_price REAL',
+      );
+      // Create trips table
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS trips (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          destination TEXT,
+          departure_date TEXT,
+          return_date TEXT,
+          status TEXT NOT NULL DEFAULT 'planning',
+          notes TEXT
+        )
+      ''');
+      // Create trip_gear_items table
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS trip_gear_items (
+          trip_id TEXT NOT NULL,
+          gear_item_id TEXT NOT NULL,
+          is_packed INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (trip_id, gear_item_id),
+          FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
+        )
+      ''');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -114,6 +142,7 @@ class DatabaseHelper {
         serial_number        TEXT,
         manufactured_date    TEXT,
         purchase_date        TEXT,
+        purchase_price       REAL,
         status               TEXT    NOT NULL DEFAULT 'active',
         notes                TEXT,
         photo_path           TEXT,
@@ -186,6 +215,28 @@ class DatabaseHelper {
         notes TEXT,
         photo_path TEXT,
         gear_item_ids TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE trips (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        destination TEXT,
+        departure_date TEXT,
+        return_date TEXT,
+        status TEXT NOT NULL DEFAULT 'planning',
+        notes TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE trip_gear_items (
+        trip_id TEXT NOT NULL,
+        gear_item_id TEXT NOT NULL,
+        is_packed INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (trip_id, gear_item_id),
+        FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
       )
     ''');
 
