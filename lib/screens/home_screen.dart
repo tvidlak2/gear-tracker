@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import '../database/database_helper.dart';
 import '../models/category.dart';
 import '../models/gear_item.dart';
+import '../models/insurance.dart';
 import '../models/maintenance_rule.dart';
+import '../services/insurance_service.dart';
 import '../services/maintenance_service.dart';
 import '../services/purchase_service.dart';
 import '../services/strava_service.dart';
@@ -52,6 +54,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<_GearWithStats> _gear          = [];
   bool                 _loading       = true;
   bool                 _stravaSyncing = false;
+  List<Insurance>      _expiringInsurances = [];
+  List<GearItem>       _warrantyAlertItems  = [];
 
   @override
   void initState() {
@@ -108,7 +112,24 @@ class _HomeScreenState extends State<HomeScreen> {
       return si != 0 ? si : a.item.name.compareTo(b.item.name);
     });
 
-    if (mounted) setState(() { _gear = gear; _loading = false; });
+    // Warranty alerts (expiring within 30 days or expired < 90 days ago)
+    final now = DateTime.now();
+    final warrantyAlerts = items.where((item) {
+      final exp = item.warrantyExpiryDate;
+      if (exp == null) return false;
+      final daysLeft = exp.difference(now).inDays;
+      return daysLeft <= 30 && daysLeft >= -90;
+    }).toList();
+
+    // Insurance alerts
+    final expiringIns = await InsuranceService.instance.getExpiringInsurances(days: 60);
+
+    if (mounted) setState(() {
+      _gear = gear;
+      _loading = false;
+      _warrantyAlertItems = warrantyAlerts;
+      _expiringInsurances = expiringIns;
+    });
   }
 
   /// Navigates to Add Gear, but shows paywall if free limit is reached.
@@ -179,25 +200,75 @@ class _HomeScreenState extends State<HomeScreen> {
               )
             else ...[
               // Sekce "Vyžaduje pozornost"
-              if (_attentionItems.isNotEmpty) ...[
+              if (_attentionItems.isNotEmpty ||
+                  _warrantyAlertItems.isNotEmpty ||
+                  _expiringInsurances.isNotEmpty) ...[
                 _SectionHeader(
                   title: l10n.requiresAttention,
-                  count: _attentionCount,
+                  count: _attentionCount +
+                      _warrantyAlertItems.length +
+                      _expiringInsurances.length,
                   countColor: context.dangerColor,
                   countBgColor: context.dangerBgColor,
                 ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-                  sliver: SliverList.builder(
-                    itemCount: _attentionItems.length,
-                    itemBuilder: (_, i) => _AttentionRow(
-                      gear: _attentionItems[i],
-                      onTap: () => context
-                          .push('/gear/${_attentionItems[i].item.id}')
-                          .then((_) => _loadData()),
+                if (_attentionItems.isNotEmpty)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                    sliver: SliverList.builder(
+                      itemCount: _attentionItems.length,
+                      itemBuilder: (_, i) => _AttentionRow(
+                        gear: _attentionItems[i],
+                        onTap: () => context
+                            .push('/gear/${_attentionItems[i].item.id}')
+                            .then((_) => _loadData()),
+                      ),
                     ),
                   ),
-                ),
+                if (_warrantyAlertItems.isNotEmpty)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                    sliver: SliverList.builder(
+                      itemCount: _warrantyAlertItems.length,
+                      itemBuilder: (_, i) {
+                        final item = _warrantyAlertItems[i];
+                        final exp = item.warrantyExpiryDate!;
+                        final daysLeft = exp.difference(DateTime.now()).inDays;
+                        final isExpired = exp.isBefore(DateTime.now());
+                        return _SimpleAlertRow(
+                          icon: Icons.verified_outlined,
+                          color: isExpired ? AppColors.danger : AppColors.warning,
+                          title: item.name,
+                          subtitle: isExpired
+                              ? 'Záruka vypršela před ${(-daysLeft)} dny'
+                              : 'Záruka vyprší za $daysLeft dní',
+                          onTap: () => context
+                              .push('/gear/${item.id}')
+                              .then((_) => _loadData()),
+                        );
+                      },
+                    ),
+                  ),
+                if (_expiringInsurances.isNotEmpty)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                    sliver: SliverList.builder(
+                      itemCount: _expiringInsurances.length,
+                      itemBuilder: (_, i) {
+                        final ins = _expiringInsurances[i];
+                        final daysLeft =
+                            ins.expiryDate.difference(DateTime.now()).inDays;
+                        return _SimpleAlertRow(
+                          icon: Icons.security_outlined,
+                          color: AppColors.warning,
+                          title: ins.name,
+                          subtitle: 'Pojistka vyprší za $daysLeft dní',
+                          onTap: () => context
+                              .push('/insurance/${ins.id}')
+                              .then((_) => _loadData()),
+                        );
+                      },
+                    ),
+                  ),
               ],
 
               // Sekce "Vše vybavení"
@@ -525,6 +596,100 @@ class _EmptyState extends StatelessWidget {
             label: Text(l10n.addGear),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Simple alert row (warranty / insurance) ──────────────────────────────────
+
+class _SimpleAlertRow extends StatelessWidget {
+  final IconData     icon;
+  final Color        color;
+  final String       title;
+  final String       subtitle;
+  final VoidCallback onTap;
+
+  const _SimpleAlertRow({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = context.isDark;
+    final cardBg = isDark ? AppColors.warningBgDark : const Color(0xFFFAEEDA);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: context.cardBorderColor, width: 0.5),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(width: 3, color: color),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  title,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: color,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  subtitle,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: context.subtitleColor,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            size: 18,
+                            color: context.subtitleColor,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

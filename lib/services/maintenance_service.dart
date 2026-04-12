@@ -1,6 +1,7 @@
 import '../database/database_helper.dart';
 import '../models/maintenance_rule.dart';
 import '../models/maintenance_log.dart';
+import 'widget_service.dart';
 
 enum MaintenanceStatus { ok, warning, overdue }
 
@@ -181,6 +182,7 @@ class MaintenanceService {
     String? performedBy,
     double? cost,
     String? notes,
+    String? photoPath,
   }) async {
     DateTime? nextDueDate;
 
@@ -202,9 +204,14 @@ class MaintenanceService {
       cost: cost,
       notes: notes,
       nextDueDate: nextDueDate,
+      photoPath: photoPath,
     );
 
     final id = await _db.insertMaintenanceLog(log);
+
+    // Refresh home screen widget after a maintenance record is saved.
+    WidgetService.instance.updateWidget().ignore();
+
     return log.copyWith(id: id);
   }
 }

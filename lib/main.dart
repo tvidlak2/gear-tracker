@@ -6,8 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'database/db_factory.dart';
 import 'l10n/app_localizations.dart';
 import 'mock_data.dart';
+import 'services/backup_service.dart';
 import 'services/notification_service.dart';
 import 'services/purchase_service.dart';
+import 'services/widget_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/gear_list_screen.dart';
@@ -18,6 +20,10 @@ import 'screens/activities_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/paywall_screen.dart';
 import 'screens/strava_callback_screen.dart';
+import 'screens/insurance_list_screen.dart';
+import 'screens/add_edit_insurance_screen.dart';
+import 'screens/insurance_detail_screen.dart';
+import 'services/insurance_service.dart';
 
 /// Global locale notifier – updated by SettingsScreen when the user picks a language.
 final localeNotifier = ValueNotifier<Locale>(const Locale('cs'));
@@ -40,6 +46,21 @@ void main() async {
     await PurchaseService.instance.init();
   } catch (e) {
     debugPrint('PurchaseService init failed (non-fatal): $e');
+  }
+
+  // Auto-backup (silent, checks premium + auto-backup enabled + 7-day interval)
+  try {
+    await BackupService.instance.autoBackupIfNeeded();
+  } catch (e) {
+    debugPrint('BackupService.autoBackupIfNeeded failed (non-fatal): $e');
+  }
+
+  // Home screen widget – initialise and push fresh data
+  try {
+    await WidgetService.instance.init();
+    await WidgetService.instance.updateWidget();
+  } catch (e) {
+    debugPrint('WidgetService init/updateWidget failed (non-fatal): $e');
   }
 
   // Notifications are an optional feature – never crash the app if they fail
@@ -90,6 +111,36 @@ final _router = GoRouter(
     GoRoute(
       path: '/gear/:id/usage/add',
       builder: (_, s) => AddUsageLogScreen(gearItemId: int.parse(s.pathParameters['id']!)),
+    ),
+
+    // ── Insurance ─────────────────────────────────────────────────────────────
+    GoRoute(
+      path: '/insurance',
+      builder: (_, __) => const InsuranceListScreen(),
+    ),
+    GoRoute(
+      path: '/insurance/add',
+      builder: (_, state) {
+        final gearId = state.uri.queryParameters['gearId'];
+        return AddEditInsuranceScreen(preselectedGearId: gearId);
+      },
+    ),
+    GoRoute(
+      path: '/insurance/:id',
+      builder: (_, s) => InsuranceDetailScreen(
+        insuranceId: s.pathParameters['id']!,
+      ),
+    ),
+    GoRoute(
+      path: '/insurance/:id/edit',
+      redirect: (context, state) async {
+        // We can't easily load the insurance here since redirect is sync
+        // Returning null means no redirect; the builder handles loading
+        return null;
+      },
+      builder: (_, s) => _InsuranceEditLoader(
+        insuranceId: s.pathParameters['id']!,
+      ),
     ),
 
     // ── Premium paywall ───────────────────────────────────────────────────────
@@ -265,6 +316,48 @@ class _AppNavBar extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ─── Insurance edit loader ─────────────────────────────────────────────────────
+// Loads the insurance asynchronously then shows the edit form.
+
+class _InsuranceEditLoader extends StatefulWidget {
+  final String insuranceId;
+  const _InsuranceEditLoader({required this.insuranceId});
+
+  @override
+  State<_InsuranceEditLoader> createState() => _InsuranceEditLoaderState();
+}
+
+class _InsuranceEditLoaderState extends State<_InsuranceEditLoader> {
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final all = await InsuranceService.instance.getAllInsurances();
+    final ins = all.where((i) => i.id == widget.insuranceId).firstOrNull;
+    if (!mounted) return;
+    if (ins == null) {
+      context.pop();
+      return;
+    }
+    // Replace current route with the edit screen
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => AddEditInsuranceScreen(insurance: ins),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 }

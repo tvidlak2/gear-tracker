@@ -7,6 +7,7 @@ class MaintenanceLog {
   final double? cost;
   final String? notes;
   final DateTime? nextDueDate;
+  final String? photoPath;
 
   const MaintenanceLog({
     this.id,
@@ -17,6 +18,7 @@ class MaintenanceLog {
     this.cost,
     this.notes,
     this.nextDueDate,
+    this.photoPath,
   });
 
   Map<String, dynamic> toMap() {
@@ -29,6 +31,7 @@ class MaintenanceLog {
       'cost': cost,
       'notes': notes,
       'next_due_date': nextDueDate?.toIso8601String(),
+      'photo_path': photoPath,
     };
   }
 
@@ -44,6 +47,7 @@ class MaintenanceLog {
       nextDueDate: map['next_due_date'] != null
           ? DateTime.parse(map['next_due_date'] as String)
           : null,
+      photoPath: map['photo_path'] as String?,
     );
   }
 
@@ -56,6 +60,7 @@ class MaintenanceLog {
     double? cost,
     String? notes,
     DateTime? nextDueDate,
+    String? photoPath,
   }) {
     return MaintenanceLog(
       id: id ?? this.id,
@@ -66,6 +71,7 @@ class MaintenanceLog {
       cost: cost ?? this.cost,
       notes: notes ?? this.notes,
       nextDueDate: nextDueDate ?? this.nextDueDate,
+      photoPath: photoPath ?? this.photoPath,
     );
   }
 

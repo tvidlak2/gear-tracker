@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -9,11 +11,13 @@ import '../database/database_helper.dart';
 import '../l10n/app_localizations.dart';
 import '../models/category.dart';
 import '../models/gear_item.dart';
+import '../models/insurance.dart';
 import '../models/maintenance_log.dart';
 import '../models/maintenance_rule.dart';
 import '../models/strava_models.dart';
 import '../models/usage_log.dart';
 import '../services/igc_parser.dart';
+import '../services/insurance_service.dart';
 import '../services/maintenance_service.dart';
 import '../services/strava_service.dart';
 import '../theme/app_theme.dart';
@@ -45,6 +49,9 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
   GearStravaSettings? _stravaSettings;
   bool _stravaConnected = false;
   bool _stravaSyncing   = false;
+
+  // Insurance
+  List<Insurance> _insurances = [];
 
   bool _loading = true;
 
@@ -91,6 +98,8 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
 
     final stravaSettings  = await _db.getGearStravaSettings(widget.gearItemId);
     final stravaConnected = await _stravaSvc.isConnected;
+    final insurances = await InsuranceService.instance
+        .getInsurancesForGear(widget.gearItemId.toString());
 
     if (mounted) {
       setState(() {
@@ -100,6 +109,7 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
         _totalKm = totalKm;            _usageCount = usageCount;
         _stravaSettings  = stravaSettings;
         _stravaConnected = stravaConnected;
+        _insurances = insurances;
         _loading = false;
       });
     }
@@ -171,6 +181,21 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
                 item: item,
                 nextServiceResult: nextServiceResult,
               ),
+            ),
+          ),
+
+          // ── Warranty ────────────────────────────────────────────────────
+          if (item.warrantyExpiryDate != null)
+            SliverToBoxAdapter(
+              child: _WarrantySection(item: item),
+            ),
+
+          // ── Insurance ───────────────────────────────────────────────────
+          SliverToBoxAdapter(
+            child: _InsuranceSection(
+              gearItemId: item.id!,
+              insurances: _insurances,
+              onChanged: _loadData,
             ),
           ),
 
@@ -267,49 +292,86 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
       ],
       flexibleSpace: FlexibleSpaceBar(
         collapseMode: CollapseMode.pin,
-        background: Container(
-          color: headerColor,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-          alignment: Alignment.bottomLeft,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              // kategorie · sport
-              if (_category != null)
-                Text(
-                  '${_category!.name} · ${_category!.sport}'.toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.0,
-                  ),
-                ),
-              const SizedBox(height: 6),
-              // název vybavení
-              Text(
-                item.name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  height: 1.15,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 6),
-              // datum koupě · sériové číslo
-              if (_buildMeta(item).isNotEmpty)
-                Text(
-                  _buildMeta(item),
-                  style: const TextStyle(color: Colors.white60, fontSize: 12),
-                ),
-            ],
-          ),
-        ),
+        background: _buildHeaderBackground(item, headerColor),
       ),
+    );
+  }
+
+  Widget _buildHeaderBackground(GearItem item, Color headerColor) {
+    final photoPath = item.photoPath;
+    final hasPhoto  = photoPath != null && !kIsWeb;
+    final file      = hasPhoto ? File(photoPath) : null;
+
+    if (hasPhoto && file != null && file.existsSync()) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          // Photo
+          Image.file(file, fit: BoxFit.cover),
+          // Dark gradient overlay for readability
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.transparent, Colors.black87],
+                stops: [0.2, 1.0],
+              ),
+            ),
+          ),
+          // Text content
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+            alignment: Alignment.bottomLeft,
+            child: _buildHeaderText(item),
+          ),
+        ],
+      );
+    }
+
+    // No photo — original coloured background
+    return Container(
+      color: headerColor,
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+      alignment: Alignment.bottomLeft,
+      child: _buildHeaderText(item),
+    );
+  }
+
+  Widget _buildHeaderText(GearItem item) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        if (_category != null)
+          Text(
+            '${_category!.name} · ${_category!.sport}'.toUpperCase(),
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.0,
+            ),
+          ),
+        const SizedBox(height: 6),
+        Text(
+          item.name,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            height: 1.15,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 6),
+        if (_buildMeta(item).isNotEmpty)
+          Text(
+            _buildMeta(item),
+            style: const TextStyle(color: Colors.white60, fontSize: 12),
+          ),
+      ],
     );
   }
 
@@ -615,12 +677,15 @@ class _MaintenancePlanSection extends StatelessWidget {
                 ..sort((a, b) => b.performedDate.compareTo(a.performedDate));
               final lastDate =
                   logsForRule.isEmpty ? null : logsForRule.first.performedDate;
+              final lastPhotoPath =
+                  logsForRule.isEmpty ? null : logsForRule.first.photoPath;
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: _MaintenanceRuleCard(
                   result: r,
                   lastPerformed: lastDate,
+                  lastPhotoPath: lastPhotoPath,
                   onLogService: () => onLogService(r.rule.id),
                 ),
               );
@@ -634,6 +699,7 @@ class _MaintenancePlanSection extends StatelessWidget {
 class _MaintenanceRuleCard extends StatelessWidget {
   final MaintenanceStatusResult result;
   final DateTime?               lastPerformed;
+  final String?                 lastPhotoPath;
   final VoidCallback            onLogService;
 
   static final _dateFmt = DateFormat('d. M. yyyy');
@@ -641,6 +707,7 @@ class _MaintenanceRuleCard extends StatelessWidget {
   const _MaintenanceRuleCard({
     required this.result,
     required this.lastPerformed,
+    this.lastPhotoPath,
     required this.onLogService,
   });
 
@@ -732,6 +799,19 @@ class _MaintenanceRuleCard extends StatelessWidget {
               ),
             ],
           ),
+          if (lastPhotoPath != null && !kIsWeb)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.file(
+                  File(lastPhotoPath!),
+                  height: 80,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+            ),
           const SizedBox(height: 10),
           // Zapsat servis
           SizedBox(
@@ -1476,6 +1556,264 @@ class _StravaGearSectionState extends State<_StravaGearSection> {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Warranty Section ─────────────────────────────────────────────────────────
+
+class _WarrantySection extends StatelessWidget {
+  final GearItem item;
+  const _WarrantySection({required this.item});
+
+  static final _dateFmt = DateFormat('d. M. yyyy', 'cs');
+
+  @override
+  Widget build(BuildContext context) {
+    final expiry = item.warrantyExpiryDate!;
+    final now = DateTime.now();
+    final isExpired = expiry.isBefore(now);
+    final daysLeft = expiry.difference(now).inDays;
+    final isExpiringSoon = !isExpired && daysLeft <= 30;
+
+    final Color statusColor;
+    final String statusLabel;
+    if (isExpired) {
+      statusColor = AppColors.danger;
+      statusLabel = 'Záruka vypršela';
+    } else if (isExpiringSoon) {
+      statusColor = AppColors.warning;
+      statusLabel = 'Platí do ${_dateFmt.format(expiry)}';
+    } else {
+      statusColor = AppColors.success;
+      statusLabel = 'Platí do ${_dateFmt.format(expiry)}';
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Záruka',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkCard : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: context.cardBorderColor, width: 0.5),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.verified_outlined, size: 18, color: statusColor),
+                    const SizedBox(width: 8),
+                    Text(
+                      statusLabel,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: statusColor,
+                      ),
+                    ),
+                  ],
+                ),
+                if (item.warrantyNotes != null && item.warrantyNotes!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    item.warrantyNotes!,
+                    style: TextStyle(fontSize: 13, color: context.subtitleColor),
+                  ),
+                ],
+                if (item.warrantyPhotoPath != null &&
+                    !kIsWeb &&
+                    File(item.warrantyPhotoPath!).existsSync()) ...[
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: () => _showFullScreenPhoto(context, item.warrantyPhotoPath!),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(
+                        File(item.warrantyPhotoPath!),
+                        height: 100,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFullScreenPhoto(BuildContext context, String path) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              child: Image.file(File(path)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Insurance Section ────────────────────────────────────────────────────────
+
+class _InsuranceSection extends StatelessWidget {
+  final int gearItemId;
+  final List<Insurance> insurances;
+  final VoidCallback onChanged;
+
+  const _InsuranceSection({
+    required this.gearItemId,
+    required this.insurances,
+    required this.onChanged,
+  });
+
+  static final _dateFmt = DateFormat('d. M. yyyy', 'cs');
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final now = DateTime.now();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Pojištění',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  context
+                      .push('/insurance/add?gearId=$gearItemId')
+                      .then((_) => onChanged());
+                },
+                icon: const Icon(Icons.add_rounded, size: 16),
+                label: const Text('Přidat', style: TextStyle(fontSize: 12)),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (insurances.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkCard : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: context.cardBorderColor, width: 0.5),
+              ),
+              child: Text(
+                'Žádné pojistky',
+                style: TextStyle(fontSize: 13, color: context.subtitleColor),
+                textAlign: TextAlign.center,
+              ),
+            )
+          else
+            ...insurances.map((ins) {
+              final isExpired = ins.expiryDate.isBefore(now);
+              final daysLeft = ins.expiryDate.difference(now).inDays;
+              final isExpiringSoon = !isExpired && daysLeft <= 60;
+              final Color expiryColor = isExpired
+                  ? AppColors.danger
+                  : isExpiringSoon
+                      ? AppColors.warning
+                      : context.subtitleColor;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: InkWell(
+                  onTap: () =>
+                      context.push('/insurance/${ins.id}').then((_) => onChanged()),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkCard : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: context.cardBorderColor, width: 0.5),
+                    ),
+                    child: Row(
+                      children: [
+                        Text(ins.type.emoji,
+                            style: const TextStyle(fontSize: 22)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                ins.name,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                ins.insuranceCompany,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: context.subtitleColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          isExpired
+                              ? 'Vypršela'
+                              : _dateFmt.format(ins.expiryDate),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: expiryColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
         ],
       ),
     );

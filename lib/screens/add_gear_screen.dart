@@ -10,6 +10,7 @@ import '../models/gear_item.dart';
 import '../models/maintenance_rule.dart';
 import '../theme/app_theme.dart';
 import '../widgets/category_icon.dart';
+import '../widgets/photo_picker.dart';
 
 // ─── Draft rule (editable before saving) ─────────────────────────────────────
 
@@ -74,6 +75,12 @@ class _AddGearScreenState extends State<AddGearScreen> {
   bool             _loading          = false;
   bool             _isEdit           = false;
   GearItem?        _existingItem;
+  String?          _photoPath;
+
+  // Warranty fields
+  DateTime? _warrantyExpiryDate;
+  final _warrantyNotesCtrl = TextEditingController();
+  String?   _warrantyPhotoPath;
 
   static final _dateFmt = DateFormat('d. M. yyyy');
 
@@ -99,7 +106,11 @@ class _AddGearScreenState extends State<AddGearScreen> {
         _selectedCatId     = item.categoryId;
         _status            = item.status;
         _manufacturedDate  = item.manufacturedDate;
-        _purchaseDate      = item.purchaseDate;
+        _purchaseDate          = item.purchaseDate;
+        _photoPath             = item.photoPath;
+        _warrantyExpiryDate    = item.warrantyExpiryDate;
+        _warrantyNotesCtrl.text = item.warrantyNotes ?? '';
+        _warrantyPhotoPath     = item.warrantyPhotoPath;
         // Load existing rules for edit mode
         final rules = await _db.getRulesForItem(item.id!);
         _draftRules = rules.map((r) => _DraftRule(
@@ -119,7 +130,7 @@ class _AddGearScreenState extends State<AddGearScreen> {
   @override
   void dispose() {
     _nameCtrl.dispose(); _brandCtrl.dispose(); _modelCtrl.dispose();
-    _serialCtrl.dispose(); _notesCtrl.dispose();
+    _serialCtrl.dispose(); _notesCtrl.dispose(); _warrantyNotesCtrl.dispose();
     super.dispose();
   }
 
@@ -253,6 +264,10 @@ class _AddGearScreenState extends State<AddGearScreen> {
       purchaseDate: _purchaseDate,
       status: _status,
       notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
+      photoPath: _photoPath,
+      warrantyExpiryDate: _warrantyExpiryDate,
+      warrantyNotes: _warrantyNotesCtrl.text.trim().isEmpty ? null : _warrantyNotesCtrl.text.trim(),
+      warrantyPhotoPath: _warrantyPhotoPath,
     );
 
     if (_isEdit) {
@@ -407,6 +422,13 @@ class _AddGearScreenState extends State<AddGearScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           children: [
+            // ── Foto sekce ──────────────────────────────────────────────────
+            PhotoPicker(
+              photoPath: _photoPath,
+              onChanged: (path) => setState(() => _photoPath = path),
+              height: 200,
+            ),
+            const SizedBox(height: 20),
             _buildCategorySection(),
             const SizedBox(height: 20),
             _buildBasicInfoSection(),
@@ -414,6 +436,8 @@ class _AddGearScreenState extends State<AddGearScreen> {
             _buildDatesSection(),
             const SizedBox(height: 20),
             _buildNotesSection(),
+            const SizedBox(height: 20),
+            _buildWarrantySection(),
             if (!_isEdit) ...[
               const SizedBox(height: 20),
               _buildRulesSection(),
@@ -669,6 +693,96 @@ class _AddGearScreenState extends State<AddGearScreen> {
                 focusedBorder: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
               ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ── Warranty ──────────────────────────────────────────────────────────────
+
+  Widget _buildWarrantySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionLabel('Záruka'),
+        const SizedBox(height: 10),
+        _Card(
+          children: [
+            // Date picker row
+            InkWell(
+              onTap: () async {
+                final now = DateTime.now();
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _warrantyExpiryDate ?? now,
+                  firstDate: now.subtract(const Duration(days: 3650)),
+                  lastDate: now.add(const Duration(days: 7300)),
+                );
+                if (picked != null) {
+                  setState(() => _warrantyExpiryDate = picked);
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today_outlined, size: 18),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Platnost záruky do',
+                            style: TextStyle(fontSize: 12, color: Color(0xFF757575)),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _warrantyExpiryDate != null
+                                ? _dateFmt.format(_warrantyExpiryDate!)
+                                : 'Vybrat datum',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: _warrantyExpiryDate != null ? null : const Color(0xFF9E9E9E),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_warrantyExpiryDate != null)
+                      IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () => setState(() => _warrantyExpiryDate = null),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _warrantyNotesCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Poznámky k záruce',
+                hintText: 'číslo dokladu, prodejce…',
+              ),
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Foto záručního listu',
+                style: TextStyle(fontSize: 12, color: const Color(0xFF757575)),
+              ),
+            ),
+            const SizedBox(height: 6),
+            PhotoPicker(
+              photoPath: _warrantyPhotoPath,
+              onChanged: (path) => setState(() => _warrantyPhotoPath = path),
+              height: 120,
             ),
           ],
         ),

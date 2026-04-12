@@ -16,6 +16,7 @@ import '../services/gpx_parser.dart';
 import '../services/maintenance_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/maintenance_badge.dart';
+import '../widgets/photo_picker.dart';
 
 /// Globální přehled všeho vybavení, které potřebuje servis.
 class MaintenanceOverviewScreen extends StatefulWidget {
@@ -250,6 +251,7 @@ class _AddMaintenanceLogScreenState extends State<AddMaintenanceLogScreen> {
   int? _selectedRuleId;
   DateTime _performedDate = DateTime.now();
   bool _loading = false;
+  String? _photoPath;
 
   static final _dateFormat = DateFormat('d. M. yyyy');
 
@@ -287,6 +289,7 @@ class _AddMaintenanceLogScreenState extends State<AddMaintenanceLogScreen> {
           ? null
           : double.tryParse(_costCtrl.text.trim()),
       notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
+      photoPath: _photoPath,
     );
 
     if (mounted) context.pop();
@@ -385,6 +388,15 @@ class _AddMaintenanceLogScreenState extends State<AddMaintenanceLogScreen> {
                 border: const OutlineInputBorder(),
                 alignLabelWithHint: true,
               ),
+            ),
+            const SizedBox(height: 16),
+            const Text('Foto dokladu / štítku',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: 8),
+            PhotoPicker(
+              photoPath: _photoPath,
+              onChanged: (path) => setState(() => _photoPath = path),
+              height: 160,
             ),
           ],
         ),

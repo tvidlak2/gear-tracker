@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.CAMERA" />
 
     <!-- ── Notifikace ────────────────────────────────────────────────────── -->
     <!-- Zobrazení notifikace (Android 13+) -->
@@ -76,6 +77,35 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+
+        <!-- GearTracker Home Screen Widgets -->
+        <receiver
+            android:name=".GearWidgetSmallProvider"
+            android:exported="true"
+            android:label="GearTracker Small">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/gear_widget_small_info" />
+        </receiver>
+
+        <receiver
+            android:name=".GearWidgetMediumProvider"
+            android:exported="true"
+            android:label="GearTracker Medium">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/gear_widget_medium_info" />
+        </receiver>
     </application>
 
     <queries>

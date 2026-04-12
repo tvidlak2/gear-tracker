@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../models/category.dart';
@@ -47,7 +50,7 @@ class GearCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
               children: [
-                _SportAvatar(category: category),
+                _SportAvatar(category: category, photoPath: item.photoPath),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _ItemInfo(
@@ -87,7 +90,8 @@ class GearCard extends StatelessWidget {
 
 class _SportAvatar extends StatelessWidget {
   final Category? category;
-  const _SportAvatar({required this.category});
+  final String? photoPath;
+  const _SportAvatar({required this.category, required this.photoPath});
 
   // Ikona barva podle icon name
   static Color _iconColor(String? icon) => switch (icon) {
@@ -111,6 +115,22 @@ class _SportAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // If photo exists, show thumbnail
+    if (photoPath != null && !kIsWeb) {
+      final file = File(photoPath!);
+      if (file.existsSync()) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: SizedBox(
+            width: 46,
+            height: 46,
+            child: Image.file(file, fit: BoxFit.cover),
+          ),
+        );
+      }
+    }
+
+    // Otherwise show sport icon avatar (existing code)
     final iconColor = _iconColor(category?.icon);
     final bgColor   = context.isDark
         ? iconColor.withOpacity(0.18)
