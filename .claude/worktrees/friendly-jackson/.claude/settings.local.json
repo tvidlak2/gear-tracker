@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/tomas/gear-tracker/**)",
+      "Bash(find /home -name \"gear-tracker\" -type d)",
+      "Bash(git -C /c/Users/tomas/gear-tracker status --short)",
+      "Bash(git -C /c/Users/tomas/gear-tracker log --oneline -5)",
+      "Bash(git -C \"/c/Users/tomas/gear-tracker/.claude/worktrees/friendly-jackson\" log --oneline -5)",
+      "Bash(git -C /c/Users/tomas/gear-tracker ls-files android/)",
+      "Bash(git -C \"/c/Users/tomas/gear-tracker/.claude/worktrees/friendly-jackson\" config core.sparseCheckout)",
+      "Bash(git -C \"/c/Users/tomas/gear-tracker/.claude/worktrees/friendly-jackson\" show HEAD:android/app/src/main/AndroidManifest.xml)",
+      "Bash(git -C \"/c/Users/tomas/gear-tracker/.claude/worktrees/friendly-jackson\" checkout HEAD -- android/)",
+      "Bash(git -C \"/c/Users/tomas/gear-tracker/.claude/worktrees/friendly-jackson\" ls-tree HEAD --name-only)",
+      "Bash(git -C /c/Users/tomas/gear-tracker rev-parse claude/friendly-jackson)",
+      "Bash(git -C /c/Users/tomas/gear-tracker show 09c6a16 --stat)",
+      "Bash(git -C /c/Users/tomas/gear-tracker ls-tree 09c6a16 --name-only)",
+      "Bash(flutter pub:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(flutter test:*)"
+    ]
+  }
+}

@@ -1,0 +1,117 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- ── Síť ──────────────────────────────────────────────────────────── -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- ── Média / fotky ─────────────────────────────────────────────────── -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- ── Notifikace ────────────────────────────────────────────────────── -->
+    <!-- Zobrazení notifikace (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Přesné plánování alarmu (Android 12, API 31-32) – vyžaduje souhlas uživatele -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
+    <!-- Přesné plánování alarmu (Android 13+, API 33+) – automaticky uděleno -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <!-- Udržení CPU při doručení naplánované notifikace -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Přeplánování notifikací po restartu zařízení -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application
+        android:label="GearTracker"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:enableOnBackInvokedCallback="true">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme" />
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            flutter_local_notifications přidá vlastní receivery (ScheduledNotificationReceiver,
+            ScheduledNotificationBootReceiver) automaticky přes manifest merger Gradle.
+            Není třeba je uvádět ručně.
+        -->
+
+        <!--
+            flutter_web_auth_2: zachytí OAuth2 redirect zpět do aplikace
+            po autentizaci na Strava (geartracker://strava-callback).
+            Redirect URI musí být zaregistrována v Strava API nastavení:
+              Authorization Callback Domain = strava-callback
+        -->
+        <activity
+            android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
+            android:exported="true">
+            <intent-filter android:label="flutter_web_auth_2">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="geartracker"
+                    android:host="strava-callback" />
+            </intent-filter>
+        </activity>
+
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+
+        <!-- GearTracker Home Screen Widgets -->
+        <receiver
+            android:name=".GearWidgetSmallProvider"
+            android:exported="true"
+            android:label="GearTracker Small">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/gear_widget_small_info" />
+        </receiver>
+
+        <receiver
+            android:name=".GearWidgetMediumProvider"
+            android:exported="true"
+            android:label="GearTracker Medium">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/gear_widget_medium_info" />
+        </receiver>
+    </application>
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT" />
+            <data android:mimeType="text/plain" />
+        </intent>
+    </queries>
+</manifest>

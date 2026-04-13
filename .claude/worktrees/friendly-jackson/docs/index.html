@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GearTracker – Bezpečnost tvého vybavení na jednom místě</title>
+  <meta name="description" content="GearTracker ti pomůže sledovat údržbu outdoorového vybavení, importovat aktivity ze Stravy a IGC a dostávat upozornění včas." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1D9E75;
+      --primary-dark: #0F6E56;
+      --primary-light: #E8F7F2;
+      --text: #1A1A2E;
+      --text-muted: #5A6475;
+      --bg: #FFFFFF;
+      --card-bg: #F8FDFB;
+      --border: #D4EDE5;
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 0 24px;
+    }
+    .nav {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 0;
+    }
+    .nav-logo {
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: #fff;
+      text-decoration: none;
+    }
+    .nav-link {
+      color: rgba(255,255,255,0.85);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    .nav-link:hover { color: #fff; }
+
+    /* ── HERO ── */
+    .hero {
+      background: var(--primary);
+      color: #fff;
+      text-align: center;
+      padding: 72px 24px 80px;
+    }
+    .hero-icon {
+      width: 100px;
+      height: 100px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 28px;
+      font-size: 48px;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+    .hero p {
+      font-size: clamp(1.05rem, 2.5vw, 1.25rem);
+      opacity: 0.92;
+      max-width: 540px;
+      margin: 0 auto 40px;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #fff;
+      color: var(--primary-dark);
+      font-weight: 700;
+      font-size: 1.05rem;
+      padding: 16px 32px;
+      border-radius: 50px;
+      text-decoration: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+    }
+    .btn-primary svg { flex-shrink: 0; }
+    .btn-note {
+      display: block;
+      margin-top: 12px;
+      font-size: 0.82rem;
+      opacity: 0.75;
+    }
+
+    /* ── WAVE DIVIDER ── */
+    .wave {
+      display: block;
+      width: 100%;
+      overflow: hidden;
+      line-height: 0;
+      background: var(--primary);
+    }
+    .wave svg {
+      display: block;
+      width: 100%;
+    }
+
+    /* ── FEATURES ── */
+    .section {
+      padding: 72px 24px;
+    }
+    .section-inner {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .section-label {
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+    .section-title {
+      text-align: center;
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 48px;
+      color: var(--text);
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(29, 158, 117, 0.12);
+    }
+    .feature-icon {
+      width: 56px;
+      height: 56px;
+      background: var(--primary-light);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      margin-bottom: 20px;
+    }
+    .feature-card h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+    .feature-card p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* ── HOW IT WORKS ── */
+    .alt-section {
+      background: var(--primary-light);
+      padding: 72px 24px;
+    }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 32px;
+      margin-top: 0;
+    }
+    .step {
+      text-align: center;
+    }
+    .step-num {
+      width: 44px;
+      height: 44px;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+    }
+    .step h4 {
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+    .step p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    /* ── CTA ── */
+    .cta-section {
+      background: var(--primary-dark);
+      color: #fff;
+      text-align: center;
+      padding: 72px 24px;
+    }
+    .cta-section h2 {
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+    .cta-section p {
+      opacity: 0.88;
+      margin-bottom: 36px;
+      font-size: 1.05rem;
+    }
+    .btn-white {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #fff;
+      color: var(--primary-dark);
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 15px 30px;
+      border-radius: 50px;
+      text-decoration: none;
+      transition: transform 0.15s;
+    }
+    .btn-white:hover { transform: translateY(-2px); }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--text);
+      color: rgba(255,255,255,0.6);
+      text-align: center;
+      padding: 28px 24px;
+      font-size: 0.85rem;
+    }
+    footer a {
+      color: rgba(255,255,255,0.85);
+      text-decoration: none;
+    }
+    footer a:hover { color: #fff; text-decoration: underline; }
+    .footer-links { margin-bottom: 8px; }
+    .footer-links a + a::before {
+      content: ' · ';
+      color: rgba(255,255,255,0.3);
+    }
+
+    @media (max-width: 600px) {
+      .hero { padding: 56px 20px 64px; }
+      .section, .alt-section, .cta-section { padding: 56px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header>
+    <nav class="nav">
+      <a class="nav-logo" href="/">🎒 GearTracker</a>
+      <a class="nav-link" href="privacy-policy.html">Privacy Policy</a>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-icon">🎒</div>
+    <h1>GearTracker</h1>
+    <p>Bezpečnost tvého vybavení na jednom místě.<br>Sleduj údržbu, importuj aktivity a dostávej upozornění včas.</p>
+    <a href="#download" class="btn-primary">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M3.18 23.76c.37.21.8.21 1.19.02l17.03-9.79a1.15 1.15 0 000-1.98L4.37.22C3.98.03 3.55.03 3.18.24A1.15 1.15 0 002.6 1.27v21.47c0 .43.23.82.58 1.02z"/>
+      </svg>
+      Stáhnout na Google Play
+    </a>
+    <span class="btn-note">Brzy dostupné · Android</span>
+  </section>
+
+  <!-- Wave -->
+  <div class="wave">
+    <svg viewBox="0 0 1440 60" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <path d="M0,40 C360,80 1080,0 1440,40 L1440,60 L0,60 Z" fill="#ffffff"/>
+    </svg>
+  </div>
+
+  <!-- Features -->
+  <section class="section" id="features">
+    <div class="section-inner">
+      <p class="section-label">Hlavní funkce</p>
+      <h2 class="section-title">Vše co potřebuješ pro péči o vybavení</h2>
+      <div class="features-grid">
+
+        <div class="feature-card">
+          <div class="feature-icon">🔧</div>
+          <h3>Sleduj údržbu</h3>
+          <p>Nastav si pravidla servisu pro každý kus vybavení. Nikdy nezapomeň na pravidelnou kontrolu či výměnu součástek.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📡</div>
+          <h3>Import ze Stravy a IGC</h3>
+          <p>Automaticky importuj aktivity ze Stravy nebo z IGC logů. Hodiny, kilometry i nastoupané výšky se přidají samy.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🔔</div>
+          <h3>Upozornění včas</h3>
+          <p>Dostávej push notifikace předtím, než termín servisu vyprší. Bezpečnostně kritické vybavení vždy pod kontrolou.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="alt-section">
+    <div class="section-inner">
+      <p class="section-label">Jak to funguje</p>
+      <h2 class="section-title">Tři kroky k přehledu</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h4>Přidej vybavení</h4>
+          <p>Vlož název, kategorii, datum koupě a fotografii svého vybavení.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h4>Nastav pravidla</h4>
+          <p>Definuj kdy a jak má být vybavení zkontrolováno – podle data, km nebo hodin provozu.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h4>Sleduj a jednej</h4>
+          <p>Nechej GearTracker sledovat stav za tebe a jednej jen tehdy, kdy je to opravdu potřeba.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section" id="download">
+    <h2>Začni sledovat své vybavení ještě dnes</h2>
+    <p>Bezplatná aplikace pro Android. Žádná registrace, žádný cloud — vše zůstává v tvém telefonu.</p>
+    <a href="#" class="btn-white">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M3.18 23.76c.37.21.8.21 1.19.02l17.03-9.79a1.15 1.15 0 000-1.98L4.37.22C3.98.03 3.55.03 3.18.24A1.15 1.15 0 002.6 1.27v21.47c0 .43.23.82.58 1.02z"/>
+      </svg>
+      Stáhnout na Google Play
+    </a>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-links">
+      <a href="privacy-policy.html">Privacy Policy</a>
+      <a href="mailto:tvidlak@pavoucek.cz">Kontakt</a>
+    </div>
+    <div>© 2026 Tomas Vidlak · GearTracker</div>
+  </footer>
+
+</body>
+</html>

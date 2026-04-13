@@ -1,0 +1,103 @@
+name: gear_tracker
+description: GearTracker – aplikace pro správu outdoorového vybavení a sledování údržby.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Lokální SQLite databáze
+  sqflite: ^2.3.3
+  sqflite_common_ffi_web: ^1.1.1   # web podpora
+  path: ^1.9.0
+
+  # Push notifikace
+  flutter_local_notifications: ^17.0.0
+  timezone: ^0.9.4
+  flutter_timezone: ^5.0.0
+
+  # Uložení nastavení (toggle notifikací)
+  shared_preferences: ^2.2.3
+
+  # Navigace
+  go_router: ^13.2.0
+
+  # State management
+  provider: ^6.1.2
+
+  # Datum a čas
+  intl: any
+
+  # Ikony a UI
+  cupertino_icons: ^1.0.6
+  flutter_svg: ^2.0.10+1
+
+  # Výběr data
+  table_calendar: ^3.1.2
+
+  # Výběr obrázků (foto vybavení)
+  image_picker: ^1.1.2
+
+  # Oprávnění
+  permission_handler: ^11.3.1
+
+  # UUID pro generování ID
+  uuid: ^4.4.0
+
+  # Trvalé úložiště fotek
+  path_provider: ^2.1.4
+
+  # Výběr souborů (IGC import)
+  file_picker: ^8.1.2
+
+  # Strava integrace
+  flutter_secure_storage: ^9.0.0
+  http: ^1.2.2
+  flutter_web_auth_2: ^5.0.0
+  url_launcher: ^6.3.0          # web OAuth redirect (same-tab)
+
+  # Grafy
+  fl_chart: ^0.69.0
+
+  # Sdílení obsahu
+  share_plus: ^10.0.0
+  purchases_flutter: ^9.16.1
+  purchases_ui_flutter: ^9.16.1
+
+  # Google Drive záloha
+  google_sign_in: ^6.2.0
+  googleapis: ^12.0.0
+  archive: ^3.6.1
+
+  # PDF generování
+  pdf: ^3.10.8
+  printing: ^5.13.0
+
+  # Home screen widgets
+  home_widget: ^0.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.14.1
+
+flutter:
+  generate: true
+  uses-material-design: true
+  assets:
+    - assets/icons/
+    - assets/images/
+    - assets/icon/
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
