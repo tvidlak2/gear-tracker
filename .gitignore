@@ -20,10 +20,17 @@ android/app/release/
 android/key.jks
 android/key.properties
 android/app/gear-tracker.keystore
+android/app/src/main/java/io/flutter/plugins/
 
-# Assets generované při buildu
-assets/icons/
-assets/images/
+# Assets placeholders
+assets/icons/.gitkeep
+assets/images/.gitkeep
+assets/icon/.gitkeep
+
+# Claude worktree settings
+.claude/worktrees/*/android/.gradle/
+.claude/worktrees/*/android/local.properties
+.claude/worktrees/*/build/
 
 # OS
 .DS_Store
