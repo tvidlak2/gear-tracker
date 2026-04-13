@@ -27,6 +27,7 @@ import 'screens/trip_list_screen.dart';
 import 'screens/add_edit_trip_screen.dart';
 import 'screens/trip_detail_screen.dart';
 import 'screens/portfolio_screen.dart';
+import 'screens/annual_report_screen.dart';
 import 'services/insurance_service.dart';
 import 'models/trip.dart';
 
@@ -140,6 +141,12 @@ final _router = GoRouter(
     GoRoute(
       path: '/portfolio',
       builder: (_, __) => const PortfolioScreen(),
+    ),
+
+    // ── Annual Report ─────────────────────────────────────────────────────────
+    GoRoute(
+      path: '/annual-report',
+      builder: (_, __) => const AnnualReportScreen(),
     ),
 
     // ── Insurance ─────────────────────────────────────────────────────────────

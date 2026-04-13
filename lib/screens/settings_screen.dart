@@ -625,6 +625,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // ── Sekce: Záloha a export ──────────────────────────────────────
           _SectionHeader('Záloha a export'),
           if (!_premiumLoading)
+            _SettingsTile(
+              icon: Icons.picture_as_pdf,
+              title: 'Roční report PDF',
+              subtitle: 'Export přehledu roku jako PDF',
+              onTap: () {
+                if (_isPremium) {
+                  context.push('/annual-report');
+                } else {
+                  Navigator.of(context).push<bool>(
+                    MaterialPageRoute(
+                      fullscreenDialog: true,
+                      builder: (_) => const PaywallScreen(),
+                    ),
+                  ).then((unlocked) {
+                    if (unlocked == true) _loadPremiumState();
+                  });
+                }
+              },
+            ),
+          if (!_premiumLoading)
             _BackupSection(
               isPremium:      _isPremium,
               googleAccount:  _googleAccount,
