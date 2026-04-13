@@ -319,30 +319,9 @@ class _HomeScreenState extends State<HomeScreen> {
       floating: true,
       snap: true,
       toolbarHeight: 64,
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            l10n.myGear,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-          ),
-          if (!_loading)
-            Text(
-              _attentionCount > 0
-                  ? l10n.itemsNeedAttention(_attentionCount)
-                  : l10n.allGoodTitle,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-                color: _gear.any((g) => g.status == MaintenanceStatus.overdue)
-                    ? AppColors.danger
-                    : _gear.any((g) => g.status == MaintenanceStatus.warning)
-                        ? AppColors.warning
-                        : AppColors.subtitleGray,
-              ),
-            ),
-        ],
+      title: Text(
+        l10n.myGear,
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
       ),
       actions: [
         // FAB-style tlačítko + v AppBaru
