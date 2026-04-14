@@ -21,7 +21,15 @@
       "Bash(git commit -m ':*)",
       "Bash(git push:*)",
       "Bash(dart run:*)",
-      "Bash(flutter gen-l10n:*)"
+      "Bash(flutter gen-l10n:*)",
+      "Bash(sed -i \"s/'GearTracker uživatel'/'OutdoorGearTracker uživatel'/\" /c/Users/tomas/gear-tracker/lib/services/annual_report_service.dart)",
+      "Bash(sed -i \"s/'GearTracker | Roční Report/'OutdoorGearTracker | Roční Report/\" /c/Users/tomas/gear-tracker/lib/services/annual_report_service.dart)",
+      "Bash(sed -i \"s/aplikací GearTracker/aplikací OutdoorGearTracker/\" /c/Users/tomas/gear-tracker/lib/services/annual_report_service.dart)",
+      "Bash(grep -l \"GearTracker\" /c/Users/tomas/gear-tracker/lib/l10n/app_*.arb)",
+      "Bash(find /c/Users/tomas/gear-tracker/test -name \"*.dart\" -exec sed -i 's|package:gear_tracker/|package:outdoor_gear_tracker/|g' {} \\\\;)",
+      "Bash(flutter build:*)",
+      "Bash(grep -v \"^$\")",
+      "Bash('/c/Program Files/Android/Android Studio/jbr/bin/keytool.exe' -list -keystore /c/Users/tomas/gear-tracker/android/app/gear-tracker.keystore -storepass GearTracker2026Brno)"
     ]
   }
 }
