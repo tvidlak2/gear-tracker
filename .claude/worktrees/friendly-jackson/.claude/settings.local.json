@@ -16,7 +16,12 @@
       "Bash(git -C /c/Users/tomas/gear-tracker ls-tree 09c6a16 --name-only)",
       "Bash(flutter pub:*)",
       "Bash(flutter analyze:*)",
-      "Bash(flutter test:*)"
+      "Bash(flutter test:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)",
+      "Bash(dart run:*)",
+      "Bash(flutter gen-l10n:*)"
     ]
   }
 }
