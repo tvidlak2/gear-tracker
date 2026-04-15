@@ -55,7 +55,15 @@
       "Bash(cygpath -w /tmp/cmdline-tools.zip)",
       "Bash(cygpath \"C:/Users/tomas/AppData/Local/Android/sdk\")",
       "Bash(cp -r '/tmp/cmdline-tools-extracted/cmdline-tools/*' __TRACKED_VAR__/cmdline-tools/latest/)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(python3 /tmp/add_l10n_keys.py)",
+      "Bash(/c/Users/tomas/AppData/Local/Microsoft/WindowsApps/python3 /tmp/add_l10n_keys.py)",
+      "Bash(dart --version)",
+      "Bash(node /tmp/add_l10n.js)",
+      "Bash(cp /tmp/add_l10n.js ~/add_l10n.js)",
+      "Bash(node ~/add_l10n.js)",
+      "Read(//c/Users/tomas/**)",
+      "Bash(node add_l10n.js)"
     ]
   }
 }
