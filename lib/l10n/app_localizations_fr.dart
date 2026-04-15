@@ -1205,4 +1205,90 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get trips => 'Voyages';
+
+  @override
+  String get allDataDeleted => 'Toutes les données supprimées';
+
+  @override
+  String get stravaDisconnectHint =>
+      'Supprime les jetons d\'accès. Les activités enregistrées resteront.';
+
+  @override
+  String get stravaApiKeyHint =>
+      'Entrez le Client ID et le Client Secret de votre compte API Strava (https://www.strava.com/settings/api).';
+
+  @override
+  String get stravaConnectDescription =>
+      'Connectez l\'application à Strava et synchronisez automatiquement les activités comme enregistrements d\'utilisation.';
+
+  @override
+  String get stravaAccount => 'Compte Strava';
+
+  @override
+  String get stravaLoadError =>
+      'Impossible de charger le statut Strava. Veuillez réessayer.';
+
+  @override
+  String get stravaConnectTimeout =>
+      'La connexion a expiré (30 s). Vérifiez votre réseau et réessayez.';
+
+  @override
+  String get googleDriveBackupTitle => 'Sauvegarde Google Drive';
+
+  @override
+  String get googleSignInPrompt =>
+      'Connectez-vous avec Google pour sauvegarder vos données sur Google Drive.';
+
+  @override
+  String get googleAccount => 'Compte Google';
+
+  @override
+  String get autoBackupLabel => 'Sauvegarde automatique (tous les 7 jours)';
+
+  @override
+  String get uploading => 'Téléversement...';
+
+  @override
+  String get backupNow => 'Sauvegarder';
+
+  @override
+  String get premiumAllFeaturesUnlocked =>
+      'Toutes les fonctionnalités sont débloquées';
+
+  @override
+  String get upgradeToPremium => 'Passer à Premium';
+
+  @override
+  String get premiumBenefits =>
+      'Équipement illimité, historique complet des activités et plus';
+
+  @override
+  String exportError(String error) {
+    return 'Erreur d\'export: $error';
+  }
+
+  @override
+  String lastBackupDate(String date) {
+    return 'Dernière sauvegarde: $date';
+  }
+
+  @override
+  String syncToday(String time) {
+    return 'Aujourd\'hui à $time';
+  }
+
+  @override
+  String syncYesterday(String time) {
+    return 'Hier à $time';
+  }
+
+  @override
+  String stravaConnectError(String error) {
+    return 'Erreur inattendue: $error';
+  }
+
+  @override
+  String stravaSyncDateLabel(String date) {
+    return 'Dernière sync: $date';
+  }
 }

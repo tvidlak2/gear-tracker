@@ -188,18 +188,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     };
     await prefs.setString('app_theme_mode', value);
     themeModeNotifier.value = mode;
-    if (mounted) Navigator.of(context).pop();
   }
 
-  void _showThemeDialog() {
+  void _showThemeDialog(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: Text(l10n.settingsAppearance),
+        title: Text(l10n.appearance),
         children: [
           SimpleDialogOption(
-            onPressed: () => _setTheme(ThemeMode.light),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _setTheme(ThemeMode.light);
+            },
             child: Row(children: [
               const Icon(Icons.light_mode_outlined),
               const SizedBox(width: 12),
@@ -207,7 +209,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ]),
           ),
           SimpleDialogOption(
-            onPressed: () => _setTheme(ThemeMode.dark),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _setTheme(ThemeMode.dark);
+            },
             child: Row(children: [
               const Icon(Icons.dark_mode_outlined),
               const SizedBox(width: 12),
@@ -215,7 +220,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ]),
           ),
           SimpleDialogOption(
-            onPressed: () => _setTheme(ThemeMode.system),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _setTheme(ThemeMode.system);
+            },
             child: Row(children: [
               const Icon(Icons.brightness_auto_outlined),
               const SizedBox(width: 12),
@@ -272,7 +280,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Všechna data byla vymazána')),
+          SnackBar(content: Text(AppLocalizations.of(context).allDataDeleted)),
         );
         context.go('/');
       }
@@ -419,7 +427,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Chyba exportu: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).exportError(e.toString()))),
         );
       }
     } finally {
@@ -483,7 +491,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } on TimeoutException {
       if (mounted) {
         setState(() => _stravaLoadError =
-            'Nepodařilo se načíst stav Stravy, zkus to znovu.');
+            AppLocalizations.of(context).stravaLoadError);
       }
     } catch (e) {
       if (mounted) {
@@ -511,9 +519,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           .connect(context)
           .timeout(const Duration(seconds: 30));
     } on TimeoutException {
-      connectError = 'Připojení vypršelo (30 s). Zkontroluj síť a zkus znovu.';
+      connectError = AppLocalizations.of(context).stravaConnectTimeout;
     } catch (e) {
-      connectError = 'Neočekávaná chyba: $e';
+      connectError = AppLocalizations.of(context).stravaConnectError(e.toString());
     }
 
     if (!mounted) return;
@@ -551,8 +559,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: Text(l10n.stravaDisconnect),
-        content: const Text(
-            'Odstraní přístupové tokeny. Nalogované aktivity zůstanou.'),
+        content: Text(AppLocalizations.of(context).stravaDisconnectHint),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -634,10 +641,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Zadej Client ID a Client Secret ze svého Strava API účtu '
-                '(https://www.strava.com/settings/api).',
-                style: TextStyle(fontSize: 13),
+              Text(
+                AppLocalizations.of(ctx).stravaApiKeyHint,
+                style: const TextStyle(fontSize: 13),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -836,7 +842,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.palette_outlined,
             title: l10n.appearance,
             subtitle: l10n.appearanceSubtitle,
-            onTap: _showThemeDialog,
+            onTap: () => _showThemeDialog(context),
           ),
 
           // ── Sekce: Oznámení ──────────────────────────────────────────────
@@ -1282,8 +1288,7 @@ class _StravaSection extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Propoj aplikaci se Stravou a automaticky synchronizuj '
-                  'aktivity jako záznamy použití vybavení.',
+                  AppLocalizations.of(context).stravaConnectDescription,
                   style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
                 ),
                 const SizedBox(height: 14),
@@ -1352,7 +1357,7 @@ class _StravaSection extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          athlete?.fullName ?? 'Strava účet',
+                          athlete?.fullName ?? AppLocalizations.of(context).stravaAccount,
                           style: const TextStyle(
                               fontWeight: FontWeight.w600, fontSize: 14),
                         ),
@@ -1393,7 +1398,7 @@ class _StravaSection extends StatelessWidget {
                   padding: const EdgeInsets.only(
                       left: 4, right: 4, bottom: 8),
                   child: Text(
-                    'Poslední sync: ${_formatSyncDate(lastSyncDate!)}',
+                    AppLocalizations.of(context).stravaSyncDateLabel(_formatSyncDate(context, lastSyncDate!)),
                     style: TextStyle(
                         fontSize: 11,
                         color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -1442,7 +1447,8 @@ class _StravaSection extends StatelessWidget {
     );
   }
 
-  static String _formatSyncDate(DateTime dt) {
+  static String _formatSyncDate(BuildContext context, DateTime dt) {
+    final l10n  = AppLocalizations.of(context);
     final now   = DateTime.now();
     final local = dt.toLocal();
     final time  = '${local.hour.toString().padLeft(2, '0')}:'
@@ -1450,15 +1456,15 @@ class _StravaSection extends StatelessWidget {
     if (local.year == now.year &&
         local.month == now.month &&
         local.day   == now.day) {
-      return 'Dnes v $time';
+      return l10n.syncToday(time);
     }
     final yesterday = now.subtract(const Duration(days: 1));
     if (local.year  == yesterday.year &&
         local.month == yesterday.month &&
         local.day   == yesterday.day) {
-      return 'Včera v $time';
+      return l10n.syncYesterday(time);
     }
-    return '${local.day}. ${local.month}. ${local.year} v $time';
+    return '${local.day}. ${local.month}. ${local.year} $time';
   }
 }
 
@@ -1595,7 +1601,7 @@ class _PremiumBadgeTile extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Máš odemknuté všechny funkce',
+                  AppLocalizations.of(context).premiumAllFeaturesUnlocked,
                   style: TextStyle(
                     fontSize: 12,
                     color: const Color(0xFF8B6914).withAlpha(180),
@@ -1661,16 +1667,16 @@ class _UpgradeBannerTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Upgradovat na Premium',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context).upgradeToPremium,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 15,
                       color: Color(0xFF7A5C00),
                     ),
                   ),
                   Text(
-                    'Neomezené vybavení, celá historie aktivit a více',
+                    AppLocalizations.of(context).premiumBenefits,
                     style: TextStyle(
                       fontSize: 12,
                       color: const Color(0xFF7A5C00).withAlpha(180),
@@ -1750,7 +1756,7 @@ class _BackupSection extends StatelessWidget {
           children: [
             _LockedFeatureTile(
               icon: Icons.cloud_upload_outlined,
-              title: 'Záloha na Google Drive',
+              title: AppLocalizations.of(context).googleDriveBackupTitle,
               onUpgradeTap: onUpgradeTap,
             ),
             // CSV export is always free
@@ -1788,15 +1794,15 @@ class _BackupSection extends StatelessWidget {
                   children: [
                     Icon(Icons.cloud_outlined, color: cs.primary),
                     const SizedBox(width: 8),
-                    const Text(
-                      'Google Drive záloha',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                    Text(
+                      AppLocalizations.of(context).googleDriveBackupTitle,
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Přihlaste se s Googlem, abyste mohli zálohovat data do Google Drive.',
+                  AppLocalizations.of(context).googleSignInPrompt,
                   style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
                 ),
                 const SizedBox(height: 14),
@@ -1844,9 +1850,9 @@ class _BackupSection extends StatelessWidget {
                 children: [
                   Icon(Icons.cloud_done_outlined, color: cs.primary),
                   const SizedBox(width: 8),
-                  const Text(
-                    'Google Drive záloha',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                  Text(
+                    AppLocalizations.of(context).googleDriveBackupTitle,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
                   ),
                   const Spacer(),
                   _ConnectedBadge(),
@@ -1878,7 +1884,7 @@ class _BackupSection extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          googleAccount!.displayName ?? 'Google účet',
+                          googleAccount!.displayName ?? AppLocalizations.of(context).googleAccount,
                           style: const TextStyle(
                               fontWeight: FontWeight.w600, fontSize: 14),
                         ),
@@ -1896,7 +1902,7 @@ class _BackupSection extends StatelessWidget {
               if (lastBackupDate != null) ...[
                 const SizedBox(height: 8),
                 Text(
-                  'Poslední záloha: ${_formatDate(lastBackupDate!)}',
+                  AppLocalizations.of(context).lastBackupDate(_formatDate(lastBackupDate!)),
                   style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                 ),
               ],
@@ -1908,9 +1914,9 @@ class _BackupSection extends StatelessWidget {
               SwitchListTile(
                 dense: true,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                title: const Text(
-                  'Automatická záloha (každých 7 dní)',
-                  style: TextStyle(fontSize: 13),
+                title: Text(
+                  AppLocalizations.of(context).autoBackupLabel,
+                  style: const TextStyle(fontSize: 13),
                 ),
                 value: autoBackup,
                 onChanged: onAutoBackupChanged,
@@ -1947,7 +1953,7 @@ class _BackupSection extends StatelessWidget {
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: Colors.white))
                           : const Icon(Icons.cloud_upload_outlined, size: 16),
-                      label: Text(backupLoading ? 'Nahrávám...' : 'Zálohovat'),
+                      label: Text(backupLoading ? AppLocalizations.of(context).uploading : AppLocalizations.of(context).backupNow),
                     ),
                   ),
                   const SizedBox(width: 8),

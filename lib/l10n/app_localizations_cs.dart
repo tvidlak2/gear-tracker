@@ -1197,4 +1197,89 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get trips => 'Výlety';
+
+  @override
+  String get allDataDeleted => 'Všechna data byla vymazána';
+
+  @override
+  String get stravaDisconnectHint =>
+      'Odstraní přístupové tokeny. Nalogované aktivity zůstanou.';
+
+  @override
+  String get stravaApiKeyHint =>
+      'Zadej Client ID a Client Secret ze svého Strava API účtu (https://www.strava.com/settings/api).';
+
+  @override
+  String get stravaConnectDescription =>
+      'Propoj aplikaci se Stravou a automaticky synchronizuj aktivity jako záznamy použití vybavení.';
+
+  @override
+  String get stravaAccount => 'Strava účet';
+
+  @override
+  String get stravaLoadError =>
+      'Nepodařilo se načíst stav Stravy, zkus to znovu.';
+
+  @override
+  String get stravaConnectTimeout =>
+      'Připojení vypršelo (30 s). Zkontroluj síť a zkus znovu.';
+
+  @override
+  String get googleDriveBackupTitle => 'Záloha na Google Drive';
+
+  @override
+  String get googleSignInPrompt =>
+      'Přihlaste se s Googlem, abyste mohli zálohovat data do Google Drive.';
+
+  @override
+  String get googleAccount => 'Google účet';
+
+  @override
+  String get autoBackupLabel => 'Automatická záloha (každých 7 dní)';
+
+  @override
+  String get uploading => 'Nahrávám...';
+
+  @override
+  String get backupNow => 'Zálohovat';
+
+  @override
+  String get premiumAllFeaturesUnlocked => 'Máš odemknuté všechny funkce';
+
+  @override
+  String get upgradeToPremium => 'Upgradovat na Premium';
+
+  @override
+  String get premiumBenefits =>
+      'Neomezené vybavení, celá historie aktivit a více';
+
+  @override
+  String exportError(String error) {
+    return 'Chyba exportu: $error';
+  }
+
+  @override
+  String lastBackupDate(String date) {
+    return 'Poslední záloha: $date';
+  }
+
+  @override
+  String syncToday(String time) {
+    return 'Dnes v $time';
+  }
+
+  @override
+  String syncYesterday(String time) {
+    return 'Včera v $time';
+  }
+
+  @override
+  String stravaConnectError(String error) {
+    return 'Neočekávaná chyba: $error';
+  }
+
+  @override
+  String stravaSyncDateLabel(String date) {
+    return 'Poslední sync: $date';
+  }
 }

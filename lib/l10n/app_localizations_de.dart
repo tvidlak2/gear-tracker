@@ -1204,4 +1204,90 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get trips => 'Touren';
+
+  @override
+  String get allDataDeleted => 'Alle Daten gelöscht';
+
+  @override
+  String get stravaDisconnectHint =>
+      'Entfernt Zugriffstoken. Protokollierte Aktivitäten bleiben erhalten.';
+
+  @override
+  String get stravaApiKeyHint =>
+      'Client ID und Client Secret aus deinem Strava-API-Konto eingeben (https://www.strava.com/settings/api).';
+
+  @override
+  String get stravaConnectDescription =>
+      'Verbinde die App mit Strava und synchronisiere Aktivitäten automatisch als Ausrüstungsnutzungsdaten.';
+
+  @override
+  String get stravaAccount => 'Strava-Konto';
+
+  @override
+  String get stravaLoadError =>
+      'Strava-Status konnte nicht geladen werden. Bitte erneut versuchen.';
+
+  @override
+  String get stravaConnectTimeout =>
+      'Verbindung abgelaufen (30 s). Netzwerk prüfen und erneut versuchen.';
+
+  @override
+  String get googleDriveBackupTitle => 'Google Drive-Sicherung';
+
+  @override
+  String get googleSignInPrompt =>
+      'Mit Google anmelden, um Daten auf Google Drive zu sichern.';
+
+  @override
+  String get googleAccount => 'Google-Konto';
+
+  @override
+  String get autoBackupLabel => 'Automatische Sicherung (alle 7 Tage)';
+
+  @override
+  String get uploading => 'Wird hochgeladen...';
+
+  @override
+  String get backupNow => 'Sichern';
+
+  @override
+  String get premiumAllFeaturesUnlocked =>
+      'Du hast alle Funktionen freigeschaltet';
+
+  @override
+  String get upgradeToPremium => 'Auf Premium upgraden';
+
+  @override
+  String get premiumBenefits =>
+      'Unbegrenzte Ausrüstung, vollständige Aktivitätshistorie und mehr';
+
+  @override
+  String exportError(String error) {
+    return 'Exportfehler: $error';
+  }
+
+  @override
+  String lastBackupDate(String date) {
+    return 'Letzte Sicherung: $date';
+  }
+
+  @override
+  String syncToday(String time) {
+    return 'Heute um $time';
+  }
+
+  @override
+  String syncYesterday(String time) {
+    return 'Gestern um $time';
+  }
+
+  @override
+  String stravaConnectError(String error) {
+    return 'Unerwarteter Fehler: $error';
+  }
+
+  @override
+  String stravaSyncDateLabel(String date) {
+    return 'Letzte Sync: $date';
+  }
 }

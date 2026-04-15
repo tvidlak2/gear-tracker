@@ -2315,6 +2315,138 @@ abstract class AppLocalizations {
   /// In cs, this message translates to:
   /// **'Výlety'**
   String get trips;
+
+  /// No description provided for @allDataDeleted.
+  ///
+  /// In cs, this message translates to:
+  /// **'Všechna data byla vymazána'**
+  String get allDataDeleted;
+
+  /// No description provided for @stravaDisconnectHint.
+  ///
+  /// In cs, this message translates to:
+  /// **'Odstraní přístupové tokeny. Nalogované aktivity zůstanou.'**
+  String get stravaDisconnectHint;
+
+  /// No description provided for @stravaApiKeyHint.
+  ///
+  /// In cs, this message translates to:
+  /// **'Zadej Client ID a Client Secret ze svého Strava API účtu (https://www.strava.com/settings/api).'**
+  String get stravaApiKeyHint;
+
+  /// No description provided for @stravaConnectDescription.
+  ///
+  /// In cs, this message translates to:
+  /// **'Propoj aplikaci se Stravou a automaticky synchronizuj aktivity jako záznamy použití vybavení.'**
+  String get stravaConnectDescription;
+
+  /// No description provided for @stravaAccount.
+  ///
+  /// In cs, this message translates to:
+  /// **'Strava účet'**
+  String get stravaAccount;
+
+  /// No description provided for @stravaLoadError.
+  ///
+  /// In cs, this message translates to:
+  /// **'Nepodařilo se načíst stav Stravy, zkus to znovu.'**
+  String get stravaLoadError;
+
+  /// No description provided for @stravaConnectTimeout.
+  ///
+  /// In cs, this message translates to:
+  /// **'Připojení vypršelo (30 s). Zkontroluj síť a zkus znovu.'**
+  String get stravaConnectTimeout;
+
+  /// No description provided for @googleDriveBackupTitle.
+  ///
+  /// In cs, this message translates to:
+  /// **'Záloha na Google Drive'**
+  String get googleDriveBackupTitle;
+
+  /// No description provided for @googleSignInPrompt.
+  ///
+  /// In cs, this message translates to:
+  /// **'Přihlaste se s Googlem, abyste mohli zálohovat data do Google Drive.'**
+  String get googleSignInPrompt;
+
+  /// No description provided for @googleAccount.
+  ///
+  /// In cs, this message translates to:
+  /// **'Google účet'**
+  String get googleAccount;
+
+  /// No description provided for @autoBackupLabel.
+  ///
+  /// In cs, this message translates to:
+  /// **'Automatická záloha (každých 7 dní)'**
+  String get autoBackupLabel;
+
+  /// No description provided for @uploading.
+  ///
+  /// In cs, this message translates to:
+  /// **'Nahrávám...'**
+  String get uploading;
+
+  /// No description provided for @backupNow.
+  ///
+  /// In cs, this message translates to:
+  /// **'Zálohovat'**
+  String get backupNow;
+
+  /// No description provided for @premiumAllFeaturesUnlocked.
+  ///
+  /// In cs, this message translates to:
+  /// **'Máš odemknuté všechny funkce'**
+  String get premiumAllFeaturesUnlocked;
+
+  /// No description provided for @upgradeToPremium.
+  ///
+  /// In cs, this message translates to:
+  /// **'Upgradovat na Premium'**
+  String get upgradeToPremium;
+
+  /// No description provided for @premiumBenefits.
+  ///
+  /// In cs, this message translates to:
+  /// **'Neomezené vybavení, celá historie aktivit a více'**
+  String get premiumBenefits;
+
+  /// No description provided for @exportError.
+  ///
+  /// In cs, this message translates to:
+  /// **'Chyba exportu: {error}'**
+  String exportError(String error);
+
+  /// No description provided for @lastBackupDate.
+  ///
+  /// In cs, this message translates to:
+  /// **'Poslední záloha: {date}'**
+  String lastBackupDate(String date);
+
+  /// No description provided for @syncToday.
+  ///
+  /// In cs, this message translates to:
+  /// **'Dnes v {time}'**
+  String syncToday(String time);
+
+  /// No description provided for @syncYesterday.
+  ///
+  /// In cs, this message translates to:
+  /// **'Včera v {time}'**
+  String syncYesterday(String time);
+
+  /// No description provided for @stravaConnectError.
+  ///
+  /// In cs, this message translates to:
+  /// **'Neočekávaná chyba: {error}'**
+  String stravaConnectError(String error);
+
+  /// No description provided for @stravaSyncDateLabel.
+  ///
+  /// In cs, this message translates to:
+  /// **'Poslední sync: {date}'**
+  String stravaSyncDateLabel(String date);
 }
 
 class _AppLocalizationsDelegate

@@ -1197,4 +1197,89 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trips => 'Trips';
+
+  @override
+  String get allDataDeleted => 'All data deleted';
+
+  @override
+  String get stravaDisconnectHint =>
+      'Removes access tokens. Logged activities will remain.';
+
+  @override
+  String get stravaApiKeyHint =>
+      'Enter Client ID and Client Secret from your Strava API account (https://www.strava.com/settings/api).';
+
+  @override
+  String get stravaConnectDescription =>
+      'Connect the app to Strava and automatically sync activities as gear usage records.';
+
+  @override
+  String get stravaAccount => 'Strava account';
+
+  @override
+  String get stravaLoadError =>
+      'Failed to load Strava status, please try again.';
+
+  @override
+  String get stravaConnectTimeout =>
+      'Connection timed out (30 s). Check your network and try again.';
+
+  @override
+  String get googleDriveBackupTitle => 'Google Drive Backup';
+
+  @override
+  String get googleSignInPrompt =>
+      'Sign in with Google to back up your data to Google Drive.';
+
+  @override
+  String get googleAccount => 'Google account';
+
+  @override
+  String get autoBackupLabel => 'Automatic backup (every 7 days)';
+
+  @override
+  String get uploading => 'Uploading...';
+
+  @override
+  String get backupNow => 'Back up';
+
+  @override
+  String get premiumAllFeaturesUnlocked => 'You have all features unlocked';
+
+  @override
+  String get upgradeToPremium => 'Upgrade to Premium';
+
+  @override
+  String get premiumBenefits =>
+      'Unlimited gear, full activity history and more';
+
+  @override
+  String exportError(String error) {
+    return 'Export error: $error';
+  }
+
+  @override
+  String lastBackupDate(String date) {
+    return 'Last backup: $date';
+  }
+
+  @override
+  String syncToday(String time) {
+    return 'Today at $time';
+  }
+
+  @override
+  String syncYesterday(String time) {
+    return 'Yesterday at $time';
+  }
+
+  @override
+  String stravaConnectError(String error) {
+    return 'Unexpected error: $error';
+  }
+
+  @override
+  String stravaSyncDateLabel(String date) {
+    return 'Last sync: $date';
+  }
 }
