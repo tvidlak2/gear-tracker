@@ -64,7 +64,9 @@
       "Bash(node ~/add_l10n.js)",
       "Read(//c/Users/tomas/**)",
       "Bash(node add_l10n.js)",
-      "Bash(node ~/add_l10n2.js)"
+      "Bash(node ~/add_l10n2.js)",
+      "Bash(node ~/add_l10n3.js)",
+      "Bash(node -e ':*)"
     ]
   }
 }
