@@ -417,5 +417,15 @@
   "intervalCount": "every {n}×",
   "@intervalCount": {"placeholders":{"n":{"type":"String"}}},
   "flightAdded": "Flight added: {dur}, max altitude {height} m",
-  "@flightAdded": {"placeholders":{"dur":{"type":"String"},"height":{"type":"String"}}}
+  "@flightAdded": {"placeholders":{"dur":{"type":"String"},"height":{"type":"String"}}},
+  "insuranceSection": "Insurance",
+  "insurance": "Insurance",
+  "insuranceSubtitle": "Manage your gear insurance",
+  "appearanceSection": "Appearance",
+  "appearance": "Appearance",
+  "appearanceSubtitle": "Light / dark / system theme",
+  "notificationsSection": "Notifications",
+  "applicationsSection": "App",
+  "languageSection": "Language",
+  "trips": "Trips"
 }

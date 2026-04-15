@@ -1174,4 +1174,34 @@ class AppLocalizationsDe extends AppLocalizations {
   String flightAdded(String dur, String height) {
     return 'Flug hinzugefügt: $dur, max. Höhe $height m';
   }
+
+  @override
+  String get insuranceSection => 'Versicherungen';
+
+  @override
+  String get insurance => 'Versicherungen';
+
+  @override
+  String get insuranceSubtitle => 'Ausrüstungsversicherungen verwalten';
+
+  @override
+  String get appearanceSection => 'Erscheinungsbild';
+
+  @override
+  String get appearance => 'Erscheinungsbild';
+
+  @override
+  String get appearanceSubtitle => 'Hell / dunkel / Systemdesign';
+
+  @override
+  String get notificationsSection => 'Benachrichtigungen';
+
+  @override
+  String get applicationsSection => 'App';
+
+  @override
+  String get languageSection => 'Sprache';
+
+  @override
+  String get trips => 'Touren';
 }

@@ -738,7 +738,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionHeader(l10n.language),
+        _SectionHeader(l10n.languageSection),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Container(
@@ -822,24 +822,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
 
           // ── Sekce: Pojistky ─────────────────────────────────────────────
-          _SectionHeader(l10n.settingsInsuranceSection),
+          _SectionHeader(l10n.insuranceSection),
           _SettingsTile(
             icon: Icons.security_outlined,
-            title: l10n.settingsInsuranceSection,
-            subtitle: l10n.settingsInsuranceSubtitle,
+            title: l10n.insurance,
+            subtitle: l10n.insuranceSubtitle,
             onTap: () => context.push('/insurance'),
           ),
 
           // ── Sekce: Aplikace ─────────────────────────────────────────────
-          _SectionHeader(l10n.settingsAppSection),
+          _SectionHeader(l10n.applicationsSection),
           _SettingsTile(
             icon: Icons.palette_outlined,
-            title: l10n.settingsAppearance,
-            subtitle: l10n.settingsAppearanceSubtitle,
+            title: l10n.appearance,
+            subtitle: l10n.appearanceSubtitle,
             onTap: _showThemeDialog,
           ),
 
-          // ── Notifikace – switch tile ─────────────────────────────────────
+          // ── Sekce: Oznámení ──────────────────────────────────────────────
+          _SectionHeader(l10n.notificationsSection),
           _NotificationTile(
             loading: _notifLoading,
             enabled: _notificationsEnabled,
@@ -1039,7 +1040,7 @@ class _NotificationTile extends StatelessWidget {
       // Web: zobraz informaci místo přepínače
       return ListTile(
         leading: Icon(Icons.notifications_off_outlined, color: cs.outline),
-        title: Text(l10n.settingsNotificationsTitle),
+        title: Text(l10n.notifications),
         subtitle: Text(
           l10n.settingsNotificationsWeb,
           style: TextStyle(color: cs.outline),
@@ -1064,7 +1065,7 @@ class _NotificationTile extends StatelessWidget {
                   : Icons.notifications_off_outlined,
               color: enabled ? cs.primary : cs.outline,
             ),
-      title: Text(l10n.settingsNotificationsTitle),
+      title: Text(l10n.notifications),
       subtitle: Text(
         enabled
             ? l10n.settingsNotificationsOn

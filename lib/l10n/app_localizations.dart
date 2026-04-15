@@ -2255,6 +2255,66 @@ abstract class AppLocalizations {
   /// In cs, this message translates to:
   /// **'Let přidán: {dur}, max výška {height} m'**
   String flightAdded(String dur, String height);
+
+  /// No description provided for @insuranceSection.
+  ///
+  /// In cs, this message translates to:
+  /// **'Pojistky'**
+  String get insuranceSection;
+
+  /// No description provided for @insurance.
+  ///
+  /// In cs, this message translates to:
+  /// **'Pojistky'**
+  String get insurance;
+
+  /// No description provided for @insuranceSubtitle.
+  ///
+  /// In cs, this message translates to:
+  /// **'Spravuj pojistky svého vybavení'**
+  String get insuranceSubtitle;
+
+  /// No description provided for @appearanceSection.
+  ///
+  /// In cs, this message translates to:
+  /// **'Vzhled'**
+  String get appearanceSection;
+
+  /// No description provided for @appearance.
+  ///
+  /// In cs, this message translates to:
+  /// **'Vzhled'**
+  String get appearance;
+
+  /// No description provided for @appearanceSubtitle.
+  ///
+  /// In cs, this message translates to:
+  /// **'Světlý / tmavý / systémový motiv'**
+  String get appearanceSubtitle;
+
+  /// No description provided for @notificationsSection.
+  ///
+  /// In cs, this message translates to:
+  /// **'Oznámení'**
+  String get notificationsSection;
+
+  /// No description provided for @applicationsSection.
+  ///
+  /// In cs, this message translates to:
+  /// **'Aplikace'**
+  String get applicationsSection;
+
+  /// No description provided for @languageSection.
+  ///
+  /// In cs, this message translates to:
+  /// **'Jazyk'**
+  String get languageSection;
+
+  /// No description provided for @trips.
+  ///
+  /// In cs, this message translates to:
+  /// **'Výlety'**
+  String get trips;
 }
 
 class _AppLocalizationsDelegate

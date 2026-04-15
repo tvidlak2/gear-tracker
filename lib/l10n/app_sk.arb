@@ -417,5 +417,15 @@
   "intervalCount": "každých {n}×",
   "@intervalCount": {"placeholders":{"n":{"type":"String"}}},
   "flightAdded": "Let pridaný: {dur}, max výška {height} m",
-  "@flightAdded": {"placeholders":{"dur":{"type":"String"},"height":{"type":"String"}}}
+  "@flightAdded": {"placeholders":{"dur":{"type":"String"},"height":{"type":"String"}}},
+  "insuranceSection": "Poistky",
+  "insurance": "Poistky",
+  "insuranceSubtitle": "Spravuj poistky svojho vybavenia",
+  "appearanceSection": "Vzhľad",
+  "appearance": "Vzhľad",
+  "appearanceSubtitle": "Svetlý / tmavý / systémový motív",
+  "notificationsSection": "Oznámenia",
+  "applicationsSection": "Aplikácia",
+  "languageSection": "Jazyk",
+  "trips": "Výlety"
 }

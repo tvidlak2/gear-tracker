@@ -1167,4 +1167,34 @@ class AppLocalizationsCs extends AppLocalizations {
   String flightAdded(String dur, String height) {
     return 'Let přidán: $dur, max výška $height m';
   }
+
+  @override
+  String get insuranceSection => 'Pojistky';
+
+  @override
+  String get insurance => 'Pojistky';
+
+  @override
+  String get insuranceSubtitle => 'Spravuj pojistky svého vybavení';
+
+  @override
+  String get appearanceSection => 'Vzhled';
+
+  @override
+  String get appearance => 'Vzhled';
+
+  @override
+  String get appearanceSubtitle => 'Světlý / tmavý / systémový motiv';
+
+  @override
+  String get notificationsSection => 'Oznámení';
+
+  @override
+  String get applicationsSection => 'Aplikace';
+
+  @override
+  String get languageSection => 'Jazyk';
+
+  @override
+  String get trips => 'Výlety';
 }

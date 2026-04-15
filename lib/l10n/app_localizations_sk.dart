@@ -1169,4 +1169,34 @@ class AppLocalizationsSk extends AppLocalizations {
   String flightAdded(String dur, String height) {
     return 'Let pridaný: $dur, max výška $height m';
   }
+
+  @override
+  String get insuranceSection => 'Poistky';
+
+  @override
+  String get insurance => 'Poistky';
+
+  @override
+  String get insuranceSubtitle => 'Spravuj poistky svojho vybavenia';
+
+  @override
+  String get appearanceSection => 'Vzhľad';
+
+  @override
+  String get appearance => 'Vzhľad';
+
+  @override
+  String get appearanceSubtitle => 'Svetlý / tmavý / systémový motív';
+
+  @override
+  String get notificationsSection => 'Oznámenia';
+
+  @override
+  String get applicationsSection => 'Aplikácia';
+
+  @override
+  String get languageSection => 'Jazyk';
+
+  @override
+  String get trips => 'Výlety';
 }

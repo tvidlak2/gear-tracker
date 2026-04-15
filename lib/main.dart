@@ -34,10 +34,23 @@ import 'models/trip.dart';
 /// Global locale notifier – updated by SettingsScreen when the user picks a language.
 final localeNotifier = ValueNotifier<Locale>(const Locale('cs'));
 
+/// Global theme mode notifier – updated by SettingsScreen.
+final themeModeNotifier = ValueNotifier<ThemeMode>(ThemeMode.system);
+
 Future<void> _loadLocale() async {
   final prefs = await SharedPreferences.getInstance();
   final code = prefs.getString('app_locale') ?? 'cs';
   localeNotifier.value = Locale(code);
+}
+
+Future<void> _loadThemeMode() async {
+  final prefs = await SharedPreferences.getInstance();
+  final value = prefs.getString('app_theme_mode') ?? 'system';
+  themeModeNotifier.value = switch (value) {
+    'light'  => ThemeMode.light,
+    'dark'   => ThemeMode.dark,
+    _        => ThemeMode.system,
+  };
 }
 
 void main() async {
@@ -46,6 +59,7 @@ void main() async {
   await initDatabaseFactory();
   await MockDataSeeder.seedIfEmpty();
   await _loadLocale();
+  await _loadThemeMode();
 
   // RevenueCat – initialize before runApp so isPremium() works immediately
   try {
@@ -208,17 +222,21 @@ class GearTrackerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<Locale>(
-      valueListenable: localeNotifier,
-      builder: (context, locale, _) => MaterialApp.router(
-        title: 'GearTracker',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light(),
-        darkTheme: AppTheme.dark(),
-        routerConfig: _router,
-        locale: locale,
-        supportedLocales: AppLocalizations.supportedLocales,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeModeNotifier,
+      builder: (context, themeMode, _) => ValueListenableBuilder<Locale>(
+        valueListenable: localeNotifier,
+        builder: (context, locale, _) => MaterialApp.router(
+          title: 'OutdoorGearTracker',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light(),
+          darkTheme: AppTheme.dark(),
+          themeMode: themeMode,
+          routerConfig: _router,
+          locale: locale,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+        ),
       ),
     );
   }
@@ -300,7 +318,7 @@ class _AppNavBar extends StatelessWidget {
                 l10n.navOverview,
                 l10n.navActivities,
                 l10n.navMaintenance,
-                'Výlety',
+                l10n.trips,
                 l10n.navSettings,
               ];
               final (inactiveIcon, activeIcon) = _icons[i];

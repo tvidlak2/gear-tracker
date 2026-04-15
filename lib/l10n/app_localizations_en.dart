@@ -1167,4 +1167,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String flightAdded(String dur, String height) {
     return 'Flight added: $dur, max altitude $height m';
   }
+
+  @override
+  String get insuranceSection => 'Insurance';
+
+  @override
+  String get insurance => 'Insurance';
+
+  @override
+  String get insuranceSubtitle => 'Manage your gear insurance';
+
+  @override
+  String get appearanceSection => 'Appearance';
+
+  @override
+  String get appearance => 'Appearance';
+
+  @override
+  String get appearanceSubtitle => 'Light / dark / system theme';
+
+  @override
+  String get notificationsSection => 'Notifications';
+
+  @override
+  String get applicationsSection => 'App';
+
+  @override
+  String get languageSection => 'Language';
+
+  @override
+  String get trips => 'Trips';
 }

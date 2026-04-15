@@ -417,5 +417,15 @@
   "intervalCount": "ogni {n}×",
   "@intervalCount": {"placeholders":{"n":{"type":"String"}}},
   "flightAdded": "Volo aggiunto: {dur}, alt. max {height} m",
-  "@flightAdded": {"placeholders":{"dur":{"type":"String"},"height":{"type":"String"}}}
+  "@flightAdded": {"placeholders":{"dur":{"type":"String"},"height":{"type":"String"}}},
+  "insuranceSection": "Assicurazioni",
+  "insurance": "Assicurazioni",
+  "insuranceSubtitle": "Gestisci le assicurazioni della tua attrezzatura",
+  "appearanceSection": "Aspetto",
+  "appearance": "Aspetto",
+  "appearanceSubtitle": "Tema chiaro / scuro / sistema",
+  "notificationsSection": "Notifiche",
+  "applicationsSection": "App",
+  "languageSection": "Lingua",
+  "trips": "Escursioni"
 }

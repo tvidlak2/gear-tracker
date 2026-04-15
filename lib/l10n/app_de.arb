@@ -417,5 +417,15 @@
   "intervalCount": "alle {n}×",
   "@intervalCount": {"placeholders":{"n":{"type":"String"}}},
   "flightAdded": "Flug hinzugefügt: {dur}, max. Höhe {height} m",
-  "@flightAdded": {"placeholders":{"dur":{"type":"String"},"height":{"type":"String"}}}
+  "@flightAdded": {"placeholders":{"dur":{"type":"String"},"height":{"type":"String"}}},
+  "insuranceSection": "Versicherungen",
+  "insurance": "Versicherungen",
+  "insuranceSubtitle": "Ausrüstungsversicherungen verwalten",
+  "appearanceSection": "Erscheinungsbild",
+  "appearance": "Erscheinungsbild",
+  "appearanceSubtitle": "Hell / dunkel / Systemdesign",
+  "notificationsSection": "Benachrichtigungen",
+  "applicationsSection": "App",
+  "languageSection": "Sprache",
+  "trips": "Touren"
 }
