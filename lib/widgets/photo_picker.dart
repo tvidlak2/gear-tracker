@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../services/photo_service.dart';
 import '../theme/app_theme.dart';
 
@@ -51,7 +52,7 @@ class PhotoPicker extends StatelessWidget {
             const SizedBox(height: 8),
             ListTile(
               leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text('Vyfotit'),
+              title: Text(AppLocalizations.of(ctx).photoTakePhoto),
               onTap: () async {
                 Navigator.pop(ctx);
                 final path = await svc.pickFromCamera();
@@ -63,7 +64,7 @@ class PhotoPicker extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Vybrat z galerie'),
+              title: Text(AppLocalizations.of(ctx).photoFromGallery),
               onTap: () async {
                 Navigator.pop(ctx);
                 final path = await svc.pickFromGallery();
@@ -83,20 +84,23 @@ class PhotoPicker extends StatelessWidget {
   Future<void> _removePhoto(BuildContext context) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Smazat fotku?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Zrušit'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-            child: const Text('Smazat'),
-          ),
-        ],
-      ),
+      builder: (dlgCtx) {
+        final l10n = AppLocalizations.of(dlgCtx);
+        return AlertDialog(
+          title: Text(l10n.photoDeleteConfirm),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+              child: Text(l10n.delete),
+            ),
+          ],
+        );
+      },
     );
     if (ok == true) {
       await PhotoService.instance.deletePhoto(photoPath);
@@ -143,7 +147,7 @@ class PhotoPicker extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Přidat fotku',
+                    AppLocalizations.of(context).photoAdd,
                     style: TextStyle(
                       fontSize: 14,
                       color: isDark
@@ -184,14 +188,14 @@ class PhotoPicker extends StatelessWidget {
                         ),
                       ),
                       padding: const EdgeInsets.all(10),
-                      child: const Row(
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.edit_outlined,
+                          const Icon(Icons.edit_outlined,
                               color: Colors.white, size: 16),
-                          SizedBox(width: 6),
-                          Text('Změnit fotku',
-                              style: TextStyle(
+                          const SizedBox(width: 6),
+                          Text(AppLocalizations.of(context).photoChange,
+                              style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600)),

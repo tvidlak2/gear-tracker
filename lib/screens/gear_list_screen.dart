@@ -261,7 +261,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                   widget.onApply(_status, _categoryId);
                   Navigator.pop(context);
                 },
-                child: const Text('Použít'),
+                child: Text(AppLocalizations.of(context).apply),
               ),
             ],
           ),

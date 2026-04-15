@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'GearTracker';
+  String get appTitle => 'OutdoorGearTracker';
 
   @override
   String get navOverview => 'Overview';
@@ -515,4 +515,656 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stravaSyncedNone => 'No activities synced yet';
+
+  @override
+  String get insuranceTitle => 'Insurance';
+
+  @override
+  String get addInsurance => 'Add Insurance';
+
+  @override
+  String get noInsurance => 'No insurance';
+
+  @override
+  String get noInsuranceHint => 'Add your first insurance with the + button';
+
+  @override
+  String get deleteInsuranceTitle => 'Delete insurance?';
+
+  @override
+  String deleteInsuranceConfirm(String name) {
+    return 'Really delete insurance \"$name\"?';
+  }
+
+  @override
+  String get insuranceExpired => 'Expired';
+
+  @override
+  String get insuranceExpiringSoon => 'Expiring soon';
+
+  @override
+  String get insuranceActive => 'Active';
+
+  @override
+  String insuranceExpiredOn(String date) {
+    return 'Expired $date';
+  }
+
+  @override
+  String insuranceValidUntil(String date) {
+    return 'Until $date';
+  }
+
+  @override
+  String get totalAnnualCost => 'Total per year:';
+
+  @override
+  String get insuranceDetails => 'Insurance details';
+
+  @override
+  String get insuranceStartDate => 'Start date';
+
+  @override
+  String get insuranceExpiryDate => 'Expiry date';
+
+  @override
+  String get annualPremium => 'Annual premium';
+
+  @override
+  String get coverageAmount => 'Coverage amount';
+
+  @override
+  String get contractPhoto => 'Contract photo';
+
+  @override
+  String get linkedGear => 'Linked gear';
+
+  @override
+  String get insuranceActions => 'Actions';
+
+  @override
+  String get copyCompanyName => 'Insurance company name copied';
+
+  @override
+  String get contactButton => 'Contact';
+
+  @override
+  String get reminderButton => 'Reminder';
+
+  @override
+  String contractLabel(String number) {
+    return 'Contract: $number';
+  }
+
+  @override
+  String get editInsuranceTitle => 'Edit insurance';
+
+  @override
+  String get newInsuranceTitle => 'New insurance';
+
+  @override
+  String get insuranceNameLabel => 'Insurance name *';
+
+  @override
+  String get insuranceNameHint => 'e.g. Mountain gear insurance';
+
+  @override
+  String get insuranceNameRequired => 'Enter a name';
+
+  @override
+  String get insuranceTypeLabel => 'Insurance type';
+
+  @override
+  String get insuranceCompanyLabel => 'Insurance company *';
+
+  @override
+  String get insuranceCompanyHint => 'e.g. Allianz';
+
+  @override
+  String get insuranceCompanyRequired => 'Enter insurance company';
+
+  @override
+  String get policyNumberLabel => 'Policy number *';
+
+  @override
+  String get policyNumberHint => 'policy contract number';
+
+  @override
+  String get policyNumberRequired => 'Enter policy number';
+
+  @override
+  String get validitySection => 'Validity';
+
+  @override
+  String get financialSection => 'Financial information';
+
+  @override
+  String get annualPremiumLabel => 'Annual premium';
+
+  @override
+  String get coverageAmountLabel => 'Coverage amount';
+
+  @override
+  String get optionalHint => 'optional';
+
+  @override
+  String get selectDate => 'Select date';
+
+  @override
+  String get selectDateRequired => 'Select date *';
+
+  @override
+  String get expiryDateRequired => 'Please select an expiry date.';
+
+  @override
+  String get basicInfoSection => 'Basic information';
+
+  @override
+  String get linkedGearSection => 'Linked gear';
+
+  @override
+  String get tripsTitle => 'Trips';
+
+  @override
+  String get addTrip => 'Plan a trip';
+
+  @override
+  String get noTrips => 'No trips';
+
+  @override
+  String get noTripsHint => 'Add your first trip and create a gear checklist.';
+
+  @override
+  String get deleteTrip => 'Delete trip?';
+
+  @override
+  String deleteTripConfirm(String name) {
+    return 'Really delete trip \"$name\"?';
+  }
+
+  @override
+  String get shareChecklist => 'Share checklist';
+
+  @override
+  String packingProgress(int packed, int total) {
+    return '$packed/$total packed';
+  }
+
+  @override
+  String get tripWarnings => 'Pre-trip warnings';
+
+  @override
+  String get tripGearOverdue => 'Requires service – limit exceeded';
+
+  @override
+  String get tripGearWarning => 'Service due soon';
+
+  @override
+  String gearChecklist(int packed, int total) {
+    return 'Gear ($packed/$total packed)';
+  }
+
+  @override
+  String get noGearInTrip => 'No gear yet. Tap Add to select.';
+
+  @override
+  String get selectGearTitle => 'Select gear';
+
+  @override
+  String get confirmSelection => 'Confirm selection';
+
+  @override
+  String get editTripTitle => 'Edit trip';
+
+  @override
+  String get newTripTitle => 'New trip';
+
+  @override
+  String get tripNameLabel => 'Trip name *';
+
+  @override
+  String get tripNameHint => 'e.g. Summer trekking in the Alps';
+
+  @override
+  String get tripNameRequired => 'Enter a name';
+
+  @override
+  String get destinationLabel => 'Destination';
+
+  @override
+  String get destinationHint => 'e.g. Dolomites, Italy';
+
+  @override
+  String get departureDateLabel => 'Departure date';
+
+  @override
+  String get returnDateLabel => 'Return date';
+
+  @override
+  String get tripStatusSection => 'Status';
+
+  @override
+  String get tripStatusLabel => 'Trip status';
+
+  @override
+  String get notSelected => 'Not selected';
+
+  @override
+  String get saveTripButton => 'Save trip';
+
+  @override
+  String get dateSection => 'Dates';
+
+  @override
+  String get portfolioTitle => 'Portfolio';
+
+  @override
+  String get purchaseValue => 'Purchase value';
+
+  @override
+  String get currentValue => 'Current value';
+
+  @override
+  String get annualInsuranceCost => 'Annual insurance';
+
+  @override
+  String get maintenanceCosts => 'Maintenance costs';
+
+  @override
+  String get valueByCategory => 'Value by category';
+
+  @override
+  String get maintenanceCostsByMonth => 'Maintenance costs by month';
+
+  @override
+  String get noMaintenanceCosts => 'No cost records';
+
+  @override
+  String get gearByValue => 'Gear by value';
+
+  @override
+  String get noGearWithPrice =>
+      'No gear with purchase price.\nAdd a price in the gear detail.';
+
+  @override
+  String get exportForInsurance => 'Export for insurance';
+
+  @override
+  String get exportPdfComingSoon =>
+      'PDF export will be available in the next version';
+
+  @override
+  String get exportPremiumMessage =>
+      'Portfolio export for insurance is a premium feature.';
+
+  @override
+  String get portfolioLoadError => 'Failed to load data.';
+
+  @override
+  String depreciatedPercent(int pct) {
+    return '–$pct% depreciated';
+  }
+
+  @override
+  String get annualReportTitle => 'Annual report';
+
+  @override
+  String get annualReportPdfTitle => 'Annual overview as PDF';
+
+  @override
+  String get reportContains => 'Report includes:';
+
+  @override
+  String get reportItemActivities => 'Overall activities and service overview';
+
+  @override
+  String get reportItemGearStats => 'Statistics for each piece of gear';
+
+  @override
+  String get reportItemMonthly => 'Monthly activity breakdown';
+
+  @override
+  String get reportItemServiceHistory => 'Complete service history';
+
+  @override
+  String get reportItemInsurance => 'Insurance overview and portfolio value';
+
+  @override
+  String get reportItemNextYear => 'Service plan for next year';
+
+  @override
+  String get selectYear => 'Select year';
+
+  @override
+  String get currentYearLabel => 'Current year';
+
+  @override
+  String get lastYearLabel => 'Last year';
+
+  @override
+  String get twoYearsAgoLabel => 'Two years ago';
+
+  @override
+  String generateReport(int year) {
+    return 'Generate $year report';
+  }
+
+  @override
+  String get generatingReport => 'Generating report...';
+
+  @override
+  String reportError(String error) {
+    return 'Error generating report: $error';
+  }
+
+  @override
+  String get reportShareHint =>
+      'After generating, the PDF will be shared via the system dialog (save, email, print...).';
+
+  @override
+  String get settingsInsuranceSection => 'Insurance';
+
+  @override
+  String get settingsInsuranceSubtitle => 'Manage your gear insurance';
+
+  @override
+  String get settingsAppSection => 'App';
+
+  @override
+  String get settingsAppearance => 'Appearance';
+
+  @override
+  String get settingsAppearanceSubtitle => 'Light / dark / system theme';
+
+  @override
+  String get themeModeLight => 'Light theme';
+
+  @override
+  String get themeModeDark => 'Dark theme';
+
+  @override
+  String get themeModeSystem => 'Follow system';
+
+  @override
+  String get settingsNotificationsTitle => 'Notifications';
+
+  @override
+  String get settingsNotificationsOn =>
+      'You\'ll get reminders before and after service deadlines.';
+
+  @override
+  String get settingsNotificationsOff =>
+      'Service deadline reminders are disabled.';
+
+  @override
+  String get settingsNotificationsWeb =>
+      'Push notifications are not supported in the browser.\nUse the Android / iOS app.';
+
+  @override
+  String get settingsBackupSection => 'Backup & export';
+
+  @override
+  String get settingsAnnualReport => 'Annual PDF report';
+
+  @override
+  String get settingsAnnualReportSubtitle => 'Export the year overview as PDF';
+
+  @override
+  String get settingsDataSection => 'Data';
+
+  @override
+  String get settingsImportSubtitle => 'Import from CSV or GPX file';
+
+  @override
+  String get settingsClearSubtitle =>
+      'Permanently removes everything from the database';
+
+  @override
+  String get settingsWidgetSection => 'Widget';
+
+  @override
+  String get settingsWidgetAdd => 'Add widget';
+
+  @override
+  String get settingsWidgetAddSubtitle =>
+      'Add widget to home screen: Long press screen → Widgets → OutdoorGearTracker';
+
+  @override
+  String get settingsWidgetRefresh => 'Refresh widget now';
+
+  @override
+  String get settingsWidgetRefreshed => 'Widget updated';
+
+  @override
+  String get settingsAboutSection => 'About';
+
+  @override
+  String get settingsVersion => 'Version';
+
+  @override
+  String get settingsPrivacyPolicy => 'Privacy policy';
+
+  @override
+  String get backupSuccess => 'Backup successfully uploaded to Google Drive.';
+
+  @override
+  String get restoreSuccess =>
+      'Data successfully restored. Please restart the app.';
+
+  @override
+  String get restoreConfirmTitle => 'Restore from backup?';
+
+  @override
+  String get restoreConfirmContent =>
+      'This will replace the current database and photos with backup data. Continue?';
+
+  @override
+  String get restoreButton => 'Restore';
+
+  @override
+  String get notificationPermissionDenied =>
+      'Notification permission was denied.';
+
+  @override
+  String get settingsButton => 'Settings';
+
+  @override
+  String get premiumUnlocked =>
+      '🎉 Premium activated! Thank you for your support.';
+
+  @override
+  String get restorePurchasesButton => 'Restore purchases';
+
+  @override
+  String get noPreviousPurchases => 'No previous purchases found.';
+
+  @override
+  String get purchasesRestored => '✅ Purchases restored!';
+
+  @override
+  String get paywallTagline => 'Unlimited. Safety without compromise.';
+
+  @override
+  String get maybeLater => 'Maybe later';
+
+  @override
+  String get tapToUnlock => 'Tap to unlock';
+
+  @override
+  String getPremiumButton(String price) {
+    return 'Get Premium – $price';
+  }
+
+  @override
+  String get purchaseUnavailable =>
+      'Purchase not yet available – configure a product in the RevenueCat dashboard.';
+
+  @override
+  String get deleteServiceRecord => 'Delete record';
+
+  @override
+  String get deleteServiceRecordConfirm =>
+      'Are you sure you want to delete this service record?';
+
+  @override
+  String get editServiceRecord => 'Edit record';
+
+  @override
+  String get editServiceTitle => 'Edit service record';
+
+  @override
+  String get notYetPerformed => 'Not yet performed';
+
+  @override
+  String get noServiceEntries => 'No service records yet';
+
+  @override
+  String get recordFirstService => 'Record first service';
+
+  @override
+  String get serviceHistoryFull => 'Complete service history';
+
+  @override
+  String get warrantyExpired => 'Warranty expired';
+
+  @override
+  String get warrantySection => 'Warranty';
+
+  @override
+  String get gearInsuranceSection => 'Insurance';
+
+  @override
+  String get noInsurancesAttached => 'No insurance policies';
+
+  @override
+  String get igcLoadError => 'Failed to load IGC file. Check the format.';
+
+  @override
+  String get flightPreview => 'Flight preview';
+
+  @override
+  String get flightStartLabel => 'Start';
+
+  @override
+  String get flightLandingLabel => 'Landing';
+
+  @override
+  String get flightDurationLabel => 'Flight duration';
+
+  @override
+  String get maxAltitudeLabel => 'Max altitude';
+
+  @override
+  String get gpsStartLabel => 'GPS start';
+
+  @override
+  String get stravaNotConnectedHint =>
+      'Strava not connected. Go to Settings → Connected Services.';
+
+  @override
+  String get stravaSyncFromHelpText => 'Sync activities from';
+
+  @override
+  String get widgetHowToAddTitle => 'How to add widget';
+
+  @override
+  String get widgetHowToStep1 =>
+      '1. Long-press an empty space on the home screen';
+
+  @override
+  String get widgetHowToStep2 => '2. Tap \"Widgets\"';
+
+  @override
+  String get widgetHowToStep3 => '3. Find \"OutdoorGearTracker\" in the list';
+
+  @override
+  String get widgetHowToStep4 => '4. Drag the widget to the home screen';
+
+  @override
+  String get understood => 'Got it';
+
+  @override
+  String get apiKeysTitle => 'API keys';
+
+  @override
+  String get exportCsvLabel => 'Export as CSV';
+
+  @override
+  String get exportCsvSubtitle => 'Export all data to CSV file';
+
+  @override
+  String get signInWithGoogle => 'Sign in with Google';
+
+  @override
+  String get featureComingSoon => 'Feature coming soon';
+
+  @override
+  String get signOutGoogleAccount => 'Sign out of Google';
+
+  @override
+  String get availableInPremium => 'Available in Premium';
+
+  @override
+  String deleteDataError(Object error) {
+    return 'Error deleting data: $error';
+  }
+
+  @override
+  String get exportCompleted => 'Export completed';
+
+  @override
+  String get syncTimedOut => 'Sync timed out. Please try again.';
+
+  @override
+  String get photoTakePhoto => 'Take photo';
+
+  @override
+  String get photoFromGallery => 'Choose from gallery';
+
+  @override
+  String get photoDeleteConfirm => 'Delete photo?';
+
+  @override
+  String get photoAdd => 'Add photo';
+
+  @override
+  String get photoChange => 'Change photo';
+
+  @override
+  String get apply => 'Apply';
+
+  @override
+  String serviceHistoryRecordCount(int count) {
+    return '$count records';
+  }
+
+  @override
+  String warrantyValidUntil(String date) {
+    return 'Valid until $date';
+  }
+
+  @override
+  String intervalDays(String n) {
+    return 'every $n days';
+  }
+
+  @override
+  String intervalHours(String n) {
+    return 'every $n h';
+  }
+
+  @override
+  String intervalKm(String n) {
+    return 'every $n km';
+  }
+
+  @override
+  String intervalCount(String n) {
+    return 'every $n×';
+  }
+
+  @override
+  String flightAdded(String dur, String height) {
+    return 'Flight added: $dur, max altitude $height m';
+  }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../services/maintenance_service.dart';
 import '../theme/app_theme.dart';
 
@@ -44,10 +45,11 @@ class MaintenanceBadge extends StatelessWidget {
           : const Color(0xFFEAF3DE),
     };
 
+    final l10n = AppLocalizations.of(context);
     final label = switch (status) {
-      MaintenanceStatus.overdue => 'Po termínu',
-      MaintenanceStatus.warning => 'Brzy',
-      MaintenanceStatus.ok      => 'OK',
+      MaintenanceStatus.overdue => l10n.statusOverdue,
+      MaintenanceStatus.warning => l10n.statusWarning,
+      MaintenanceStatus.ok      => l10n.statusOk,
     };
 
     if (compact) {

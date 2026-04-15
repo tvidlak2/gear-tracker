@@ -9,7 +9,7 @@ class AppLocalizationsCs extends AppLocalizations {
   AppLocalizationsCs([String locale = 'cs']) : super(locale);
 
   @override
-  String get appTitle => 'GearTracker';
+  String get appTitle => 'OutdoorGearTracker';
 
   @override
   String get navOverview => 'Přehled';
@@ -515,4 +515,656 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get stravaSyncedNone => 'Žádné synchronizované aktivity';
+
+  @override
+  String get insuranceTitle => 'Pojistky';
+
+  @override
+  String get addInsurance => 'Přidat pojistku';
+
+  @override
+  String get noInsurance => 'Žádné pojistky';
+
+  @override
+  String get noInsuranceHint => 'Přidej první pojistku tlačítkem +';
+
+  @override
+  String get deleteInsuranceTitle => 'Smazat pojistku?';
+
+  @override
+  String deleteInsuranceConfirm(String name) {
+    return 'Opravdu smazat pojistku \"$name\"?';
+  }
+
+  @override
+  String get insuranceExpired => 'Vypršela';
+
+  @override
+  String get insuranceExpiringSoon => 'Vyprší brzy';
+
+  @override
+  String get insuranceActive => 'Aktivní';
+
+  @override
+  String insuranceExpiredOn(String date) {
+    return 'Vypršela $date';
+  }
+
+  @override
+  String insuranceValidUntil(String date) {
+    return 'Do $date';
+  }
+
+  @override
+  String get totalAnnualCost => 'Celkem ročně:';
+
+  @override
+  String get insuranceDetails => 'Detaily pojistky';
+
+  @override
+  String get insuranceStartDate => 'Datum začátku';
+
+  @override
+  String get insuranceExpiryDate => 'Datum vypršení';
+
+  @override
+  String get annualPremium => 'Roční pojistné';
+
+  @override
+  String get coverageAmount => 'Pojistná částka';
+
+  @override
+  String get contractPhoto => 'Foto smlouvy';
+
+  @override
+  String get linkedGear => 'Propojené vybavení';
+
+  @override
+  String get insuranceActions => 'Akce';
+
+  @override
+  String get copyCompanyName => 'Název pojišťovny zkopírován';
+
+  @override
+  String get contactButton => 'Kontakt';
+
+  @override
+  String get reminderButton => 'Připomínka';
+
+  @override
+  String contractLabel(String number) {
+    return 'Smlouva: $number';
+  }
+
+  @override
+  String get editInsuranceTitle => 'Upravit pojistku';
+
+  @override
+  String get newInsuranceTitle => 'Nová pojistka';
+
+  @override
+  String get insuranceNameLabel => 'Název pojistky *';
+
+  @override
+  String get insuranceNameHint => 'např. Pojištění vybavení na hory';
+
+  @override
+  String get insuranceNameRequired => 'Zadej název';
+
+  @override
+  String get insuranceTypeLabel => 'Typ pojistky';
+
+  @override
+  String get insuranceCompanyLabel => 'Pojišťovna *';
+
+  @override
+  String get insuranceCompanyHint => 'např. Allianz';
+
+  @override
+  String get insuranceCompanyRequired => 'Zadej pojišťovnu';
+
+  @override
+  String get policyNumberLabel => 'Číslo smlouvy *';
+
+  @override
+  String get policyNumberHint => 'číslo pojistné smlouvy';
+
+  @override
+  String get policyNumberRequired => 'Zadej číslo smlouvy';
+
+  @override
+  String get validitySection => 'Platnost';
+
+  @override
+  String get financialSection => 'Finanční informace';
+
+  @override
+  String get annualPremiumLabel => 'Roční pojistné (Kč)';
+
+  @override
+  String get coverageAmountLabel => 'Pojistná částka (Kč)';
+
+  @override
+  String get optionalHint => 'volitelné';
+
+  @override
+  String get selectDate => 'Vybrat datum';
+
+  @override
+  String get selectDateRequired => 'Vybrat datum *';
+
+  @override
+  String get expiryDateRequired => 'Vyber datum vypršení.';
+
+  @override
+  String get basicInfoSection => 'Základní informace';
+
+  @override
+  String get linkedGearSection => 'Propojené vybavení';
+
+  @override
+  String get tripsTitle => 'Výlety';
+
+  @override
+  String get addTrip => 'Naplánovat výlet';
+
+  @override
+  String get noTrips => 'Žádné výlety';
+
+  @override
+  String get noTripsHint =>
+      'Přidejte svůj první výlet a sestavte si checklist vybavení.';
+
+  @override
+  String get deleteTrip => 'Smazat výlet?';
+
+  @override
+  String deleteTripConfirm(String name) {
+    return 'Opravdu chcete smazat výlet \"$name\"?';
+  }
+
+  @override
+  String get shareChecklist => 'Sdílet checklist';
+
+  @override
+  String packingProgress(int packed, int total) {
+    return '$packed/$total zabaleno';
+  }
+
+  @override
+  String get tripWarnings => 'Upozornění před cestou';
+
+  @override
+  String get tripGearOverdue => 'Vyžaduje servis – překročen limit';
+
+  @override
+  String get tripGearWarning => 'Blíží se termín servisu';
+
+  @override
+  String gearChecklist(int packed, int total) {
+    return 'Vybavení ($packed/$total zabaleno)';
+  }
+
+  @override
+  String get noGearInTrip =>
+      'Zatím žádné vybavení. Klepněte na Přidat pro výběr.';
+
+  @override
+  String get selectGearTitle => 'Vybrat vybavení';
+
+  @override
+  String get confirmSelection => 'Potvrdit výběr';
+
+  @override
+  String get editTripTitle => 'Upravit výlet';
+
+  @override
+  String get newTripTitle => 'Nový výlet';
+
+  @override
+  String get tripNameLabel => 'Název výletu *';
+
+  @override
+  String get tripNameHint => 'např. Letní trekking v Alpách';
+
+  @override
+  String get tripNameRequired => 'Zadejte název';
+
+  @override
+  String get destinationLabel => 'Destinace';
+
+  @override
+  String get destinationHint => 'např. Dolomity, Itálie';
+
+  @override
+  String get departureDateLabel => 'Datum odjezdu';
+
+  @override
+  String get returnDateLabel => 'Datum návratu';
+
+  @override
+  String get tripStatusSection => 'Stav';
+
+  @override
+  String get tripStatusLabel => 'Stav výletu';
+
+  @override
+  String get notSelected => 'Nevybráno';
+
+  @override
+  String get saveTripButton => 'Uložit výlet';
+
+  @override
+  String get dateSection => 'Termín';
+
+  @override
+  String get portfolioTitle => 'Portfolio';
+
+  @override
+  String get purchaseValue => 'Pořizovací hodnota';
+
+  @override
+  String get currentValue => 'Aktuální hodnota';
+
+  @override
+  String get annualInsuranceCost => 'Roční pojistné';
+
+  @override
+  String get maintenanceCosts => 'Náklady na údržbu';
+
+  @override
+  String get valueByCategory => 'Hodnota podle kategorie';
+
+  @override
+  String get maintenanceCostsByMonth => 'Náklady na údržbu po měsících';
+
+  @override
+  String get noMaintenanceCosts => 'Žádné záznamy o nákladech';
+
+  @override
+  String get gearByValue => 'Vybavení podle hodnoty';
+
+  @override
+  String get noGearWithPrice =>
+      'Žádné vybavení s pořizovací cenou.\nPřidejte cenu v detailu vybavení.';
+
+  @override
+  String get exportForInsurance => 'Exportovat pro pojišťovnu';
+
+  @override
+  String get exportPdfComingSoon => 'Export PDF bude dostupný v příští verzi';
+
+  @override
+  String get exportPremiumMessage =>
+      'Export portfolia pro pojišťovnu je prémiová funkce.';
+
+  @override
+  String get portfolioLoadError => 'Nepodařilo se načíst data.';
+
+  @override
+  String depreciatedPercent(int pct) {
+    return '–$pct% odepsáno';
+  }
+
+  @override
+  String get annualReportTitle => 'Roční report';
+
+  @override
+  String get annualReportPdfTitle => 'Roční přehled jako PDF';
+
+  @override
+  String get reportContains => 'Report obsahuje:';
+
+  @override
+  String get reportItemActivities => 'Celkový přehled aktivit a servisů';
+
+  @override
+  String get reportItemGearStats => 'Statistiky pro každý kus vybavení';
+
+  @override
+  String get reportItemMonthly => 'Měsíční rozklad aktivit';
+
+  @override
+  String get reportItemServiceHistory => 'Kompletní servisní historii';
+
+  @override
+  String get reportItemInsurance => 'Přehled pojistek a hodnoty portfolia';
+
+  @override
+  String get reportItemNextYear => 'Plán servisů na příští rok';
+
+  @override
+  String get selectYear => 'Vyberte rok';
+
+  @override
+  String get currentYearLabel => 'Aktuální rok';
+
+  @override
+  String get lastYearLabel => 'Minulý rok';
+
+  @override
+  String get twoYearsAgoLabel => 'Před dvěma lety';
+
+  @override
+  String generateReport(int year) {
+    return 'Vygenerovat report $year';
+  }
+
+  @override
+  String get generatingReport => 'Generuji report...';
+
+  @override
+  String reportError(String error) {
+    return 'Chyba při generování reportu: $error';
+  }
+
+  @override
+  String get reportShareHint =>
+      'Po vygenerování bude PDF sdíleno přes systémový dialog (uložit, odeslat e-mailem, vytisknout...).';
+
+  @override
+  String get settingsInsuranceSection => 'Pojistky';
+
+  @override
+  String get settingsInsuranceSubtitle => 'Spravuj pojistky svého vybavení';
+
+  @override
+  String get settingsAppSection => 'Aplikace';
+
+  @override
+  String get settingsAppearance => 'Vzhled';
+
+  @override
+  String get settingsAppearanceSubtitle => 'Světlý / tmavý / systémový motiv';
+
+  @override
+  String get themeModeLight => 'Světlý motiv';
+
+  @override
+  String get themeModeDark => 'Tmavý motiv';
+
+  @override
+  String get themeModeSystem => 'Podle systému';
+
+  @override
+  String get settingsNotificationsTitle => 'Oznámení';
+
+  @override
+  String get settingsNotificationsOn =>
+      'Dostaneš připomenutí před termínem servisu i po termínu.';
+
+  @override
+  String get settingsNotificationsOff =>
+      'Připomínky servisních termínů jsou vypnuty.';
+
+  @override
+  String get settingsNotificationsWeb =>
+      'Push notifikace nejsou v prohlížeči podporovány.\nPoužij Android / iOS aplikaci.';
+
+  @override
+  String get settingsBackupSection => 'Záloha a export';
+
+  @override
+  String get settingsAnnualReport => 'Roční report PDF';
+
+  @override
+  String get settingsAnnualReportSubtitle => 'Export přehledu roku jako PDF';
+
+  @override
+  String get settingsDataSection => 'Data';
+
+  @override
+  String get settingsImportSubtitle => 'Import ze souboru CSV nebo GPX';
+
+  @override
+  String get settingsClearSubtitle => 'Trvale odstraní vše z databáze';
+
+  @override
+  String get settingsWidgetSection => 'Widget';
+
+  @override
+  String get settingsWidgetAdd => 'Přidání widgetu';
+
+  @override
+  String get settingsWidgetAddSubtitle =>
+      'Přidej widget na domovskou obrazovku: Dlouze stiskni plochu → Widgety → OutdoorGearTracker';
+
+  @override
+  String get settingsWidgetRefresh => 'Aktualizovat widget nyní';
+
+  @override
+  String get settingsWidgetRefreshed => 'Widget aktualizován';
+
+  @override
+  String get settingsAboutSection => 'O aplikaci';
+
+  @override
+  String get settingsVersion => 'Verze';
+
+  @override
+  String get settingsPrivacyPolicy => 'Zásady ochrany osobních údajů';
+
+  @override
+  String get backupSuccess => 'Záloha byla úspěšně nahrána na Google Drive.';
+
+  @override
+  String get restoreSuccess =>
+      'Data byla úspěšně obnovena. Restartuj aplikaci.';
+
+  @override
+  String get restoreConfirmTitle => 'Obnovit ze zálohy?';
+
+  @override
+  String get restoreConfirmContent =>
+      'Tato akce nahradí aktuální databázi a fotky daty ze zálohy. Pokračovat?';
+
+  @override
+  String get restoreButton => 'Obnovit';
+
+  @override
+  String get notificationPermissionDenied =>
+      'Oprávnění pro notifikace bylo zamítnuto.';
+
+  @override
+  String get settingsButton => 'Nastavení';
+
+  @override
+  String get premiumUnlocked => '🎉 Premium aktivováno! Děkujeme za podporu.';
+
+  @override
+  String get restorePurchasesButton => 'Obnovit nákupy';
+
+  @override
+  String get noPreviousPurchases => 'Žádné předchozí nákupy nenalezeny.';
+
+  @override
+  String get purchasesRestored => '✅ Nákupy obnoveny!';
+
+  @override
+  String get paywallTagline => 'Bez omezení. Bezpečnost bez kompromisů.';
+
+  @override
+  String get maybeLater => 'Možná později';
+
+  @override
+  String get tapToUnlock => 'Klepni pro odemknutí';
+
+  @override
+  String getPremiumButton(String price) {
+    return 'Získat Premium – $price';
+  }
+
+  @override
+  String get purchaseUnavailable =>
+      'Nákup zatím není dostupný – nakonfiguruj produkt v RevenueCat dashboardu.';
+
+  @override
+  String get deleteServiceRecord => 'Smazat záznam';
+
+  @override
+  String get deleteServiceRecordConfirm =>
+      'Opravdu chcete smazat tento záznam servisu?';
+
+  @override
+  String get editServiceRecord => 'Upravit záznam';
+
+  @override
+  String get editServiceTitle => 'Upravit záznam servisu';
+
+  @override
+  String get notYetPerformed => 'Dosud neprovedeno';
+
+  @override
+  String get noServiceEntries => 'Zatím žádné záznamy servisu';
+
+  @override
+  String get recordFirstService => 'Zapsat první servis';
+
+  @override
+  String get serviceHistoryFull => 'Kompletní historie servisu';
+
+  @override
+  String get warrantyExpired => 'Záruka vypršela';
+
+  @override
+  String get warrantySection => 'Záruka';
+
+  @override
+  String get gearInsuranceSection => 'Pojištění';
+
+  @override
+  String get noInsurancesAttached => 'Žádné pojistky';
+
+  @override
+  String get igcLoadError =>
+      'Nepodařilo se načíst IGC soubor. Zkontroluj formát.';
+
+  @override
+  String get flightPreview => 'Náhled letu';
+
+  @override
+  String get flightStartLabel => 'Start';
+
+  @override
+  String get flightLandingLabel => 'Přistání';
+
+  @override
+  String get flightDurationLabel => 'Délka letu';
+
+  @override
+  String get maxAltitudeLabel => 'Max výška';
+
+  @override
+  String get gpsStartLabel => 'GPS start';
+
+  @override
+  String get stravaNotConnectedHint =>
+      'Strava není připojena. Přejdi do Nastavení → Propojené služby.';
+
+  @override
+  String get stravaSyncFromHelpText => 'Synchronizovat aktivity od';
+
+  @override
+  String get widgetHowToAddTitle => 'Jak přidat widget';
+
+  @override
+  String get widgetHowToStep1 =>
+      '1. Dlouze stiskněte prázdné místo na ploše telefonu';
+
+  @override
+  String get widgetHowToStep2 => '2. Klepněte na \"Widgety\"';
+
+  @override
+  String get widgetHowToStep3 => '3. Najděte \"OutdoorGearTracker\" v seznamu';
+
+  @override
+  String get widgetHowToStep4 => '4. Přetáhněte widget na plochu';
+
+  @override
+  String get understood => 'Rozumím';
+
+  @override
+  String get apiKeysTitle => 'API klíče';
+
+  @override
+  String get exportCsvLabel => 'Exportovat jako CSV';
+
+  @override
+  String get exportCsvSubtitle => 'Export všech dat do CSV souboru';
+
+  @override
+  String get signInWithGoogle => 'Přihlásit se s Google';
+
+  @override
+  String get featureComingSoon => 'Funkce připravována';
+
+  @override
+  String get signOutGoogleAccount => 'Odhlásit Google účet';
+
+  @override
+  String get availableInPremium => 'Dostupné v Premium';
+
+  @override
+  String deleteDataError(Object error) {
+    return 'Chyba při mazání dat: $error';
+  }
+
+  @override
+  String get exportCompleted => 'Export dokončen';
+
+  @override
+  String get syncTimedOut => 'Synchronizace vypršela. Zkus znovu.';
+
+  @override
+  String get photoTakePhoto => 'Vyfotit';
+
+  @override
+  String get photoFromGallery => 'Vybrat z galerie';
+
+  @override
+  String get photoDeleteConfirm => 'Smazat fotku?';
+
+  @override
+  String get photoAdd => 'Přidat fotku';
+
+  @override
+  String get photoChange => 'Změnit fotku';
+
+  @override
+  String get apply => 'Použít';
+
+  @override
+  String serviceHistoryRecordCount(int count) {
+    return '$count záznamů';
+  }
+
+  @override
+  String warrantyValidUntil(String date) {
+    return 'Platí do $date';
+  }
+
+  @override
+  String intervalDays(String n) {
+    return 'každých $n dní';
+  }
+
+  @override
+  String intervalHours(String n) {
+    return 'každých $n h';
+  }
+
+  @override
+  String intervalKm(String n) {
+    return 'každých $n km';
+  }
+
+  @override
+  String intervalCount(String n) {
+    return 'každých $n×';
+  }
+
+  @override
+  String flightAdded(String dur, String height) {
+    return 'Let přidán: $dur, max výška $height m';
+  }
 }

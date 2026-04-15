@@ -481,7 +481,7 @@ class _EditMaintenanceLogScreenState extends State<EditMaintenanceLogScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Upravit záznam servisu'),
+        title: Text(AppLocalizations.of(context).editServiceTitle),
         actions: [
           if (_loading)
             const Padding(
@@ -494,7 +494,7 @@ class _EditMaintenanceLogScreenState extends State<EditMaintenanceLogScreen> {
           else
             TextButton(
               onPressed: _save,
-              child: const Text('Uložit'),
+              child: Text(AppLocalizations.of(context).save),
             ),
         ],
       ),
@@ -827,7 +827,7 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
     if (flight == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Nepodařilo se načíst IGC soubor.')),
+          SnackBar(content: Text(AppLocalizations.of(context).igcLoadError)),
         );
       }
       setState(() { _source = UsageSource.manual; _importedFileName = null; });

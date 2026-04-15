@@ -1,6 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -10,7 +14,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import '../database/database_helper.dart';
 import '../l10n/app_localizations.dart';
-import '../main.dart' show localeNotifier;
+import '../main.dart' show localeNotifier, themeModeNotifier;
 import '../models/strava_models.dart';
 import '../services/backup_service.dart';
 import '../services/notification_service.dart';
@@ -117,7 +121,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) setState(() { _lastBackupDate = lastDate; });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Záloha byla úspěšně nahrána na Google Drive.')),
+          SnackBar(content: Text(AppLocalizations.of(context).backupSuccess)),
         );
       }
     } on BackupException catch (e) {
@@ -131,16 +135,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _runRestore() async {
     // Show confirmation dialog first
+    final l10nRestore = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Obnovit ze zálohy?'),
-        content: const Text(
-          'Tato akce nahradí aktuální databázi a fotky daty ze zálohy. Pokračovat?',
-        ),
+        title: Text(l10nRestore.restoreConfirmTitle),
+        content: Text(l10nRestore.restoreConfirmContent),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Zrušit')),
-          FilledButton(onPressed: () => Navigator.pop(context, true),  child: const Text('Obnovit')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10nRestore.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(context, true),  child: Text(l10nRestore.restoreButton)),
         ],
       ),
     );
@@ -151,7 +154,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await _backupSvc.restore();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Data byla úspěšně obnovena. Restartuj aplikaci.')),
+          SnackBar(content: Text(AppLocalizations.of(context).restoreSuccess)),
         );
       }
     } on BackupException catch (e) {
@@ -174,6 +177,254 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setString('app_locale', code);
     if (mounted) setState(() => _currentLocale = code);
     localeNotifier.value = Locale(code);
+  }
+
+  Future<void> _setTheme(ThemeMode mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = switch (mode) {
+      ThemeMode.light  => 'light',
+      ThemeMode.dark   => 'dark',
+      ThemeMode.system => 'system',
+    };
+    await prefs.setString('app_theme_mode', value);
+    themeModeNotifier.value = mode;
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  void _showThemeDialog() {
+    final l10n = AppLocalizations.of(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l10n.settingsAppearance),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => _setTheme(ThemeMode.light),
+            child: Row(children: [
+              const Icon(Icons.light_mode_outlined),
+              const SizedBox(width: 12),
+              Text(l10n.themeModeLight),
+            ]),
+          ),
+          SimpleDialogOption(
+            onPressed: () => _setTheme(ThemeMode.dark),
+            child: Row(children: [
+              const Icon(Icons.dark_mode_outlined),
+              const SizedBox(width: 12),
+              Text(l10n.themeModeDark),
+            ]),
+          ),
+          SimpleDialogOption(
+            onPressed: () => _setTheme(ThemeMode.system),
+            child: Row(children: [
+              const Icon(Icons.brightness_auto_outlined),
+              const SizedBox(width: 12),
+              Text(l10n.themeModeSystem),
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteAllData() async {
+    try {
+      final db = await _db.database;
+
+      // Delete all table data in correct order (FK constraints)
+      for (final table in [
+        'trip_gear_items',
+        'trips',
+        'insurances',
+        'maintenance_logs',
+        'usage_logs',
+        'maintenance_rules',
+        'gear_items',
+        'categories',
+      ]) {
+        try { await db.delete(table); } catch (_) {}
+      }
+
+      // Delete all photos from app documents directory
+      if (!kIsWeb) {
+        try {
+          final docsDir = await getApplicationDocumentsDirectory();
+          final photosDir = Directory('${docsDir.path}/photos');
+          if (await photosDir.exists()) {
+            await photosDir.delete(recursive: true);
+          }
+        } catch (_) {}
+      }
+
+      // Clear SharedPreferences (but keep locale and theme)
+      final prefs = await SharedPreferences.getInstance();
+      final locale = prefs.getString('app_locale');
+      final theme  = prefs.getString('app_theme_mode');
+      await prefs.clear();
+      if (locale != null) await prefs.setString('app_locale', locale);
+      if (theme  != null) await prefs.setString('app_theme_mode', theme);
+
+      // Sign out from Strava
+      try { await StravaService.instance.disconnect(); } catch (_) {}
+
+      // Update home screen widget (will show zeros)
+      try { await WidgetService.instance.updateWidget(); } catch (_) {}
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Všechna data byla vymazána')),
+        );
+        context.go('/');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).deleteDataError(e.toString()))),
+        );
+      }
+    }
+  }
+
+  void _showClearDataDialog() {
+    final l10n = AppLocalizations.of(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.clearAllData),
+        content: Text(l10n.settingsClearSubtitle),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _deleteAllData();
+            },
+            child: Text(l10n.clearAllData),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _csvExporting = false;
+
+  /// Escapes a single CSV field value.
+  String _csvField(dynamic v) {
+    if (v == null) return '';
+    final s = v.toString();
+    if (s.contains(',') || s.contains('"') || s.contains('\n')) {
+      return '"${s.replaceAll('"', '""')}"';
+    }
+    return s;
+  }
+
+  String _csvRow(List<dynamic> cols) => cols.map(_csvField).join(',');
+
+  Future<void> _exportCsv() async {
+    if (_csvExporting || kIsWeb) return;
+    setState(() => _csvExporting = true);
+
+    try {
+      final db     = await _db.database;
+      final tmpDir = await getTemporaryDirectory();
+      final date   = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+      // ── gear_items.csv ───────────────────────────────────────────────────
+      final gearRows = await db.rawQuery('''
+        SELECT g.id, g.name, c.name AS category, g.brand, g.model,
+               g.serial_number, g.purchase_date, g.purchase_price, g.status, g.notes
+        FROM gear_items g
+        LEFT JOIN categories c ON c.id = g.category_id
+        ORDER BY g.name
+      ''');
+      final gearCsv = StringBuffer(
+          'id,název,kategorie,značka,model,sériové číslo,datum nákupu,cena,stav,poznámky\n');
+      for (final r in gearRows) {
+        gearCsv.writeln(_csvRow([
+          r['id'], r['name'], r['category'], r['brand'], r['model'],
+          r['serial_number'], r['purchase_date'], r['purchase_price'],
+          r['status'], r['notes'],
+        ]));
+      }
+
+      // ── maintenance_log.csv ──────────────────────────────────────────────
+      final logRows = await db.rawQuery('''
+        SELECT ml.performed_date, g.name AS gear, mr.name AS task,
+               ml.performed_by, ml.cost, ml.notes
+        FROM maintenance_logs ml
+        JOIN gear_items g ON g.id = ml.gear_item_id
+        LEFT JOIN maintenance_rules mr ON mr.id = ml.rule_id
+        ORDER BY ml.performed_date DESC
+      ''');
+      final logCsv = StringBuffer('datum,vybavení,úkon,kdo,cena,poznámky\n');
+      for (final r in logRows) {
+        logCsv.writeln(_csvRow([
+          r['performed_date'], r['gear'], r['task'],
+          r['performed_by'], r['cost'], r['notes'],
+        ]));
+      }
+
+      // ── usage_log.csv ────────────────────────────────────────────────────
+      final usageRows = await db.rawQuery('''
+        SELECT ul.date, g.name AS gear,
+               ROUND(ul.duration_minutes / 60.0, 2) AS hours,
+               ul.distance_km, ul.elevation_gain, ul.location, ul.source
+        FROM usage_logs ul
+        JOIN gear_items g ON g.id = ul.gear_item_id
+        ORDER BY ul.date DESC
+      ''');
+      final usageCsv =
+          StringBuffer('datum,vybavení,hodiny,km,nastoupáno (m),lokalita,zdroj\n');
+      for (final r in usageRows) {
+        usageCsv.writeln(_csvRow([
+          r['date'], r['gear'], r['hours'],
+          r['distance_km'], r['elevation_gain'], r['location'], r['source'],
+        ]));
+      }
+
+      // ── Write CSV files to temp dir ──────────────────────────────────────
+      final gearFile  = File('${tmpDir.path}/gear_items.csv');
+      final logFile   = File('${tmpDir.path}/maintenance_log.csv');
+      final usageFile = File('${tmpDir.path}/usage_log.csv');
+      await gearFile.writeAsString(gearCsv.toString());
+      await logFile.writeAsString(logCsv.toString());
+      await usageFile.writeAsString(usageCsv.toString());
+
+      // ── Pack into ZIP ────────────────────────────────────────────────────
+      final zipPath = '${tmpDir.path}/outdoor_gear_tracker_export_$date.zip';
+      final encoder = ZipFileEncoder();
+      encoder.create(zipPath);
+      encoder.addFile(gearFile);
+      encoder.addFile(logFile);
+      encoder.addFile(usageFile);
+      encoder.close();
+
+      if (!mounted) return;
+
+      // ── Share ────────────────────────────────────────────────────────────
+      await Share.shareXFiles(
+        [XFile(zipPath, mimeType: 'application/zip')],
+        subject: 'OutdoorGearTracker export $date',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).exportCompleted)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Chyba exportu: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _csvExporting = false);
+    }
   }
 
   Future<void> _loadNotificationState() async {
@@ -335,7 +586,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         setState(() => _stravaSyncing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Synchronizace vypršela. Zkus znovu.')),
+          SnackBar(content: Text(AppLocalizations.of(context).syncTimedOut)),
         );
       }
       return;
@@ -465,11 +716,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showPermissionDeniedSnackbar() {
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Oprávnění pro notifikace bylo zamítnuto.'),
+        content: Text(l10n.notificationPermissionDenied),
         action: SnackBarAction(
-          label: 'Nastavení',
+          label: l10n.settingsButton,
           onPressed: () {
             // Uživatel může oprávnění udělit ručně v systémovém nastavení
           },
@@ -570,21 +822,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
 
           // ── Sekce: Pojistky ─────────────────────────────────────────────
-          _SectionHeader('Pojistky'),
+          _SectionHeader(l10n.settingsInsuranceSection),
           _SettingsTile(
             icon: Icons.security_outlined,
-            title: 'Pojistky',
-            subtitle: 'Spravuj pojistky svého vybavení',
+            title: l10n.settingsInsuranceSection,
+            subtitle: l10n.settingsInsuranceSubtitle,
             onTap: () => context.push('/insurance'),
           ),
 
           // ── Sekce: Aplikace ─────────────────────────────────────────────
-          _SectionHeader('Aplikace'),
+          _SectionHeader(l10n.settingsAppSection),
           _SettingsTile(
             icon: Icons.palette_outlined,
-            title: 'Vzhled',
-            subtitle: 'Světlý / tmavý / systémový motiv',
-            onTap: () {},
+            title: l10n.settingsAppearance,
+            subtitle: l10n.settingsAppearanceSubtitle,
+            onTap: _showThemeDialog,
           ),
 
           // ── Notifikace – switch tile ─────────────────────────────────────
@@ -623,12 +875,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
 
           // ── Sekce: Záloha a export ──────────────────────────────────────
-          _SectionHeader('Záloha a export'),
+          _SectionHeader(l10n.settingsBackupSection),
           if (!_premiumLoading)
             _SettingsTile(
               icon: Icons.picture_as_pdf,
-              title: 'Roční report PDF',
-              subtitle: 'Export přehledu roku jako PDF',
+              title: l10n.settingsAnnualReport,
+              subtitle: l10n.settingsAnnualReportSubtitle,
+              showPremiumBadge: !_isPremium,
               onTap: () {
                 if (_isPremium) {
                   context.push('/annual-report');
@@ -670,44 +923,73 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
                 if (unlocked == true) _loadPremiumState();
               },
+              onCsvExport: _exportCsv,
+              csvExporting: _csvExporting,
             ),
 
           // ── Sekce: Data ─────────────────────────────────────────────────
-          _SectionHeader('Data'),
+          _SectionHeader(l10n.settingsDataSection),
           _SettingsTile(
             icon: Icons.upload_file_outlined,
             title: l10n.importData,
-            subtitle: 'Import ze souboru CSV nebo GPX',
+            subtitle: l10n.settingsImportSubtitle,
             onTap: () {},
           ),
           _SettingsTile(
             icon: Icons.delete_outline,
             title: l10n.clearAllData,
-            subtitle: 'Trvale odstraní vše z databáze',
+            subtitle: l10n.settingsClearSubtitle,
             titleColor: cs.error,
-            onTap: () {},
+            onTap: _showClearDataDialog,
           ),
 
           // ── Sekce: Widget ───────────────────────────────────────────────
-          _SectionHeader('Widget'),
-          const ListTile(
-            leading: Icon(Icons.widgets_outlined),
-            title: Text('Přidání widgetu'),
-            subtitle: Text(
-              'Přidej widget na domovskou obrazovku: Dlouze stiskni plochu → Widgety → GearTracker',
-            ),
-            isThreeLine: true,
+          _SectionHeader(l10n.settingsWidgetSection),
+          _SettingsTile(
+            icon: Icons.widgets_outlined,
+            title: l10n.settingsWidgetAdd,
+            subtitle: l10n.settingsWidgetAddSubtitle,
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (ctx) {
+                  final dl = AppLocalizations.of(ctx);
+                  return AlertDialog(
+                    title: Text(dl.widgetHowToAddTitle),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(dl.widgetHowToStep1),
+                        const SizedBox(height: 8),
+                        Text(dl.widgetHowToStep2),
+                        const SizedBox(height: 8),
+                        Text(dl.widgetHowToStep3),
+                        const SizedBox(height: 8),
+                        Text(dl.widgetHowToStep4),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: Text(dl.understood),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
           ),
-          ListTile(
-            leading: const Icon(Icons.refresh),
-            title: const Text('Aktualizovat widget nyní'),
+          _SettingsTile(
+            icon: Icons.refresh,
+            title: l10n.settingsWidgetRefresh,
             onTap: () async {
               await WidgetService.instance.updateWidget();
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Widget aktualizován'),
-                    duration: Duration(seconds: 2),
+                  SnackBar(
+                    content: Text(AppLocalizations.of(context).settingsWidgetRefreshed),
+                    duration: const Duration(seconds: 2),
                   ),
                 );
               }
@@ -715,15 +997,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
 
           // ── Sekce: O aplikaci ───────────────────────────────────────────
-          _SectionHeader('O aplikaci'),
-          const _SettingsTile(
+          _SectionHeader(l10n.settingsAboutSection),
+          _SettingsTile(
             icon: Icons.info_outline,
-            title: 'Verze',
+            title: l10n.settingsVersion,
             subtitle: '1.0.0',
           ),
           _SettingsTile(
             icon: Icons.privacy_tip_outlined,
-            title: 'Zásady ochrany osobních údajů',
+            title: l10n.settingsPrivacyPolicy,
             onTap: () {},
           ),
         ],
@@ -751,14 +1033,15 @@ class _NotificationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
 
     if (!platformSupported) {
       // Web: zobraz informaci místo přepínače
       return ListTile(
         leading: Icon(Icons.notifications_off_outlined, color: cs.outline),
-        title: const Text('Oznámení'),
+        title: Text(l10n.settingsNotificationsTitle),
         subtitle: Text(
-          'Push notifikace nejsou v prohlížeči podporovány.\nPoužij Android / iOS aplikaci.',
+          l10n.settingsNotificationsWeb,
           style: TextStyle(color: cs.outline),
         ),
         isThreeLine: true,
@@ -781,11 +1064,11 @@ class _NotificationTile extends StatelessWidget {
                   : Icons.notifications_off_outlined,
               color: enabled ? cs.primary : cs.outline,
             ),
-      title: const Text('Oznámení'),
+      title: Text(l10n.settingsNotificationsTitle),
       subtitle: Text(
         enabled
-            ? 'Dostaneš připomenutí před termínem servisu i po termínu.'
-            : 'Připomínky servisních termínů jsou vypnuty.',
+            ? l10n.settingsNotificationsOn
+            : l10n.settingsNotificationsOff,
         style: tt.bodySmall,
       ),
       value: enabled,
@@ -817,12 +1100,37 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
+/// Small amber "Premium" badge for settings tiles.
+class _PremiumBadge extends StatelessWidget {
+  const _PremiumBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF59E0B),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Text(
+        'Premium',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
 class _SettingsTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final String? subtitle;
   final VoidCallback? onTap;
   final Color? titleColor;
+  final bool showPremiumBadge;
 
   const _SettingsTile({
     required this.icon,
@@ -830,10 +1138,25 @@ class _SettingsTile extends StatelessWidget {
     this.subtitle,
     this.onTap,
     this.titleColor,
+    this.showPremiumBadge = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    Widget? trailingWidget;
+    if (showPremiumBadge) {
+      trailingWidget = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const _PremiumBadge(),
+          const SizedBox(width: 8),
+          if (onTap != null) const Icon(Icons.chevron_right, size: 20),
+        ],
+      );
+    } else if (onTap != null) {
+      trailingWidget = const Icon(Icons.chevron_right, size: 20);
+    }
+
     return ListTile(
       leading: Icon(
         icon,
@@ -844,8 +1167,7 @@ class _SettingsTile extends StatelessWidget {
         style: titleColor != null ? TextStyle(color: titleColor) : null,
       ),
       subtitle: subtitle != null ? Text(subtitle!) : null,
-      trailing:
-          onTap != null ? const Icon(Icons.chevron_right, size: 20) : null,
+      trailing: trailingWidget,
       onTap: onTap,
     );
   }
@@ -969,7 +1291,7 @@ class _StravaSection extends StatelessWidget {
                     OutlinedButton.icon(
                       onPressed: onEditCredentials,
                       icon: const Icon(Icons.key_outlined, size: 16),
-                      label: const Text('API klíče'),
+                      label: Text(AppLocalizations.of(context).apiKeysTitle),
                     ),
                     const SizedBox(width: 10),
                     FilledButton.icon(
@@ -1394,6 +1716,8 @@ class _BackupSection extends StatelessWidget {
   final VoidCallback          onRestore;
   final ValueChanged<bool>    onAutoBackupChanged;
   final VoidCallback          onUpgradeTap;
+  final VoidCallback          onCsvExport;
+  final bool                  csvExporting;
 
   const _BackupSection({
     required this.isPremium,
@@ -1409,6 +1733,8 @@ class _BackupSection extends StatelessWidget {
     required this.onRestore,
     required this.onAutoBackupChanged,
     required this.onUpgradeTap,
+    required this.onCsvExport,
+    required this.csvExporting,
   });
 
   @override
@@ -1429,14 +1755,13 @@ class _BackupSection extends StatelessWidget {
             // CSV export is always free
             ListTile(
               leading: Icon(Icons.table_chart_outlined, color: cs.onSurfaceVariant),
-              title: const Text('Exportovat jako CSV'),
-              subtitle: const Text('Export všech dat do CSV souboru'),
-              trailing: const Icon(Icons.chevron_right, size: 20),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Funkce připravována')),
-                );
-              },
+              title: Text(AppLocalizations.of(context).exportCsvLabel),
+              subtitle: Text(AppLocalizations.of(context).exportCsvSubtitle),
+              trailing: csvExporting
+                  ? const SizedBox(width: 20, height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.chevron_right, size: 20),
+              onTap: csvExporting ? null : onCsvExport,
             ),
           ],
         ),
@@ -1477,7 +1802,7 @@ class _BackupSection extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: onSignIn,
                   icon: const Icon(Icons.login, size: 16),
-                  label: const Text('Přihlásit se s Google'),
+                  label: Text(AppLocalizations.of(context).signInWithGoogle),
                 ),
                 const SizedBox(height: 12),
                 // CSV export (always available)
@@ -1485,13 +1810,12 @@ class _BackupSection extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.table_chart_outlined,
                       color: cs.onSurfaceVariant),
-                  title: const Text('Exportovat jako CSV'),
-                  trailing: const Icon(Icons.chevron_right, size: 20),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Funkce připravována')),
-                    );
-                  },
+                  title: Text(AppLocalizations.of(context).exportCsvLabel),
+                  trailing: csvExporting
+                      ? const SizedBox(width: 20, height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.chevron_right, size: 20),
+                  onTap: csvExporting ? null : onCsvExport,
                 ),
               ],
             ),
@@ -1647,11 +1971,11 @@ class _BackupSection extends StatelessWidget {
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.table_chart_outlined,
                     color: cs.onSurfaceVariant),
-                title: const Text('Exportovat jako CSV'),
+                title: Text(AppLocalizations.of(context).exportCsvLabel),
                 trailing: const Icon(Icons.chevron_right, size: 20),
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Funkce připravována')),
+                    SnackBar(content: Text(AppLocalizations.of(context).featureComingSoon)),
                   );
                 },
               ),
@@ -1664,7 +1988,7 @@ class _BackupSection extends StatelessWidget {
                 onPressed: onSignOut,
                 style: TextButton.styleFrom(foregroundColor: cs.error),
                 icon: const Icon(Icons.logout, size: 16),
-                label: const Text('Odhlásit Google účet'),
+                label: Text(AppLocalizations.of(context).signOutGoogleAccount),
               ),
             ],
           ),
@@ -1702,7 +2026,7 @@ class _LockedFeatureTile extends StatelessWidget {
     return ListTile(
       leading: Icon(icon, color: cs.onSurfaceVariant),
       title: Text(title),
-      subtitle: const Text('Dostupné v Premium'),
+      subtitle: Text(AppLocalizations.of(context).availableInPremium),
       trailing: GestureDetector(
         onTap: onUpgradeTap,
         child: Container(

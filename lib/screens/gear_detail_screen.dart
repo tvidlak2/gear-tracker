@@ -186,21 +186,22 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
   }
 
   Future<void> _deleteMaintenanceLog(MaintenanceLog log) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Smazat záznam'),
-        content: const Text('Opravdu chcete smazat tento záznam servisu?'),
+        title: Text(l10n.deleteServiceRecord),
+        content: Text(l10n.deleteServiceRecordConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Zrušit'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(
                 foregroundColor: Theme.of(ctx).colorScheme.error),
-            child: const Text('Smazat'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -212,6 +213,7 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
   }
 
   void _showLogBottomSheet(BuildContext ctx, MaintenanceLog log) {
+    final l10n = AppLocalizations.of(ctx);
     showModalBottomSheet(
       context: ctx,
       builder: (_) => SafeArea(
@@ -220,7 +222,7 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.edit_outlined),
-              title: const Text('Upravit záznam'),
+              title: Text(l10n.editServiceRecord),
               onTap: () {
                 Navigator.pop(ctx);
                 _editMaintenanceLog(log);
@@ -229,7 +231,7 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
             ListTile(
               leading: Icon(Icons.delete_outline,
                   color: Theme.of(ctx).colorScheme.error),
-              title: Text('Smazat záznam',
+              title: Text(l10n.deleteServiceRecord,
                   style:
                       TextStyle(color: Theme.of(ctx).colorScheme.error)),
               onTap: () {
@@ -515,8 +517,8 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
     if (flight == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Nepodařilo se načíst IGC soubor. Zkontroluj formát.'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).igcLoadError),
           ),
         );
       }
@@ -550,7 +552,7 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
       final dur = h > 0 ? '$h h $m min' : '$m min';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Let přidán: $dur, max výška ${flight.maxAltitudeM} m'),
+          content: Text(AppLocalizations.of(context).flightAdded(dur, '${flight.maxAltitudeM}')),
           backgroundColor: AppColors.primary,
           behavior: SnackBarBehavior.floating,
         ),
@@ -860,7 +862,7 @@ class _MaintenanceRuleCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                _intervalText(r.rule),
+                _intervalText(context, r.rule),
                 style: TextStyle(fontSize: 11, color: context.subtitleColor),
               ),
               const SizedBox(width: 8),
@@ -887,7 +889,7 @@ class _MaintenanceRuleCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: Text(
-                'Dosud neprovedeno',
+                AppLocalizations.of(context).notYetPerformed,
                 style: TextStyle(fontSize: 12, color: context.subtitleColor),
               ),
             )
@@ -921,14 +923,15 @@ class _MaintenanceRuleCard extends StatelessWidget {
     );
   }
 
-  String _intervalText(MaintenanceRule rule) => switch (rule.triggerType) {
-    TriggerType.date          => 'každých ${rule.triggerValue.toInt()} dní',
-    TriggerType.usageHours    =>
-        'každých ${rule.triggerValue.toStringAsFixed(0)} h',
-    TriggerType.usageDistance =>
-        'každých ${rule.triggerValue.toStringAsFixed(0)} km',
-    TriggerType.usageCount    => 'každých ${rule.triggerValue.toInt()}×',
-  };
+  String _intervalText(BuildContext context, MaintenanceRule rule) {
+    final l10n = AppLocalizations.of(context);
+    return switch (rule.triggerType) {
+      TriggerType.date          => l10n.intervalDays('${rule.triggerValue.toInt()}'),
+      TriggerType.usageHours    => l10n.intervalHours(rule.triggerValue.toStringAsFixed(0)),
+      TriggerType.usageDistance => l10n.intervalKm(rule.triggerValue.toStringAsFixed(0)),
+      TriggerType.usageCount    => l10n.intervalCount('${rule.triggerValue.toInt()}'),
+    };
+  }
 }
 
 // ─── Shared log entry row ─────────────────────────────────────────────────────
@@ -1143,14 +1146,14 @@ class _ServiceHistorySection extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Kompletní historie servisu',
+                  AppLocalizations.of(context).serviceHistoryFull,
                   style: const TextStyle(
                       fontSize: 15, fontWeight: FontWeight.w700),
                 ),
               ),
               if (logs.isNotEmpty)
                 Text(
-                  '${logs.length} záznamů',
+                  AppLocalizations.of(context).serviceHistoryRecordCount(logs.length),
                   style: TextStyle(
                       fontSize: 12, color: context.subtitleColor),
                 ),
@@ -1159,15 +1162,15 @@ class _ServiceHistorySection extends StatelessWidget {
           const SizedBox(height: 12),
 
           if (sorted.isEmpty) ...[
-            _EmptyHint('Zatím žádné záznamy servisu'),
+            _EmptyHint(AppLocalizations.of(context).noServiceEntries),
             const SizedBox(height: 4),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: onAddLog,
                 icon: const Icon(Icons.add_rounded, size: 16),
-                label: const Text('Zapsat první servis',
-                    style: TextStyle(fontSize: 13)),
+                label: Text(AppLocalizations.of(context).recordFirstService,
+                    style: const TextStyle(fontSize: 13)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   side: const BorderSide(color: AppColors.primary),
@@ -1711,7 +1714,7 @@ class _IgcPreviewDialog extends StatelessWidget {
                 color: Color(0xFF00897B), size: 18),
           ),
           const SizedBox(width: 10),
-          const Text('Náhled letu', style: TextStyle(fontSize: 17)),
+          Text(AppLocalizations.of(context).flightPreview, style: const TextStyle(fontSize: 17)),
         ],
       ),
       contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
@@ -1719,17 +1722,17 @@ class _IgcPreviewDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _PreviewRow(Icons.calendar_today_outlined,
-              'Datum', _dateFmt.format(flight.flightDate)),
+              AppLocalizations.of(context).dateLabel, _dateFmt.format(flight.flightDate)),
           _PreviewRow(Icons.schedule_outlined,
-              'Start', start),
+              AppLocalizations.of(context).flightStartLabel, start),
           _PreviewRow(Icons.schedule_outlined,
-              'Přistání', end),
+              AppLocalizations.of(context).flightLandingLabel, end),
           _PreviewRow(Icons.timer_outlined,
-              'Délka letu', dur),
+              AppLocalizations.of(context).flightDurationLabel, dur),
           _PreviewRow(Icons.height_rounded,
-              'Max výška', '${flight.maxAltitudeM} m'),
+              AppLocalizations.of(context).maxAltitudeLabel, '${flight.maxAltitudeM} m'),
           _PreviewRow(Icons.location_on_outlined,
-              'GPS start',
+              AppLocalizations.of(context).gpsStartLabel,
               '${flight.startLat.toStringAsFixed(4)}°, '
               '${flight.startLon.toStringAsFixed(4)}°'),
         ],
@@ -1908,7 +1911,7 @@ class _StravaGearSectionState extends State<_StravaGearSection> {
       initialDate: _syncFrom ?? DateTime.now().subtract(const Duration(days: 365)),
       firstDate: DateTime(2010),
       lastDate: DateTime.now(),
-      helpText: 'Synchronizovat aktivity od',
+      helpText: AppLocalizations.of(context).stravaSyncFromHelpText,
     );
     if (picked != null) {
       setState(() => _syncFrom = picked);
@@ -1946,7 +1949,7 @@ class _StravaGearSectionState extends State<_StravaGearSection> {
                 border: Border.all(color: context.cardBorderColor, width: 0.5),
               ),
               child: Text(
-                'Strava není připojena. Přejdi do Nastavení → Propojené služby.',
+                AppLocalizations.of(context).stravaNotConnectedHint,
                 style: TextStyle(
                     fontSize: 13, color: context.subtitleColor),
               ),
@@ -2116,17 +2119,18 @@ class _WarrantySection extends StatelessWidget {
     final daysLeft = expiry.difference(now).inDays;
     final isExpiringSoon = !isExpired && daysLeft <= 30;
 
+    final l10n = AppLocalizations.of(context);
     final Color statusColor;
     final String statusLabel;
     if (isExpired) {
       statusColor = AppColors.danger;
-      statusLabel = 'Záruka vypršela';
+      statusLabel = l10n.warrantyExpired;
     } else if (isExpiringSoon) {
       statusColor = AppColors.warning;
-      statusLabel = 'Platí do ${_dateFmt.format(expiry)}';
+      statusLabel = l10n.warrantyValidUntil(_dateFmt.format(expiry));
     } else {
       statusColor = AppColors.success;
-      statusLabel = 'Platí do ${_dateFmt.format(expiry)}';
+      statusLabel = l10n.warrantyValidUntil(_dateFmt.format(expiry));
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -2136,9 +2140,9 @@ class _WarrantySection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Záruka',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          Text(
+            l10n.warrantySection,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 10),
           Container(
@@ -2246,9 +2250,9 @@ class _InsuranceSection extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Pojištění',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              Text(
+                AppLocalizations.of(context).gearInsuranceSection,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
               ),
               TextButton.icon(
                 onPressed: () {
@@ -2257,7 +2261,7 @@ class _InsuranceSection extends StatelessWidget {
                       .then((_) => onChanged());
                 },
                 icon: const Icon(Icons.add_rounded, size: 16),
-                label: const Text('Přidat', style: TextStyle(fontSize: 12)),
+                label: Text(AppLocalizations.of(context).add, style: const TextStyle(fontSize: 12)),
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -2278,7 +2282,7 @@ class _InsuranceSection extends StatelessWidget {
                 border: Border.all(color: context.cardBorderColor, width: 0.5),
               ),
               child: Text(
-                'Žádné pojistky',
+                AppLocalizations.of(context).noInsurancesAttached,
                 style: TextStyle(fontSize: 13, color: context.subtitleColor),
                 textAlign: TextAlign.center,
               ),
