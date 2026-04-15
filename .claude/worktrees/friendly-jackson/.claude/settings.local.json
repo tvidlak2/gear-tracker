@@ -63,7 +63,8 @@
       "Bash(cp /tmp/add_l10n.js ~/add_l10n.js)",
       "Bash(node ~/add_l10n.js)",
       "Read(//c/Users/tomas/**)",
-      "Bash(node add_l10n.js)"
+      "Bash(node add_l10n.js)",
+      "Bash(node ~/add_l10n2.js)"
     ]
   }
 }
