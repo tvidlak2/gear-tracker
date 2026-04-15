@@ -66,7 +66,13 @@
       "Bash(node add_l10n.js)",
       "Bash(node ~/add_l10n2.js)",
       "Bash(node ~/add_l10n3.js)",
-      "Bash(node -e ':*)"
+      "Bash(node -e ':*)",
+      "Bash(flutter run:*)",
+      "Bash(echo \"Started flutter run in background \\(PID $!\\)\")",
+      "Bash(netstat -ano)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__computer"
     ]
   }
 }
