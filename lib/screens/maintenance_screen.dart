@@ -110,41 +110,24 @@ class _MaintenanceOverviewScreenState
                       data: _items[i],
                       onTap: () =>
                           context.push('/gear/${_items[i].item.id}').then((_) => _loadData()),
-                      onLogMaintenance: (ruleId) =>
-                          _quickLog(_items[i].item, ruleId),
+                      onLogMaintenance: (item, ruleId) =>
+                          _openLogScreen(item, ruleId),
                     ),
                   ),
                 ),
     );
   }
 
-  Future<void> _quickLog(GearItem item, int ruleId) async {
-    final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(l10n.logService),
-        content: Text(l10n.deleteGearConfirm(item.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.confirm),
-          ),
-        ],
+  Future<void> _openLogScreen(GearItem item, int ruleId) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AddMaintenanceLogScreen(
+          gearItemId: item.id!,
+          initialRuleId: ruleId,
+        ),
       ),
     );
-    if (confirmed == true) {
-      await _maintenanceService.logMaintenance(
-        gearItemId: item.id!,
-        ruleId: ruleId,
-        performedDate: DateTime.now(),
-      );
-      _loadData();
-    }
+    _loadData();
   }
 }
 
@@ -158,7 +141,7 @@ class _ItemWithStatus {
 class _ItemCard extends StatelessWidget {
   final _ItemWithStatus data;
   final VoidCallback onTap;
-  final void Function(int ruleId) onLogMaintenance;
+  final void Function(GearItem item, int ruleId) onLogMaintenance;
 
   const _ItemCard({
     required this.data,
@@ -211,8 +194,8 @@ class _ItemCard extends StatelessWidget {
                           if (r.rule.id != null)
                             TextButton(
                               onPressed: () =>
-                                  onLogMaintenance(r.rule.id!),
-                              child: const Text('Hotovo'),
+                                  onLogMaintenance(data.item, r.rule.id!),
+                              child: const Text('Zapsat servis'),
                             ),
                         ],
                       ),
@@ -230,8 +213,13 @@ class _ItemCard extends StatelessWidget {
 
 class AddMaintenanceLogScreen extends StatefulWidget {
   final int gearItemId;
+  final int? initialRuleId;
 
-  const AddMaintenanceLogScreen({super.key, required this.gearItemId});
+  const AddMaintenanceLogScreen({
+    super.key,
+    required this.gearItemId,
+    this.initialRuleId,
+  });
 
   @override
   State<AddMaintenanceLogScreen> createState() =>
@@ -263,7 +251,14 @@ class _AddMaintenanceLogScreenState extends State<AddMaintenanceLogScreen> {
 
   Future<void> _loadRules() async {
     final rules = await _db.getRulesForItem(widget.gearItemId);
-    if (mounted) setState(() => _rules = rules);
+    if (mounted) {
+      setState(() {
+        _rules = rules;
+        if (_selectedRuleId == null && widget.initialRuleId != null) {
+          _selectedRuleId = widget.initialRuleId;
+        }
+      });
+    }
   }
 
   @override
@@ -386,6 +381,194 @@ class _AddMaintenanceLogScreenState extends State<AddMaintenanceLogScreen> {
               decoration: InputDecoration(
                 labelText: l10n.notes,
                 border: const OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text('Foto dokladu / štítku',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: 8),
+            PhotoPicker(
+              photoPath: _photoPath,
+              onChanged: (path) => setState(() => _photoPath = path),
+              height: 160,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ──────────────────────── EDIT MAINTENANCE LOG SCREEN ────────────────────────
+
+class EditMaintenanceLogScreen extends StatefulWidget {
+  final MaintenanceLog log;
+
+  const EditMaintenanceLogScreen({super.key, required this.log});
+
+  @override
+  State<EditMaintenanceLogScreen> createState() =>
+      _EditMaintenanceLogScreenState();
+}
+
+class _EditMaintenanceLogScreenState extends State<EditMaintenanceLogScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _db = DatabaseHelper.instance;
+
+  final _performedByCtrl = TextEditingController();
+  final _costCtrl = TextEditingController();
+  final _notesCtrl = TextEditingController();
+
+  List<MaintenanceRule> _rules = [];
+  int? _selectedRuleId;
+  DateTime _performedDate = DateTime.now();
+  bool _loading = false;
+  String? _photoPath;
+
+  static final _dateFormat = DateFormat('d. M. yyyy');
+
+  @override
+  void initState() {
+    super.initState();
+    final log = widget.log;
+    _performedDate  = log.performedDate;
+    _selectedRuleId = log.ruleId;
+    _photoPath      = log.photoPath;
+    _performedByCtrl.text = log.performedBy ?? '';
+    _costCtrl.text        = log.cost != null ? log.cost!.toStringAsFixed(0) : '';
+    _notesCtrl.text       = log.notes ?? '';
+    _loadRules();
+  }
+
+  Future<void> _loadRules() async {
+    final rules = await _db.getRulesForItem(widget.log.gearItemId);
+    if (mounted) setState(() => _rules = rules);
+  }
+
+  @override
+  void dispose() {
+    _performedByCtrl.dispose();
+    _costCtrl.dispose();
+    _notesCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _loading = true);
+
+    final updated = MaintenanceLog(
+      id:            widget.log.id,
+      gearItemId:    widget.log.gearItemId,
+      ruleId:        _selectedRuleId,
+      performedDate: _performedDate,
+      performedBy:   _performedByCtrl.text.trim().isEmpty
+                         ? null : _performedByCtrl.text.trim(),
+      cost:          _costCtrl.text.trim().isEmpty
+                         ? null : double.tryParse(_costCtrl.text.trim()),
+      notes:         _notesCtrl.text.trim().isEmpty
+                         ? null : _notesCtrl.text.trim(),
+      nextDueDate:   widget.log.nextDueDate,
+      photoPath:     _photoPath,
+    );
+
+    await _db.updateMaintenanceLog(updated);
+    if (mounted) Navigator.of(context).pop(true); // true = saved
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Upravit záznam servisu'),
+        actions: [
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: SizedBox(
+                width: 20, height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else
+            TextButton(
+              onPressed: _save,
+              child: const Text('Uložit'),
+            ),
+        ],
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (_rules.isNotEmpty)
+              DropdownButtonFormField<int?>(
+                value: _selectedRuleId,
+                decoration: const InputDecoration(
+                  labelText: 'Pravidlo (volitelné)',
+                  border: OutlineInputBorder(),
+                ),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('–')),
+                  ..._rules.map(
+                    (r) => DropdownMenuItem(value: r.id, child: Text(r.name)),
+                  ),
+                ],
+                onChanged: (v) => setState(() => _selectedRuleId = v),
+              ),
+            if (_rules.isNotEmpty) const SizedBox(height: 12),
+            InkWell(
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _performedDate,
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime.now(),
+                );
+                if (picked != null) setState(() => _performedDate = picked);
+              },
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Datum provedení',
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.calendar_today, size: 18),
+                ),
+                child: Text(_dateFormat.format(_performedDate)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _performedByCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Kdo provedl',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _costCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Cena (Kč)',
+                border: OutlineInputBorder(),
+                suffixText: 'Kč',
+              ),
+              validator: (v) {
+                if (v != null && v.isNotEmpty && double.tryParse(v) == null) {
+                  return 'Zadej číslo';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _notesCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Poznámky',
+                border: OutlineInputBorder(),
                 alignLabelWithHint: true,
               ),
             ),

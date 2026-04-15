@@ -17,6 +17,7 @@ import '../models/maintenance_rule.dart';
 import '../models/strava_models.dart';
 import '../models/usage_log.dart';
 import '../services/igc_parser.dart';
+import 'maintenance_screen.dart' show EditMaintenanceLogScreen;
 import '../services/insurance_service.dart';
 import '../services/maintenance_service.dart';
 import '../services/strava_service.dart';
@@ -91,6 +92,7 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
     final category     = await _db.getCategoryById(item.categoryId);
     final results      = await _svc.getStatusForItem(item.id!);
     final logs         = await _db.getMaintenanceLogs(gearItemId: item.id!);
+    debugPrint('[GearDetail] maintenanceLogs loaded: ${logs.length} for gearId=${item.id}');
     final usageLogs    = await _db.getUsageLogs(gearItemId: item.id!);
     final totalMinutes = await _db.getTotalDurationMinutes(item.id!);
     final totalKm      = await _db.getTotalDistanceKm(item.id!);
@@ -150,6 +152,97 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
     );
   }
 
+  // ── Navigation helpers — always await + reload ─────────────────────────────
+
+  Future<void> _openAddMaintenanceLog({int? ruleId}) async {
+    await context.push('/gear/${_item!.id}/maintenance/add');
+    if (mounted) _loadData();
+  }
+
+  Future<void> _openAddRule() async {
+    await context.push('/gear/${_item!.id}/rules/add');
+    if (mounted) _loadData();
+  }
+
+  Future<void> _openAddActivity() async {
+    await context.push('/gear/${_item!.id}/usage/add');
+    if (mounted) _loadData();
+  }
+
+  Future<void> _openEditGear() async {
+    await context.push('/gear/${_item!.id}/edit');
+    if (mounted) _loadData();
+  }
+
+  // ── Maintenance log edit / delete ──────────────────────────────────────────
+
+  Future<void> _editMaintenanceLog(MaintenanceLog log) async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => EditMaintenanceLogScreen(log: log),
+      ),
+    );
+    if (saved == true) _loadData();
+  }
+
+  Future<void> _deleteMaintenanceLog(MaintenanceLog log) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Smazat záznam'),
+        content: const Text('Opravdu chcete smazat tento záznam servisu?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Zrušit'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(
+                foregroundColor: Theme.of(ctx).colorScheme.error),
+            child: const Text('Smazat'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && log.id != null) {
+      await _db.deleteMaintenanceLog(log.id!);
+      _loadData();
+    }
+  }
+
+  void _showLogBottomSheet(BuildContext ctx, MaintenanceLog log) {
+    showModalBottomSheet(
+      context: ctx,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Upravit záznam'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _editMaintenanceLog(log);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_outline,
+                  color: Theme.of(ctx).colorScheme.error),
+              title: Text('Smazat záznam',
+                  style:
+                      TextStyle(color: Theme.of(ctx).colorScheme.error)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _deleteMaintenanceLog(log);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -202,14 +295,23 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
           // ── Maintenance plan ─────────────────────────────────────────────
           SliverToBoxAdapter(
             child: _MaintenancePlanSection(
-              results: _maintenanceResults,
+              results:        _maintenanceResults,
               maintenanceLogs: _maintenanceLogs,
-              onLogService: (_) => context
-                  .push('/gear/${item.id}/maintenance/add')
-                  .then((_) => _loadData()),
-              onAddRule: () => context
-                  .push('/gear/${item.id}/rules/add')
-                  .then((_) => _loadData()),
+              onLogService:   (_) => _openAddMaintenanceLog(),
+              onAddRule:      _openAddRule,
+              onEditLog:      _editMaintenanceLog,
+              onDeleteLog:    _deleteMaintenanceLog,
+              onMoreLog:      (log) => _showLogBottomSheet(context, log),
+            ),
+          ),
+
+          // ── Service history ──────────────────────────────────────────────
+          SliverToBoxAdapter(
+            child: _ServiceHistorySection(
+              logs:     _maintenanceLogs,
+              results:  _maintenanceResults,
+              onMoreLog: (log) => _showLogBottomSheet(context, log),
+              onAddLog: _openAddMaintenanceLog,
             ),
           ),
 
@@ -217,9 +319,7 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
           SliverToBoxAdapter(
             child: _ActivityHistorySection(
               logs: _usageLogs,
-              onAdd: () => context
-                  .push('/gear/${item.id}/usage/add')
-                  .then((_) => _loadData()),
+              onAdd: _openAddActivity,
               onImportIgc: _importIgc,
             ),
           ),
@@ -242,15 +342,9 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
         ),
       ),
       bottomNavigationBar: _BottomActions(
-        onAddActivity: () => context
-            .push('/gear/${item.id}/usage/add')
-            .then((_) => _loadData()),
-        onLogService: () => context
-            .push('/gear/${item.id}/maintenance/add')
-            .then((_) => _loadData()),
-        onEdit: () => context
-            .push('/gear/${item.id}/edit')
-            .then((_) => _loadData()),
+        onAddActivity: _openAddActivity,
+        onLogService:  _openAddMaintenanceLog,
+        onEdit:        _openEditGear,
       ),
     );
   }
@@ -269,8 +363,7 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
       actions: [
         IconButton(
           icon: const Icon(Icons.edit_outlined),
-          onPressed: () =>
-              context.push('/gear/${item.id}/edit').then((_) => _loadData()),
+          onPressed: _openEditGear,
         ),
         PopupMenuButton<String>(
           iconColor: Colors.white,
@@ -642,16 +735,22 @@ class _StatCard extends StatelessWidget {
 // ─── Maintenance plan section ─────────────────────────────────────────────────
 
 class _MaintenancePlanSection extends StatelessWidget {
-  final List<MaintenanceStatusResult> results;
-  final List<MaintenanceLog>          maintenanceLogs;
-  final void Function(int? ruleId)    onLogService;
-  final VoidCallback                  onAddRule;
+  final List<MaintenanceStatusResult>    results;
+  final List<MaintenanceLog>             maintenanceLogs;
+  final void Function(int? ruleId)       onLogService;
+  final VoidCallback                     onAddRule;
+  final void Function(MaintenanceLog)    onEditLog;
+  final void Function(MaintenanceLog)    onDeleteLog;
+  final void Function(MaintenanceLog)    onMoreLog;
 
   const _MaintenancePlanSection({
     required this.results,
     required this.maintenanceLogs,
     required this.onLogService,
     required this.onAddRule,
+    required this.onEditLog,
+    required this.onDeleteLog,
+    required this.onMoreLog,
   });
 
   @override
@@ -675,18 +774,14 @@ class _MaintenancePlanSection extends StatelessWidget {
                   .where((l) => l.ruleId == r.rule.id)
                   .toList()
                 ..sort((a, b) => b.performedDate.compareTo(a.performedDate));
-              final lastDate =
-                  logsForRule.isEmpty ? null : logsForRule.first.performedDate;
-              final lastPhotoPath =
-                  logsForRule.isEmpty ? null : logsForRule.first.photoPath;
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: _MaintenanceRuleCard(
-                  result: r,
-                  lastPerformed: lastDate,
-                  lastPhotoPath: lastPhotoPath,
+                  result:       r,
+                  logsForRule:  logsForRule,
                   onLogService: () => onLogService(r.rule.id),
+                  onMoreLog:    onMoreLog,
                 ),
               );
             }),
@@ -697,18 +792,18 @@ class _MaintenancePlanSection extends StatelessWidget {
 }
 
 class _MaintenanceRuleCard extends StatelessWidget {
-  final MaintenanceStatusResult result;
-  final DateTime?               lastPerformed;
-  final String?                 lastPhotoPath;
-  final VoidCallback            onLogService;
+  final MaintenanceStatusResult       result;
+  final List<MaintenanceLog>          logsForRule;
+  final VoidCallback                  onLogService;
+  final void Function(MaintenanceLog) onMoreLog;
 
-  static final _dateFmt = DateFormat('d. M. yyyy');
+  static const _maxPreview = 3;
 
   const _MaintenanceRuleCard({
     required this.result,
-    required this.lastPerformed,
-    this.lastPhotoPath,
+    required this.logsForRule,
     required this.onLogService,
+    required this.onMoreLog,
   });
 
   @override
@@ -727,9 +822,7 @@ class _MaintenanceRuleCard extends StatelessWidget {
             .clamp(0.0, 1.0)
         : 1.0;
 
-    final lastText = lastPerformed != null
-        ? 'Naposledy: ${_dateFmt.format(lastPerformed!)}'
-        : 'Dosud neprovedeno';
+    final previewLogs = logsForRule.take(_maxPreview).toList();
 
     return Container(
       decoration: BoxDecoration(
@@ -741,7 +834,7 @@ class _MaintenanceRuleCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Název + štít + badge
+          // Název + štít + badge + interval
           Row(
             children: [
               Expanded(
@@ -766,6 +859,11 @@ class _MaintenanceRuleCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
+              Text(
+                _intervalText(r.rule),
+                style: TextStyle(fontSize: 11, color: context.subtitleColor),
+              ),
+              const SizedBox(width: 8),
               MaintenanceBadge(status: r.status),
             ],
           ),
@@ -782,37 +880,25 @@ class _MaintenanceRuleCard extends StatelessWidget {
               valueColor: AlwaysStoppedAnimation<Color>(barColor),
             ),
           ),
-          const SizedBox(height: 8),
-          // Naposledy · interval
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  lastText,
-                  style:
-                      TextStyle(fontSize: 11, color: context.subtitleColor),
-                ),
-              ),
-              Text(
-                _intervalText(r.rule),
-                style: TextStyle(fontSize: 11, color: context.subtitleColor),
-              ),
-            ],
-          ),
-          if (lastPhotoPath != null && !kIsWeb)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.file(
-                  File(lastPhotoPath!),
-                  height: 80,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                ),
-              ),
-            ),
           const SizedBox(height: 10),
+
+          // ── Recent log entries ──────────────────────────────────────────
+          if (previewLogs.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                'Dosud neprovedeno',
+                style: TextStyle(fontSize: 12, color: context.subtitleColor),
+              ),
+            )
+          else
+            ...previewLogs.map((log) => _LogEntryRow(
+                  log:       log,
+                  compact:   true,
+                  onMoreTap: () => onMoreLog(log),
+                )),
+
+          const SizedBox(height: 6),
           // Zapsat servis
           SizedBox(
             width: double.infinity,
@@ -843,6 +929,458 @@ class _MaintenanceRuleCard extends StatelessWidget {
         'každých ${rule.triggerValue.toStringAsFixed(0)} km',
     TriggerType.usageCount    => 'každých ${rule.triggerValue.toInt()}×',
   };
+}
+
+// ─── Shared log entry row ─────────────────────────────────────────────────────
+
+/// A single maintenance log row used in both the rule card (compact)
+/// and the full service history section (detailed).
+class _LogEntryRow extends StatelessWidget {
+  final MaintenanceLog log;
+  final bool           compact; // true = inline in rule card
+  final VoidCallback   onMoreTap;
+
+  static final _dateFmt   = DateFormat('d. M. yyyy');
+  static final _currencyFmt = NumberFormat.decimalPattern('cs');
+
+  const _LogEntryRow({
+    required this.log,
+    required this.compact,
+    required this.onMoreTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    if (compact) {
+      // ── Compact row inside rule card ──────────────────────────────────
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(
+          children: [
+            Icon(Icons.history, size: 13, color: context.subtitleColor),
+            const SizedBox(width: 5),
+            Text(
+              _dateFmt.format(log.performedDate),
+              style: TextStyle(fontSize: 12, color: context.subtitleColor),
+            ),
+            if (log.performedBy != null) ...[
+              Text(' · ', style: TextStyle(color: context.subtitleColor)),
+              Expanded(
+                child: Text(
+                  log.performedBy!,
+                  style:
+                      TextStyle(fontSize: 12, color: context.subtitleColor),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ] else
+              const Spacer(),
+            if (log.cost != null)
+              Text(
+                '${_currencyFmt.format(log.cost!)} Kč',
+                style: TextStyle(fontSize: 12, color: context.subtitleColor),
+              ),
+            const SizedBox(width: 2),
+            GestureDetector(
+              onTap: onMoreTap,
+              child: Icon(Icons.more_horiz,
+                  size: 18, color: context.subtitleColor),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // ── Full row in service history section ──────────────────────────────
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: context.isDark ? AppColors.darkCard : Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: context.cardBorderColor, width: 0.5),
+      ),
+      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Date + more button
+          Row(
+            children: [
+              Icon(Icons.calendar_today_outlined,
+                  size: 13, color: context.subtitleColor),
+              const SizedBox(width: 5),
+              Text(
+                _dateFmt.format(log.performedDate),
+                style: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              const Spacer(),
+              if (log.cost != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: cs.primaryContainer,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${_currencyFmt.format(log.cost!)} Kč',
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: cs.onPrimaryContainer,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+              const SizedBox(width: 4),
+              InkWell(
+                onTap: onMoreTap,
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(Icons.more_vert,
+                      size: 18, color: context.subtitleColor),
+                ),
+              ),
+            ],
+          ),
+          if (log.performedBy != null) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.person_outline,
+                    size: 13, color: context.subtitleColor),
+                const SizedBox(width: 4),
+                Text(
+                  log.performedBy!,
+                  style: TextStyle(
+                      fontSize: 12, color: context.subtitleColor),
+                ),
+              ],
+            ),
+          ],
+          if (log.notes != null && log.notes!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              log.notes!,
+              style:
+                  TextStyle(fontSize: 12, color: context.subtitleColor),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          if (log.photoPath != null && !kIsWeb) ...[
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.file(
+                File(log.photoPath!),
+                height: 90,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Service history section ──────────────────────────────────────────────────
+
+class _ServiceHistorySection extends StatelessWidget {
+  final List<MaintenanceLog>          logs;
+  final List<MaintenanceStatusResult> results;
+  final void Function(MaintenanceLog) onMoreLog;
+  final VoidCallback                  onAddLog;
+
+  static final _currencyFmt = NumberFormat.decimalPattern('cs');
+
+  const _ServiceHistorySection({
+    required this.logs,
+    required this.results,
+    required this.onMoreLog,
+    required this.onAddLog,
+  });
+
+  /// Returns rule name for the given ruleId, or null.
+  String? _ruleName(int? ruleId) {
+    if (ruleId == null) return null;
+    try {
+      return results
+          .firstWhere((r) => r.rule.id == ruleId)
+          .rule
+          .name;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Sort newest-first (DB already does this but we re-sort defensively)
+    final sorted = [...logs]
+      ..sort((a, b) => b.performedDate.compareTo(a.performedDate));
+
+    final totalCost =
+        logs.fold<double>(0, (sum, l) => sum + (l.cost ?? 0));
+
+    debugPrint('[ServiceHistorySection] build: ${logs.length} logs');
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Divider to visually separate from Maintenance Plan ──────────
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+
+          // Header
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Kompletní historie servisu',
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w700),
+                ),
+              ),
+              if (logs.isNotEmpty)
+                Text(
+                  '${logs.length} záznamů',
+                  style: TextStyle(
+                      fontSize: 12, color: context.subtitleColor),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          if (sorted.isEmpty) ...[
+            _EmptyHint('Zatím žádné záznamy servisu'),
+            const SizedBox(height: 4),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onAddLog,
+                icon: const Icon(Icons.add_rounded, size: 16),
+                label: const Text('Zapsat první servis',
+                    style: TextStyle(fontSize: 13)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  side: const BorderSide(color: AppColors.primary),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+          ]
+          else ...[
+            // All log entries
+            ...sorted.map((log) {
+              final ruleName = _ruleName(log.ruleId);
+              return _HistoryLogCard(
+                log:      log,
+                ruleName: ruleName,
+                onMore:   () => onMoreLog(log),
+              );
+            }),
+
+            // ── Total cost ────────────────────────────────────────────────
+            if (totalCost > 0) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.account_balance_wallet_outlined,
+                      size: 16,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onPrimaryContainer,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Celkové náklady na údržbu',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onPrimaryContainer,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${_currencyFmt.format(totalCost)} Kč',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onPrimaryContainer,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Card used inside `_ServiceHistorySection`.
+class _HistoryLogCard extends StatelessWidget {
+  final MaintenanceLog log;
+  final String?        ruleName;
+  final VoidCallback   onMore;
+
+  static final _dateFmt     = DateFormat('d. M. yyyy');
+  static final _currencyFmt = NumberFormat.decimalPattern('cs');
+
+  const _HistoryLogCard({
+    required this.log,
+    required this.ruleName,
+    required this.onMore,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: context.isDark ? AppColors.darkCard : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.cardBorderColor, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Top row: date + rule + cost + "..." ────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 8, 0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Date + rule name
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _dateFmt.format(log.performedDate),
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w700),
+                      ),
+                      if (ruleName != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          ruleName!,
+                          style: TextStyle(
+                              fontSize: 12, color: context.subtitleColor),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                // Cost badge
+                if (log.cost != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: cs.primaryContainer,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${_currencyFmt.format(log.cost!)} Kč',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: cs.onPrimaryContainer,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                // More button
+                InkWell(
+                  onTap: onMore,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Icon(Icons.more_vert,
+                        size: 18, color: context.subtitleColor),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Details ────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Who + notes
+                if (log.performedBy != null)
+                  Row(
+                    children: [
+                      Icon(Icons.person_outline,
+                          size: 13, color: context.subtitleColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        log.performedBy!,
+                        style: TextStyle(
+                            fontSize: 12, color: context.subtitleColor),
+                      ),
+                    ],
+                  ),
+                if (log.notes != null && log.notes!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    log.notes!,
+                    style: TextStyle(
+                        fontSize: 12, color: context.subtitleColor),
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+                // Photo
+                if (log.photoPath != null && !kIsWeb) ...[
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.file(
+                      File(log.photoPath!),
+                      height: 100,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ─── Activity history section ─────────────────────────────────────────────────
