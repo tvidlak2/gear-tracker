@@ -3,6 +3,9 @@
     <!-- ── Síť ──────────────────────────────────────────────────────────── -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- ── Google Play Billing ──────────────────────────────────────────── -->
+    <uses-permission android:name="com.android.vending.BILLING" />
+
     <!-- ── Média / fotky ─────────────────────────────────────────────────── -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"

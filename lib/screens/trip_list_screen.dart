@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/trip.dart';
 import '../services/trip_service.dart';
 import '../theme/app_theme.dart';
@@ -35,20 +36,21 @@ class _TripListScreenState extends State<TripListScreen> {
   }
 
   Future<void> _deleteTrip(Trip trip) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Smazat výlet?'),
-        content: Text('Opravdu chcete smazat výlet "${trip.name}"?'),
+        title: Text(l10n.deleteTrip),
+        content: Text(l10n.deleteTripConfirm(trip.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Zrušit'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-            child: const Text('Smazat'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -73,9 +75,9 @@ class _TripListScreenState extends State<TripListScreen> {
       backgroundColor:
           isDark ? AppColors.darkBackground : const Color(0xFFF6F6F6),
       appBar: AppBar(
-        title: const Text(
-          'Výlety',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+        title: Text(
+          AppLocalizations.of(context).tripsTitle,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -102,24 +104,25 @@ class _TripListScreenState extends State<TripListScreen> {
   }
 
   Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
+            const Text(
               '🌍',
-              style: const TextStyle(fontSize: 64),
+              style: TextStyle(fontSize: 64),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Žádné výlety',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            Text(
+              l10n.noTrips,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
-              'Přidejte svůj první výlet a sestavte si checklist vybavení.',
+              l10n.noTripsHint,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
@@ -133,7 +136,7 @@ class _TripListScreenState extends State<TripListScreen> {
               style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary),
               icon: const Icon(Icons.add_rounded),
-              label: const Text('Naplánovat výlet'),
+              label: Text(l10n.addTrip),
             ),
           ],
         ),
@@ -283,7 +286,7 @@ class _TripListScreenState extends State<TripListScreen> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    '${trip.packedCount}/${trip.totalCount} zabaleno',
+                                    AppLocalizations.of(context).packingProgress(trip.packedCount, trip.totalCount),
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: Theme.of(context)

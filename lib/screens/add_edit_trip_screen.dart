@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/trip.dart';
 import '../services/trip_service.dart';
 import '../services/notification_service.dart';
@@ -134,7 +135,7 @@ class _AddEditTripScreenState extends State<AddEditTripScreen> {
       backgroundColor:
           isDark ? AppColors.darkBackground : const Color(0xFFF6F6F6),
       appBar: AppBar(
-        title: Text(_isEdit ? 'Upravit výlet' : 'Nový výlet'),
+        title: Text(_isEdit ? AppLocalizations.of(context).editTripTitle : AppLocalizations.of(context).newTripTitle),
       ),
       body: Form(
         key: _formKey,
@@ -142,25 +143,25 @@ class _AddEditTripScreenState extends State<AddEditTripScreen> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           children: [
             _buildSection(
-              'Základní informace',
+              AppLocalizations.of(context).basicInfoSection,
               [
                 TextFormField(
                   controller: _nameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Název výletu *',
-                    hintText: 'např. Letní trekking v Alpách',
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context).tripNameLabel,
+                    hintText: AppLocalizations.of(context).tripNameHint,
                   ),
                   validator: (v) =>
-                      v == null || v.trim().isEmpty ? 'Zadejte název' : null,
+                      v == null || v.trim().isEmpty ? AppLocalizations.of(context).tripNameRequired : null,
                   textCapitalization: TextCapitalization.sentences,
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: _destinationCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Destinace',
-                    hintText: 'např. Dolomity, Itálie',
-                    prefixIcon: Icon(Icons.location_on_outlined),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context).destinationLabel,
+                    hintText: AppLocalizations.of(context).destinationHint,
+                    prefixIcon: const Icon(Icons.location_on_outlined),
                   ),
                   textCapitalization: TextCapitalization.sentences,
                 ),
@@ -168,10 +169,10 @@ class _AddEditTripScreenState extends State<AddEditTripScreen> {
             ),
             const SizedBox(height: 16),
             _buildSection(
-              'Termín',
+              AppLocalizations.of(context).dateSection,
               [
                 _DateField(
-                  label: 'Datum odjezdu',
+                  label: AppLocalizations.of(context).departureDateLabel,
                   date: _departureDate,
                   fmt: _dateFmt,
                   onTap: () => _pickDate(isDeparture: true),
@@ -179,7 +180,7 @@ class _AddEditTripScreenState extends State<AddEditTripScreen> {
                 ),
                 const SizedBox(height: 14),
                 _DateField(
-                  label: 'Datum návratu',
+                  label: AppLocalizations.of(context).returnDateLabel,
                   date: _returnDate,
                   fmt: _dateFmt,
                   enabled: true,
@@ -190,11 +191,11 @@ class _AddEditTripScreenState extends State<AddEditTripScreen> {
             ),
             const SizedBox(height: 16),
             _buildSection(
-              'Stav',
+              AppLocalizations.of(context).tripStatusSection,
               [
                 DropdownButtonFormField<TripStatus>(
                   value: _status,
-                  decoration: const InputDecoration(labelText: 'Stav výletu'),
+                  decoration: InputDecoration(labelText: AppLocalizations.of(context).tripStatusLabel),
                   items: TripStatus.values
                       .map(
                         (s) => DropdownMenuItem(
@@ -209,12 +210,12 @@ class _AddEditTripScreenState extends State<AddEditTripScreen> {
             ),
             const SizedBox(height: 16),
             _buildSection(
-              'Poznámky',
+              AppLocalizations.of(context).notes,
               [
                 TextFormField(
                   controller: _notesCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Poznámky',
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context).notes,
                     hintText: 'Tipy, trasy, ubytování...',
                     alignLabelWithHint: true,
                   ),
@@ -244,9 +245,9 @@ class _AddEditTripScreenState extends State<AddEditTripScreen> {
                     child: CircularProgressIndicator(
                         strokeWidth: 2, color: Colors.white),
                   )
-                : const Text(
-                    'Uložit výlet',
-                    style: TextStyle(
+                : Text(
+                    AppLocalizations.of(context).saveTripButton,
+                    style: const TextStyle(
                         fontSize: 16, fontWeight: FontWeight.w600),
                   ),
           ),
@@ -319,7 +320,7 @@ class _DateField extends StatelessWidget {
               : const Icon(Icons.calendar_today_outlined, size: 18),
         ),
         child: Text(
-          date != null ? fmt.format(date!) : 'Nevybráno',
+          date != null ? fmt.format(date!) : AppLocalizations.of(context).notSelected,
           style: TextStyle(
             color: date != null
                 ? Theme.of(context).colorScheme.onSurface

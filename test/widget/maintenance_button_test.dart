@@ -6,10 +6,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gear_tracker/models/gear_item.dart';
-import 'package:gear_tracker/models/maintenance_rule.dart';
-import 'package:gear_tracker/services/maintenance_service.dart';
-import 'package:gear_tracker/widgets/maintenance_badge.dart';
+import 'package:outdoor_gear_tracker/models/gear_item.dart';
+import 'package:outdoor_gear_tracker/models/maintenance_rule.dart';
+import 'package:outdoor_gear_tracker/services/maintenance_service.dart';
+import 'package:outdoor_gear_tracker/widgets/maintenance_badge.dart';
 
 // ---------------------------------------------------------------------------
 // Minimal replica of _ItemCard that is public and testable.

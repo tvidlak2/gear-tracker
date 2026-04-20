@@ -27,7 +27,7 @@ import 'purchase_service.dart';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const _kDriveFolderName  = 'GearTracker Backup';
+const _kDriveFolderName  = 'OutdoorGearTracker Backup';
 const _kLastBackupKey    = 'last_backup_date';
 const _kAutoBackupKey    = 'auto_backup_enabled';
 const _kMaxBackups       = 3;
@@ -282,7 +282,7 @@ class BackupService {
     return drive.DriveApi(client);
   }
 
-  /// Returns the Drive folder ID for "GearTracker Backup", creating it if absent.
+  /// Returns the Drive folder ID for "OutdoorGearTracker Backup", creating it if absent.
   Future<String> _ensureFolder(drive.DriveApi api) async {
     final result = await api.files.list(
       q: "name='$_kDriveFolderName' and mimeType='application/vnd.google-apps.folder' and trashed=false",

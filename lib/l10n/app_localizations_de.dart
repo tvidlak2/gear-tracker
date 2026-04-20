@@ -1003,7 +1003,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get purchaseUnavailable =>
-      'Kauf noch nicht verfügbar – Produkt im RevenueCat-Dashboard konfigurieren.';
+      'Kauf ist derzeit nicht verfügbar. Bitte versuche es später erneut.';
 
   @override
   String get deleteServiceRecord => 'Eintrag löschen';

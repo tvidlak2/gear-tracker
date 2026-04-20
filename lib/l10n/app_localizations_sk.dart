@@ -998,7 +998,7 @@ class AppLocalizationsSk extends AppLocalizations {
 
   @override
   String get purchaseUnavailable =>
-      'Nákup zatiaľ nie je dostupný – nakonfiguruj produkt v RevenueCat dashboarde.';
+      'Nákup momentálne nie je dostupný. Skús to prosím neskôr.';
 
   @override
   String get deleteServiceRecord => 'Zmazať záznam';

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/insurance.dart';
 import '../services/insurance_service.dart';
 import '../theme/app_theme.dart';
@@ -37,20 +38,21 @@ class _InsuranceListScreenState extends State<InsuranceListScreen> {
   }
 
   Future<void> _deleteInsurance(Insurance ins) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Smazat pojistku?'),
-        content: Text('Opravdu smazat pojistku "${ins.name}"?'),
+        title: Text(l10n.deleteInsuranceTitle),
+        content: Text(l10n.deleteInsuranceConfirm(ins.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Zrušit'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-            child: const Text('Smazat'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -67,11 +69,12 @@ class _InsuranceListScreenState extends State<InsuranceListScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
     final total = _totalAnnualPremium;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pojistky'),
+        title: Text(l10n.insuranceTitle),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/insurance/add').then((_) => _loadData()),
@@ -103,6 +106,7 @@ class _InsuranceListScreenState extends State<InsuranceListScreen> {
   }
 
   Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
@@ -111,13 +115,13 @@ class _InsuranceListScreenState extends State<InsuranceListScreen> {
           children: [
             Icon(Icons.security_outlined, size: 72, color: Colors.grey.shade400),
             const SizedBox(height: 16),
-            const Text(
-              'Žádné pojistky',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            Text(
+              l10n.noInsurance,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
-              'Přidej první pojistku tlačítkem +',
+              l10n.noInsuranceHint,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
             ),
@@ -127,7 +131,7 @@ class _InsuranceListScreenState extends State<InsuranceListScreen> {
                   context.push('/insurance/add').then((_) => _loadData()),
               style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
               icon: const Icon(Icons.add),
-              label: const Text('Přidat pojistku'),
+              label: Text(l10n.addInsurance),
             ),
           ],
         ),
@@ -147,19 +151,20 @@ class _InsuranceListScreenState extends State<InsuranceListScreen> {
             ? AppColors.warning
             : Colors.grey.shade600;
 
+    final l10n = AppLocalizations.of(context);
     final String chipLabel;
     final Color chipColor;
     final Color chipBg;
     if (isExpired) {
-      chipLabel = 'Vypršela';
+      chipLabel = l10n.insuranceExpired;
       chipColor = AppColors.danger;
       chipBg = AppColors.dangerBg;
     } else if (isExpiringSoon) {
-      chipLabel = 'Vyprší brzy';
+      chipLabel = l10n.insuranceExpiringSoon;
       chipColor = AppColors.warning;
       chipBg = const Color(0xFFFFF3E0);
     } else {
-      chipLabel = 'Aktivní';
+      chipLabel = l10n.insuranceActive;
       chipColor = AppColors.success;
       chipBg = AppColors.primaryBg;
     }
@@ -250,8 +255,8 @@ class _InsuranceListScreenState extends State<InsuranceListScreen> {
                           const SizedBox(width: 4),
                           Text(
                             isExpired
-                                ? 'Vypršela ${_dateFmt.format(ins.expiryDate)}'
-                                : 'Do ${_dateFmt.format(ins.expiryDate)}',
+                                ? l10n.insuranceExpiredOn(_dateFmt.format(ins.expiryDate))
+                                : l10n.insuranceValidUntil(_dateFmt.format(ins.expiryDate)),
                             style: TextStyle(
                               fontSize: 12,
                               color: expiryColor,
@@ -297,9 +302,9 @@ class _InsuranceListScreenState extends State<InsuranceListScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Celkem ročně:',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            Text(
+              AppLocalizations.of(context).totalAnnualCost,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
             Text(
               '${NumberFormat('#,##0', 'cs').format(total)} Kč',

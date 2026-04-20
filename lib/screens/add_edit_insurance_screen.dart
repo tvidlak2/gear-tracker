@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../database/database_helper.dart';
+import '../l10n/app_localizations.dart';
 import '../models/gear_item.dart';
 import '../models/insurance.dart';
 import '../services/insurance_service.dart';
@@ -118,7 +119,7 @@ class _AddEditInsuranceScreenState extends State<AddEditInsuranceScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_expiryDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vyber datum vypršení.')),
+        SnackBar(content: Text(AppLocalizations.of(context).expiryDateRequired)),
       );
       return;
     }
@@ -179,9 +180,10 @@ class _AddEditInsuranceScreenState extends State<AddEditInsuranceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEdit ? 'Upravit pojistku' : 'Nová pojistka'),
+        title: Text(_isEdit ? l10n.editInsuranceTitle : l10n.newInsuranceTitle),
       ),
       body: Form(
         key: _formKey,
@@ -189,23 +191,23 @@ class _AddEditInsuranceScreenState extends State<AddEditInsuranceScreen> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           children: [
             // ── Základní info ──────────────────────────────────────────────
-            _buildSectionLabel('Základní informace'),
+            _buildSectionLabel(l10n.basicInfoSection),
             const SizedBox(height: 10),
             _buildCard([
               TextFormField(
                 controller: _nameCtrl,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'Název pojistky *',
-                  hintText: 'např. Pojištění vybavení na hory',
+                decoration: InputDecoration(
+                  labelText: l10n.insuranceNameLabel,
+                  hintText: l10n.insuranceNameHint,
                 ),
                 validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Zadej název' : null,
+                    v == null || v.trim().isEmpty ? l10n.insuranceNameRequired : null,
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<InsuranceType>(
                 value: _type,
-                decoration: const InputDecoration(labelText: 'Typ pojistky'),
+                decoration: InputDecoration(labelText: l10n.insuranceTypeLabel),
                 items: InsuranceType.values
                     .map((t) => DropdownMenuItem(
                           value: t,
@@ -224,38 +226,38 @@ class _AddEditInsuranceScreenState extends State<AddEditInsuranceScreen> {
               TextFormField(
                 controller: _companyCtrl,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Pojišťovna *',
-                  hintText: 'např. Allianz',
+                decoration: InputDecoration(
+                  labelText: l10n.insuranceCompanyLabel,
+                  hintText: l10n.insuranceCompanyHint,
                 ),
                 validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Zadej pojišťovnu' : null,
+                    v == null || v.trim().isEmpty ? l10n.insuranceCompanyRequired : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _policyCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Číslo smlouvy *',
-                  hintText: 'číslo pojistné smlouvy',
+                decoration: InputDecoration(
+                  labelText: l10n.policyNumberLabel,
+                  hintText: l10n.policyNumberHint,
                 ),
                 validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Zadej číslo smlouvy' : null,
+                    v == null || v.trim().isEmpty ? l10n.policyNumberRequired : null,
               ),
             ]),
 
             // ── Data ──────────────────────────────────────────────────────
             const SizedBox(height: 20),
-            _buildSectionLabel('Platnost'),
+            _buildSectionLabel(l10n.validitySection),
             const SizedBox(height: 10),
             _buildCard([
               _buildDateRow(
-                label: 'Datum začátku',
+                label: l10n.insuranceStartDate,
                 value: _startDate,
                 onTap: () => _pickDate(isExpiry: false),
               ),
               const Divider(height: 1),
               _buildDateRow(
-                label: 'Datum vypršení *',
+                label: '${l10n.insuranceExpiryDate} *',
                 value: _expiryDate,
                 onTap: () => _pickDate(isExpiry: true),
                 required: true,
@@ -264,16 +266,16 @@ class _AddEditInsuranceScreenState extends State<AddEditInsuranceScreen> {
 
             // ── Finanční info ─────────────────────────────────────────────
             const SizedBox(height: 20),
-            _buildSectionLabel('Finanční informace'),
+            _buildSectionLabel(l10n.financialSection),
             const SizedBox(height: 10),
             _buildCard([
               TextFormField(
                 controller: _premiumCtrl,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
-                  labelText: 'Roční pojistné (Kč)',
-                  hintText: 'volitelné',
+                decoration: InputDecoration(
+                  labelText: l10n.annualPremiumLabel,
+                  hintText: l10n.optionalHint,
                   suffixText: 'Kč/rok',
                 ),
               ),
@@ -282,9 +284,9 @@ class _AddEditInsuranceScreenState extends State<AddEditInsuranceScreen> {
                 controller: _coverageCtrl,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
-                  labelText: 'Pojistná částka (Kč)',
-                  hintText: 'volitelné',
+                decoration: InputDecoration(
+                  labelText: l10n.coverageAmountLabel,
+                  hintText: l10n.optionalHint,
                   suffixText: 'Kč',
                 ),
               ),
@@ -292,7 +294,7 @@ class _AddEditInsuranceScreenState extends State<AddEditInsuranceScreen> {
 
             // ── Poznámky a foto ───────────────────────────────────────────
             const SizedBox(height: 20),
-            _buildSectionLabel('Poznámky'),
+            _buildSectionLabel(l10n.notes),
             const SizedBox(height: 10),
             _buildCard([
               TextFormField(
@@ -309,7 +311,7 @@ class _AddEditInsuranceScreenState extends State<AddEditInsuranceScreen> {
               ),
             ]),
             const SizedBox(height: 20),
-            _buildSectionLabel('Foto smlouvy'),
+            _buildSectionLabel(l10n.contractPhoto),
             const SizedBox(height: 10),
             PhotoPicker(
               photoPath: _photoPath,
@@ -320,7 +322,7 @@ class _AddEditInsuranceScreenState extends State<AddEditInsuranceScreen> {
             // ── Propojené vybavení ────────────────────────────────────────
             if (_allGear.isNotEmpty) ...[
               const SizedBox(height: 20),
-              _buildSectionLabel('Propojené vybavení'),
+              _buildSectionLabel(l10n.linkedGearSection),
               const SizedBox(height: 10),
               _buildCard(
                 _allGear.map((gear) {
@@ -413,8 +415,8 @@ class _AddEditInsuranceScreenState extends State<AddEditInsuranceScreen> {
                     value != null
                         ? _dateFmt.format(value)
                         : required
-                            ? 'Vybrat datum *'
-                            : 'Vybrat datum',
+                            ? AppLocalizations.of(context).selectDateRequired
+                            : AppLocalizations.of(context).selectDate,
                     style: TextStyle(
                       fontSize: 14,
                       color: value != null ? null : const Color(0xFF9E9E9E),
@@ -465,7 +467,7 @@ class _AddEditInsuranceScreenState extends State<AddEditInsuranceScreen> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Text('Zrušit'),
+                  child: Text(AppLocalizations.of(context).cancel),
                 ),
               ),
               const SizedBox(width: 12),
@@ -488,7 +490,7 @@ class _AddEditInsuranceScreenState extends State<AddEditInsuranceScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : Text(_isEdit ? 'Uložit' : 'Přidat pojistku'),
+                      : Text(_isEdit ? AppLocalizations.of(context).save : AppLocalizations.of(context).addInsurance),
                 ),
               ),
             ],

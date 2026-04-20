@@ -1,14 +1,15 @@
 /// GearTracker Premium paywall screen.
 ///
 /// Shown when a free-tier limit is hit, or when the user taps "Upgrade".
-/// Uses [PurchaseService] for RevenueCat operations.
+/// Uses [PurchaseService] backed by Google Play Billing (in_app_purchase).
 library;
 
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 
+import '../l10n/app_localizations.dart';
 import '../services/purchase_service.dart';
 import '../theme/app_theme.dart';
 
@@ -34,17 +35,17 @@ class _PaywallScreenState extends State<PaywallScreen> {
   final _svc = PurchaseService.instance;
 
   // ── State ─────────────────────────────────────────────────────────────────
-  Offerings? _offerings;
-  bool       _loading        = true;
-  bool       _purchasing     = false;
-  String?    _error;
-  int        _selectedIndex  = 1;   // default: yearly (index 1 in _plans)
+  List<ProductDetails> _products      = [];
+  bool                 _loading       = true;
+  bool                 _purchasing    = false;
+  String?              _error;
+  int                  _selectedIndex = 1;  // default: annual (index 1)
 
-  // ── Static plan definitions (shown when RC is unavailable / loading) ───────
+  // ── Static plan definitions (fallback prices when Play Store unavailable) ─
   static const _plans = [
-    _Plan(id: 'monthly',  label: 'Měsíčně',  price: '1,99 EUR', period: '/ měs.',  badge: null,            highlight: false),
-    _Plan(id: 'annual',   label: 'Ročně',    price: '12,99 EUR', period: '/ rok',   badge: 'Nejoblíbenější', highlight: true),
-    _Plan(id: 'lifetime', label: 'Navždy',   price: '29,90 EUR', period: '',        badge: null,            highlight: false),
+    _Plan(id: kProductMonthly,  label: 'Měsíčně',  price: '1,99 EUR',  period: '/ měs.',  badge: null,            highlight: false),
+    _Plan(id: kProductAnnual,   label: 'Ročně',    price: '12,99 EUR', period: '/ rok',   badge: 'Nejoblíbenější', highlight: true),
+    _Plan(id: kProductLifetime, label: 'Navždy',   price: '29,90 EUR', period: '',        badge: null,            highlight: false),
   ];
 
   // Benefits list
@@ -59,14 +60,14 @@ class _PaywallScreenState extends State<PaywallScreen> {
   @override
   void initState() {
     super.initState();
-    _loadOfferings();
+    _loadProducts();
   }
 
-  Future<void> _loadOfferings() async {
+  Future<void> _loadProducts() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final o = await _svc.getOfferings();
-      if (mounted) setState(() { _offerings = o; _loading = false; });
+      final products = await _svc.getProducts();
+      if (mounted) setState(() { _products = products; _loading = false; });
     } catch (e) {
       if (mounted) setState(() { _error = e.toString(); _loading = false; });
     }
@@ -74,47 +75,42 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  /// Returns the RevenueCat [Package] for [plan], or null if unavailable.
-  Package? _packageFor(_Plan plan) {
-    final current = _offerings?.current;
-    if (current == null) return null;
-    return switch (plan.id) {
-      'monthly'  => current.monthly,
-      'annual'   => current.annual,
-      'lifetime' => current.lifetime,
-      _          => null,
-    };
+  /// Returns the [ProductDetails] for [plan] from Play Store, or null if unavailable.
+  ProductDetails? _productFor(_Plan plan) {
+    try {
+      return _products.firstWhere((p) => p.id == plan.id);
+    } catch (_) {
+      return null;
+    }
   }
 
-  /// Returns the display price. Uses RC price string when available,
-  /// otherwise falls back to the static string in [_Plan].
+  /// Returns the display price — real Play Store price when available,
+  /// otherwise falls back to the static price in [_Plan].
   String _displayPrice(_Plan plan) {
-    final pkg = _packageFor(plan);
-    if (pkg != null) {
-      return pkg.storeProduct.priceString;
-    }
-    return plan.price;
+    return _productFor(plan)?.price ?? plan.price;
   }
 
   Future<void> _purchase() async {
-    final plan = _plans[_selectedIndex];
-    final pkg  = _packageFor(plan);
+    final l10n    = AppLocalizations.of(context);
+    final plan    = _plans[_selectedIndex];
+    final product = _productFor(plan);
 
-    // If RevenueCat returned a real package, use it.
-    // Otherwise show a dev/test message.
-    if (pkg == null) {
-      _showSnack('Nákup zatím není dostupný – nakonfiguruj produkt v RevenueCat dashboardu.');
+    if (product == null) {
+      // Products list is empty — either still loading or not yet activated in Play Store.
+      if (_products.isEmpty) {
+        _showSnack('Produkty se načítají, zkus to prosím za chvíli.');
+      } else {
+        _showSnack(l10n.purchaseUnavailable);
+      }
       return;
     }
 
     setState(() { _purchasing = true; _error = null; });
     try {
-      final success = await _svc.purchasePackage(pkg);
-      if (mounted) {
-        if (success) {
-          _showSnack('🎉 Premium aktivováno! Děkujeme za podporu.');
-          Navigator.of(context).pop(true);   // return true = premium unlocked
-        }
+      final success = await _svc.purchaseProduct(product);
+      if (mounted && success) {
+        _showSnack('🎉 Premium aktivováno! Děkujeme za podporu.');
+        Navigator.of(context).pop(true);   // return true = premium unlocked
       }
     } on PurchaseException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -194,7 +190,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                         ),
                         const SizedBox(height: 12),
                         const Text(
-                          'GearTracker Premium',
+                          'OutdoorGearTracker Premium',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 26,

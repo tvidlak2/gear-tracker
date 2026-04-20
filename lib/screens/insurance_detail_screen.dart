@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../database/database_helper.dart';
+import '../l10n/app_localizations.dart';
 import '../models/gear_item.dart';
 import '../models/insurance.dart';
 import '../services/insurance_service.dart';
@@ -71,6 +72,7 @@ class _InsuranceDetailScreenState extends State<InsuranceDetailScreen> {
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    final l10n = AppLocalizations.of(context);
     final ins = _insurance!;
     final now = DateTime.now();
     final isExpired = ins.expiryDate.isBefore(now);
@@ -130,7 +132,7 @@ class _InsuranceDetailScreenState extends State<InsuranceDetailScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Smlouva: ${ins.policyNumber}',
+                  l10n.contractLabel(ins.policyNumber),
                   style: TextStyle(
                     fontSize: 13,
                     color: context.subtitleColor,
@@ -143,28 +145,28 @@ class _InsuranceDetailScreenState extends State<InsuranceDetailScreen> {
           const SizedBox(height: 16),
 
           // ── Info section ───────────────────────────────────────────────
-          _buildSectionLabel('Detaily pojistky'),
+          _buildSectionLabel(l10n.insuranceDetails),
           const SizedBox(height: 10),
           _buildInfoCard([
             _buildInfoRow(
               icon: Icons.calendar_today_outlined,
-              label: 'Datum začátku',
+              label: l10n.insuranceStartDate,
               value: _dateFmt.format(ins.startDate),
             ),
             const Divider(height: 1),
             _buildInfoRow(
               icon: Icons.event_outlined,
-              label: 'Datum vypršení',
+              label: l10n.insuranceExpiryDate,
               value: isExpired
-                  ? 'Vypršela ${_dateFmt.format(ins.expiryDate)}'
-                  : 'Do ${_dateFmt.format(ins.expiryDate)}',
+                  ? l10n.insuranceExpiredOn(_dateFmt.format(ins.expiryDate))
+                  : l10n.insuranceValidUntil(_dateFmt.format(ins.expiryDate)),
               valueColor: expiryColor,
             ),
             if (ins.annualPremium != null) ...[
               const Divider(height: 1),
               _buildInfoRow(
                 icon: Icons.payments_outlined,
-                label: 'Roční pojistné',
+                label: l10n.annualPremium,
                 value: '${_currencyFmt.format(ins.annualPremium)} Kč/rok',
               ),
             ],
@@ -172,7 +174,7 @@ class _InsuranceDetailScreenState extends State<InsuranceDetailScreen> {
               const Divider(height: 1),
               _buildInfoRow(
                 icon: Icons.shield_outlined,
-                label: 'Pojistná částka',
+                label: l10n.coverageAmount,
                 value: '${_currencyFmt.format(ins.coverageAmount)} Kč',
               ),
             ],
@@ -180,7 +182,7 @@ class _InsuranceDetailScreenState extends State<InsuranceDetailScreen> {
 
           if (ins.notes != null && ins.notes!.isNotEmpty) ...[
             const SizedBox(height: 16),
-            _buildSectionLabel('Poznámky'),
+            _buildSectionLabel(l10n.notes),
             const SizedBox(height: 10),
             Container(
               width: double.infinity,
@@ -202,7 +204,7 @@ class _InsuranceDetailScreenState extends State<InsuranceDetailScreen> {
               !kIsWeb &&
               File(ins.photoPath!).existsSync()) ...[
             const SizedBox(height: 16),
-            _buildSectionLabel('Foto smlouvy'),
+            _buildSectionLabel(l10n.contractPhoto),
             const SizedBox(height: 10),
             GestureDetector(
               onTap: () => _showFullScreenPhoto(context, ins.photoPath!),
@@ -221,7 +223,7 @@ class _InsuranceDetailScreenState extends State<InsuranceDetailScreen> {
           // ── Linked gear ─────────────────────────────────────────────────
           if (_linkedGear.isNotEmpty) ...[
             const SizedBox(height: 16),
-            _buildSectionLabel('Propojené vybavení'),
+            _buildSectionLabel(l10n.linkedGear),
             const SizedBox(height: 10),
             Container(
               decoration: BoxDecoration(
@@ -258,7 +260,7 @@ class _InsuranceDetailScreenState extends State<InsuranceDetailScreen> {
           const SizedBox(height: 16),
 
           // ── Action buttons ─────────────────────────────────────────────
-          _buildSectionLabel('Akce'),
+          _buildSectionLabel(l10n.insuranceActions),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -267,14 +269,14 @@ class _InsuranceDetailScreenState extends State<InsuranceDetailScreen> {
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: ins.insuranceCompany));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Název pojišťovny zkopírován'),
-                        duration: Duration(seconds: 2),
+                      SnackBar(
+                        content: Text(l10n.copyCompanyName),
+                        duration: const Duration(seconds: 2),
                       ),
                     );
                   },
                   icon: const Icon(Icons.phone_outlined, size: 18),
-                  label: const Text('Kontakt', style: TextStyle(fontSize: 13)),
+                  label: Text(l10n.contactButton, style: const TextStyle(fontSize: 13)),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -298,7 +300,7 @@ class _InsuranceDetailScreenState extends State<InsuranceDetailScreen> {
                     );
                   },
                   icon: const Icon(Icons.calendar_today_outlined, size: 18),
-                  label: const Text('Připomínka', style: TextStyle(fontSize: 13)),
+                  label: Text(l10n.reminderButton, style: const TextStyle(fontSize: 13)),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(

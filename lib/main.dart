@@ -61,7 +61,7 @@ void main() async {
   await _loadLocale();
   await _loadThemeMode();
 
-  // RevenueCat – initialize before runApp so isPremium() works immediately
+  // In-app purchases – initialize before runApp so isPremium() works immediately
   try {
     await PurchaseService.instance.init();
   } catch (e) {

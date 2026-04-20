@@ -1003,7 +1003,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get purchaseUnavailable =>
-      'Compra aún no disponible – configura un producto en el panel de RevenueCat.';
+      'La compra no está disponible actualmente. Inténtalo de nuevo más tarde.';
 
   @override
   String get deleteServiceRecord => 'Eliminar registro';

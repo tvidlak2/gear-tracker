@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../l10n/app_localizations.dart';
 import '../services/portfolio_service.dart';
 import '../services/purchase_service.dart';
 import '../theme/app_theme.dart';
@@ -68,9 +69,9 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
       backgroundColor:
           isDark ? AppColors.darkBackground : const Color(0xFFF6F6F6),
       appBar: AppBar(
-        title: const Text(
-          'Portfolio',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+        title: Text(
+          AppLocalizations.of(context).portfolioTitle,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
         ),
       ),
       body: _loading
@@ -79,7 +80,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
               color: AppColors.primary,
               onRefresh: _loadData,
               child: _stats == null
-                  ? const Center(child: Text('Nepodařilo se načíst data.'))
+                  ? Center(child: Text(AppLocalizations.of(context).portfolioLoadError))
                   : ListView(
                       padding:
                           const EdgeInsets.fromLTRB(16, 12, 16, 100),
@@ -113,28 +114,29 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
             .round()
         : 0;
 
+    final l10n = AppLocalizations.of(context);
     final cards = [
       _SummaryCard(
-        label: 'Pořizovací hodnota',
+        label: l10n.purchaseValue,
         value: _czk.format(stats.totalPurchaseValue),
         icon: Icons.shopping_cart_outlined,
         color: const Color(0xFF1565C0),
       ),
       _SummaryCard(
-        label: 'Aktuální hodnota',
+        label: l10n.currentValue,
         value: _czk.format(stats.totalCurrentValue),
-        subtitle: '–$deprPct% odepsáno',
+        subtitle: l10n.depreciatedPercent(deprPct),
         icon: Icons.trending_down_rounded,
         color: AppColors.primary,
       ),
       _SummaryCard(
-        label: 'Roční pojistné',
+        label: l10n.annualInsuranceCost,
         value: _czk.format(stats.totalInsuranceCost),
         icon: Icons.security_outlined,
         color: AppColors.warning,
       ),
       _SummaryCard(
-        label: 'Náklady na údržbu',
+        label: l10n.maintenanceCosts,
         value: _czk.format(stats.totalMaintenanceCost),
         icon: Icons.build_outlined,
         color: AppColors.danger,
@@ -238,9 +240,9 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Hodnota podle kategorie',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          Text(
+            AppLocalizations.of(context).valueByCategory,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -323,9 +325,9 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Náklady na údržbu po měsících',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          Text(
+            AppLocalizations.of(context).maintenanceCostsByMonth,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 16),
           if (!hasData)
@@ -333,7 +335,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Text(
-                  'Žádné záznamy o nákladech',
+                  AppLocalizations.of(context).noMaintenanceCosts,
                   style: TextStyle(
                     fontSize: 13,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -423,7 +425,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         padding: const EdgeInsets.all(20),
         child: Center(
           child: Text(
-            'Žádné vybavení s pořizovací cenou.\nPřidejte cenu v detailu vybavení.',
+            AppLocalizations.of(context).noGearWithPrice,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
@@ -446,11 +448,11 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 14, 16, 10),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
             child: Text(
-              'Vybavení podle hodnoty',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+              AppLocalizations.of(context).gearByValue,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
             ),
           ),
           ...stats.gearByValue.asMap().entries.map((e) {
@@ -528,7 +530,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                             ],
                           ),
                           Text(
-                            '–${entry.depreciationPercent.round()}% odepsáno',
+                            AppLocalizations.of(context).depreciatedPercent(entry.depreciationPercent.round()),
                             style: TextStyle(
                               fontSize: 10,
                               color: deprColor,
@@ -551,21 +553,21 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   // ── Export button ────────────────────────────────────────────────────────────
 
   Widget _buildExportButton(bool isDark) {
+    final l10n = AppLocalizations.of(context);
     return FilledButton.icon(
       onPressed: () {
         if (_isPremium) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Export PDF bude dostupný v příští verzi'),
+            SnackBar(
+              content: Text(l10n.exportPdfComingSoon),
             ),
           );
         } else {
           Navigator.of(context).push(
             MaterialPageRoute(
               fullscreenDialog: true,
-              builder: (_) => const PaywallScreen(
-                contextMessage:
-                    'Export portfolia pro pojišťovnu je prémiová funkce.',
+              builder: (_) => PaywallScreen(
+                contextMessage: l10n.exportPremiumMessage,
               ),
             ),
           );
@@ -582,9 +584,9 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         _isPremium ? Icons.picture_as_pdf_outlined : Icons.lock_outlined,
         size: 20,
       ),
-      label: const Text(
-        'Exportovat pro pojišťovnu',
-        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+      label: Text(
+        l10n.exportForInsurance,
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
       ),
     );
   }

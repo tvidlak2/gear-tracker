@@ -997,7 +997,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get purchaseUnavailable =>
-      'Purchase not yet available – configure a product in the RevenueCat dashboard.';
+      'Purchase is currently unavailable. Please try again later.';
 
   @override
   String get deleteServiceRecord => 'Delete record';

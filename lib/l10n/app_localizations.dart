@@ -1953,7 +1953,7 @@ abstract class AppLocalizations {
   /// No description provided for @purchaseUnavailable.
   ///
   /// In cs, this message translates to:
-  /// **'Nákup zatím není dostupný – nakonfiguruj produkt v RevenueCat dashboardu.'**
+  /// **'Nákup momentálně není dostupný. Zkus to prosím později.'**
   String get purchaseUnavailable;
 
   /// No description provided for @deleteServiceRecord.

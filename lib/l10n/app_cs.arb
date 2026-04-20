@@ -740,7 +740,7 @@
   "@getPremiumButton": {
     "placeholders": {"price": {"type": "String"}}
   },
-  "purchaseUnavailable": "Nákup zatím není dostupný – nakonfiguruj produkt v RevenueCat dashboardu.",
+  "purchaseUnavailable": "Nákup momentálně není dostupný. Zkus to prosím později.",
   "deleteServiceRecord": "Smazat záznam",
   "deleteServiceRecordConfirm": "Opravdu chcete smazat tento záznam servisu?",
   "editServiceRecord": "Upravit záznam",

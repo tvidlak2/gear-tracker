@@ -3,9 +3,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gear_tracker/models/gear_item.dart';
-import 'package:gear_tracker/services/maintenance_service.dart';
-import 'package:gear_tracker/widgets/gear_card.dart';
+import 'package:outdoor_gear_tracker/models/gear_item.dart';
+import 'package:outdoor_gear_tracker/services/maintenance_service.dart';
+import 'package:outdoor_gear_tracker/widgets/gear_card.dart';
 
 Widget wrapCard(Widget child) {
   return MaterialApp(home: Scaffold(body: child));

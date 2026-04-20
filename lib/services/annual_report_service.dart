@@ -125,7 +125,7 @@ class AnnualReportService {
     final yearStr = year.toString();
 
     // User name
-    String userName = 'GearTracker uživatel';
+    String userName = 'OutdoorGearTracker uživatel';
     try {
       final prefs = await SharedPreferences.getInstance();
       final stored = prefs.getString('user_name');
@@ -472,7 +472,7 @@ class AnnualReportService {
                     ),
                     pw.SizedBox(height: 24),
                     pw.Text(
-                      'GearTracker',
+                      'OutdoorGearTracker',
                       style: pw.TextStyle(
                         fontSize: 26,
                         fontWeight: pw.FontWeight.bold,
@@ -561,7 +561,7 @@ class AnnualReportService {
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
           pw.Text(
-            'GearTracker | Roční Report ${data.year}',
+            'OutdoorGearTracker | Roční Report ${data.year}',
             style: pw.TextStyle(fontSize: 9, color: white),
           ),
           pw.Text(
@@ -576,7 +576,7 @@ class AnnualReportService {
     pw.Widget pageFooter() => pw.Container(
       padding: const pw.EdgeInsets.only(top: 8),
       child: pw.Text(
-        'Vygenerováno aplikací GearTracker | ${dateFmt.format(data.generatedAt)}',
+        'Vygenerováno aplikací OutdoorGearTracker | ${dateFmt.format(data.generatedAt)}',
         style: pw.TextStyle(fontSize: 8, color: PdfColor.fromInt(0xFF999999)),
       ),
     );

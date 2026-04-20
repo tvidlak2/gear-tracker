@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 
+import '../l10n/app_localizations.dart';
 import '../services/annual_report_service.dart';
 
 class AnnualReportScreen extends StatefulWidget {
@@ -36,11 +37,11 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
 
       await Printing.sharePdf(
         bytes:    pdfBytes,
-        filename: 'GearTracker_Report_$_selectedYear.pdf',
+        filename: 'OutdoorGearTracker_Report_$_selectedYear.pdf',
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = 'Chyba při generování reportu: $e');
+      if (mounted) setState(() => _error = AppLocalizations.of(context).reportError(e.toString()));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -51,10 +52,11 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
     final cs  = Theme.of(context).colorScheme;
     final tt  = Theme.of(context).textTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Roční report'),
+        title: Text(l10n.annualReportTitle),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
@@ -77,24 +79,24 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
                     Icon(Icons.picture_as_pdf, color: cs.primary, size: 28),
                     const SizedBox(width: 12),
                     Text(
-                      'Roční přehled jako PDF',
+                      l10n.annualReportPdfTitle,
                       style: tt.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Report obsahuje:',
+                  l10n.reportContains,
                   style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 6),
                 ...[
-                  'Celkový přehled aktivit a servisů',
-                  'Statistiky pro každý kus vybavení',
-                  'Měsíční rozklad aktivit',
-                  'Kompletní servisní historii',
-                  'Přehled pojistek a hodnoty portfolia',
-                  'Plán servisů na příští rok',
+                  l10n.reportItemActivities,
+                  l10n.reportItemGearStats,
+                  l10n.reportItemMonthly,
+                  l10n.reportItemServiceHistory,
+                  l10n.reportItemInsurance,
+                  l10n.reportItemNextYear,
                 ].map(
                   (item) => Padding(
                     padding: const EdgeInsets.only(bottom: 4),
@@ -115,27 +117,27 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
 
           // ── Year selector ──────────────────────────────────────────────────
           Text(
-            'Vyberte rok',
+            l10n.selectYear,
             style: tt.titleSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           _YearTile(
             year:       _currentYear,
-            label:      'Aktuální rok',
+            label:      l10n.currentYearLabel,
             selected:   _selectedYear == _currentYear,
             onTap:      () => setState(() => _selectedYear = _currentYear),
           ),
           const SizedBox(height: 6),
           _YearTile(
             year:       _currentYear - 1,
-            label:      'Minulý rok',
+            label:      l10n.lastYearLabel,
             selected:   _selectedYear == _currentYear - 1,
             onTap:      () => setState(() => _selectedYear = _currentYear - 1),
           ),
           const SizedBox(height: 6),
           _YearTile(
             year:       _currentYear - 2,
-            label:      'Před dvěma lety',
+            label:      l10n.twoYearsAgoLabel,
             selected:   _selectedYear == _currentYear - 2,
             onTap:      () => setState(() => _selectedYear = _currentYear - 2),
           ),
@@ -180,8 +182,8 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
                   : const Icon(Icons.picture_as_pdf),
               label: Text(
                 _loading
-                    ? 'Generuji report...'
-                    : 'Vygenerovat report $_selectedYear',
+                    ? l10n.generatingReport
+                    : l10n.generateReport(_selectedYear),
               ),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -192,7 +194,7 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
 
           const SizedBox(height: 12),
           Text(
-            'Po vygenerování bude PDF sdíleno přes systémový dialog (uložit, odeslat e-mailem, vytisknout...).',
+            l10n.reportShareHint,
             style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),

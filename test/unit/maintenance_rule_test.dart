@@ -11,8 +11,8 @@
 //   otherwise       → ok
 
 import 'package:test/test.dart';
-import 'package:gear_tracker/models/maintenance_rule.dart';
-import 'package:gear_tracker/services/maintenance_service.dart';
+import 'package:outdoor_gear_tracker/models/maintenance_rule.dart';
+import 'package:outdoor_gear_tracker/services/maintenance_service.dart';
 
 // ---------------------------------------------------------------------------
 // Pure helper that mirrors _evaluateDateRule without any DB calls.

@@ -2,8 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gear_tracker/services/maintenance_service.dart';
-import 'package:gear_tracker/widgets/maintenance_badge.dart';
+import 'package:outdoor_gear_tracker/services/maintenance_service.dart';
+import 'package:outdoor_gear_tracker/widgets/maintenance_badge.dart';
 
 Widget wrapBadge(Widget child) {
   return MaterialApp(home: Scaffold(body: Center(child: child)));

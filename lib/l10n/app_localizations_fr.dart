@@ -1004,7 +1004,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get purchaseUnavailable =>
-      'Achat pas encore disponible – configure un produit dans le tableau de bord RevenueCat.';
+      'L\'achat n\'est pas disponible actuellement. Veuillez réessayer plus tard.';
 
   @override
   String get deleteServiceRecord => 'Supprimer l\'entrée';

@@ -1,4 +1,4 @@
-/// RevenueCat in-app purchases / subscription service.
+/// Google Play Billing in-app purchase service.
 ///
 /// Usage:
 ///   await PurchaseService.instance.init();
@@ -8,15 +8,17 @@ library;
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show PlatformException;
-import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Product IDs ─────────────────────────────────────────────────────────────
 
-const _kApiKeyAndroid = 'appl_test_POxajuhkhtPOQNJYRZlMwZvwlgM';
+const kProductMonthly  = 'gear_tracker_monthly';
+const kProductAnnual   = 'gear_tracker_annual';
+const kProductLifetime = 'gear_tracker_lifetime';
 
-/// Entitlement identifier configured in RevenueCat dashboard.
-const kPremiumEntitlement = 'premium';
+const _kProductIds = <String>{kProductMonthly, kProductAnnual, kProductLifetime};
+const _kPremiumKey = 'is_premium';
 
 // ─── Service ─────────────────────────────────────────────────────────────────
 
@@ -24,10 +26,13 @@ class PurchaseService {
   PurchaseService._();
   static final PurchaseService instance = PurchaseService._();
 
+  StreamSubscription<List<PurchaseDetails>>? _subscription; // cancelled in dispose()
   bool _initialized = false;
 
-  /// Stream that emits [true] whenever the premium status might have changed.
-  /// Widgets can listen to this to rebuild when a purchase completes.
+  /// Completer resolved by the purchase stream for the in-flight operation.
+  Completer<bool>? _purchaseCompleter;
+
+  /// Emits [true] whenever premium status changes (purchase / restore).
   final _premiumController = StreamController<bool>.broadcast();
   Stream<bool> get premiumStream => _premiumController.stream;
 
@@ -38,15 +43,17 @@ class PurchaseService {
     if (kIsWeb) { _initialized = true; return; }
 
     try {
-      await Purchases.setLogLevel(LogLevel.warn);
+      final available = await InAppPurchase.instance.isAvailable();
+      if (!available) {
+        debugPrint('PurchaseService: Store not available');
+        _initialized = true;
+        return;
+      }
 
-      final config = PurchasesConfiguration(_kApiKeyAndroid);
-      await Purchases.configure(config);
-
-      // Forward CustomerInfo updates to our stream
-      Purchases.addCustomerInfoUpdateListener((info) {
-        _premiumController.add(_isActive(info));
-      });
+      _subscription = InAppPurchase.instance.purchaseStream.listen(
+        _onPurchaseUpdate,
+        onError: (Object e) => debugPrint('PurchaseService stream error: $e'),
+      );
 
       _initialized = true;
       debugPrint('PurchaseService: initialized');
@@ -55,55 +62,99 @@ class PurchaseService {
     }
   }
 
-  // ── Premium status ────────────────────────────────────────────────────────
+  /// Call when the app is shutting down (optional – service is a singleton).
+  void dispose() {
+    _subscription?.cancel();
+    _premiumController.close();
+  }
 
-  /// Returns [true] if the user has an active Premium entitlement.
-  /// Never throws — returns false on any error so the app keeps working.
-  Future<bool> isPremium() async {
-    if (kIsWeb || !_initialized) return false;
-    try {
-      final info = await Purchases.getCustomerInfo();
-      return _isActive(info);
-    } catch (e) {
-      debugPrint('PurchaseService.isPremium error: $e');
-      return false;
+  // ── Purchase stream handler ───────────────────────────────────────────────
+
+  Future<void> _onPurchaseUpdate(List<PurchaseDetails> purchases) async {
+    for (final purchase in purchases) {
+      switch (purchase.status) {
+        case PurchaseStatus.purchased:
+        case PurchaseStatus.restored:
+          await _setPremium(true);
+          if (purchase.pendingCompletePurchase) {
+            await InAppPurchase.instance.completePurchase(purchase);
+          }
+          _resolvePurchase(true);
+
+        case PurchaseStatus.error:
+          final msg = purchase.error?.message ?? 'Nákup se nezdařil.';
+          debugPrint('PurchaseService error: $msg');
+          final c = _purchaseCompleter;
+          _purchaseCompleter = null;
+          if (c != null && !c.isCompleted) {
+            c.completeError(PurchaseException(msg));
+          }
+
+        case PurchaseStatus.canceled:
+          _resolvePurchase(false);
+
+        case PurchaseStatus.pending:
+          break; // waiting – nothing to do
+      }
     }
   }
 
-  static bool _isActive(CustomerInfo info) =>
-      info.entitlements.active.containsKey(kPremiumEntitlement);
+  void _resolvePurchase(bool success) {
+    final c = _purchaseCompleter;
+    _purchaseCompleter = null;
+    if (c != null && !c.isCompleted) c.complete(success);
+  }
 
-  // ── Offerings ─────────────────────────────────────────────────────────────
+  // ── Premium status ────────────────────────────────────────────────────────
 
-  /// Returns the current offerings from RevenueCat.
-  /// Returns null if unavailable (no network, not initialized, etc.).
-  Future<Offerings?> getOfferings() async {
-    if (kIsWeb || !_initialized) return null;
+  /// Returns [true] if the user has an active Premium entitlement.
+  /// Reads from SharedPreferences — fast, no network call.
+  Future<bool> isPremium() async {
+    if (kIsWeb) return false;
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kPremiumKey) ?? false;
+  }
+
+  Future<void> _setPremium(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kPremiumKey, value);
+    _premiumController.add(value);
+  }
+
+  // ── Products ──────────────────────────────────────────────────────────────
+
+  /// Queries product details from Google Play.
+  /// Returns an empty list if unavailable (no network, sandbox, etc.).
+  Future<List<ProductDetails>> getProducts() async {
+    if (kIsWeb || !_initialized) return const [];
     try {
-      return await Purchases.getOfferings();
+      final response = await InAppPurchase.instance
+          .queryProductDetails(_kProductIds);
+      if (response.error != null) {
+        debugPrint('PurchaseService.getProducts error: ${response.error}');
+      }
+      return response.productDetails;
     } catch (e) {
-      debugPrint('PurchaseService.getOfferings error: $e');
-      return null;
+      debugPrint('PurchaseService.getProducts error: $e');
+      return const [];
     }
   }
 
   // ── Purchase ──────────────────────────────────────────────────────────────
 
-  /// Initiates a purchase for [package].
+  /// Initiates a purchase for [product].
   /// Returns [true] on success, [false] if the user cancelled.
-  /// Throws a [PurchaseException] with a user-friendly message on error.
-  Future<bool> purchasePackage(Package package) async {
+  /// Throws [PurchaseException] with a user-friendly message on error.
+  Future<bool> purchaseProduct(ProductDetails product) async {
     if (kIsWeb || !_initialized) return false;
+    _purchaseCompleter = Completer<bool>();
     try {
-      final result = await Purchases.purchasePackage(package);
-      final active = _isActive(result.customerInfo);
-      _premiumController.add(active);
-      return active;
-    } on PlatformException catch (e) {
-      final code = PurchasesErrorHelper.getErrorCode(e);
-      if (code == PurchasesErrorCode.purchaseCancelledError) return false;
-      throw PurchaseException(_errorMessage(code));
+      await InAppPurchase.instance.buyNonConsumable(
+        purchaseParam: PurchaseParam(productDetails: product),
+      );
+      return await _purchaseCompleter!.future;
     } catch (e) {
+      _purchaseCompleter = null;
       throw PurchaseException('Nákup se nezdařil: $e');
     }
   }
@@ -114,31 +165,19 @@ class PurchaseService {
   /// Returns [true] if premium was restored.
   Future<bool> restorePurchases() async {
     if (kIsWeb || !_initialized) return false;
+    _purchaseCompleter = Completer<bool>();
     try {
-      final info = await Purchases.restorePurchases();
-      final active = _isActive(info);
-      _premiumController.add(active);
-      return active;
+      await InAppPurchase.instance.restorePurchases();
+      // Restored events arrive asynchronously via purchaseStream.
+      // Wait up to 6 s; if nothing arrives, no active purchases exist.
+      return await _purchaseCompleter!.future
+          .timeout(const Duration(seconds: 6), onTimeout: () => false);
     } catch (e) {
       debugPrint('PurchaseService.restorePurchases error: $e');
       throw PurchaseException('Obnovení nákupů se nezdařilo: $e');
+    } finally {
+      _purchaseCompleter = null;
     }
-  }
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
-  static String _errorMessage(PurchasesErrorCode code) {
-    return switch (code) {
-      PurchasesErrorCode.purchaseNotAllowedError =>
-          'Nákupy jsou na tomto zařízení zakázány.',
-      PurchasesErrorCode.purchaseInvalidError =>
-          'Neplatný nákup. Zkus to znovu.',
-      PurchasesErrorCode.networkError =>
-          'Chyba sítě. Zkontroluj připojení a zkus znovu.',
-      PurchasesErrorCode.insufficientPermissionsError =>
-          'Nedostatečná oprávnění pro nákup.',
-      _ => 'Nákup se nezdařil (${code.name}). Zkus to znovu.',
-    };
   }
 }
 

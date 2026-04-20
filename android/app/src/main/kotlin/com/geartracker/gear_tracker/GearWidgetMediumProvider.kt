@@ -1,27 +1,28 @@
 package com.geartracker.gear_tracker
 
 import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProvider
 import android.content.Context
-import android.os.Bundle
 import android.view.View
 import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
-import es.antonborri.home_widget.HomeWidgetProvider
+import es.antonborri.home_widget.HomeWidgetPlugin
 import org.json.JSONArray
 
-class GearWidgetMediumProvider : HomeWidgetProvider() {
+class GearWidgetMediumProvider : AppWidgetProvider() {
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
-        appWidgetIds: IntArray,
-        widgetData: Bundle?
+        appWidgetIds: IntArray
     ) {
+        val widgetData = HomeWidgetPlugin.getData(context)
+
         appWidgetIds.forEach { widgetId ->
             val views = RemoteViews(context.packageName, R.layout.gear_widget_medium)
 
-            val overdueCount = widgetData?.getInt("overdue_count", 0) ?: 0
-            val upcomingCount = widgetData?.getInt("upcoming_count", 0) ?: 0
-            val itemsJson = widgetData?.getString("urgent_items_json") ?: "[]"
+            val overdueCount = widgetData.getInt("overdue_count", 0)
+            val upcomingCount = widgetData.getInt("upcoming_count", 0)
+            val itemsJson = widgetData.getString("urgent_items_json", "[]") ?: "[]"
 
             views.setTextViewText(R.id.tv_total_issues, "${overdueCount + upcomingCount} položek")
 

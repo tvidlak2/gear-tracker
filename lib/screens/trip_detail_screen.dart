@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../database/database_helper.dart';
+import '../l10n/app_localizations.dart';
 import '../models/gear_item.dart';
 import '../models/trip.dart';
 import '../services/maintenance_service.dart';
@@ -140,7 +141,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     }
 
     buf.writeln();
-    buf.writeln('Vybavení:');
+    buf.writeln('Gear:');
 
     for (final gi in _gearItems) {
       final tgi = trip.gearItems.firstWhere(
@@ -161,7 +162,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     }
 
     buf.writeln();
-    buf.writeln('Vytvořeno v GearTracker');
+    buf.writeln('Vytvořeno v OutdoorGearTracker');
 
     Share.share(buf.toString());
   }
@@ -251,9 +252,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                   borderRadius: BorderRadius.circular(12)),
             ),
             icon: const Icon(Icons.share_outlined),
-            label: const Text(
-              'Sdílet checklist',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            label: Text(
+              AppLocalizations.of(context).shareChecklist,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -360,17 +361,17 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(bottom: 8),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
           child: Text(
-            'Upozornění před cestou',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            AppLocalizations.of(context).tripWarnings,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
           ),
         ),
         ...overdueGear.map(
           (gi) => _buildWarningCard(
             gi.name,
-            'Vyžaduje servis – překročen limit',
+            AppLocalizations.of(context).tripGearOverdue,
             AppColors.danger,
             isDark ? AppColors.dangerBgDark : const Color(0xFFFCEBEB),
             isDark,
@@ -379,7 +380,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         ...warningGear.map(
           (gi) => _buildWarningCard(
             gi.name,
-            'Blíží se termín servisu',
+            AppLocalizations.of(context).tripGearWarning,
             AppColors.warning,
             isDark ? AppColors.warningBgDark : const Color(0xFFFAEEDA),
             isDark,
@@ -473,7 +474,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'Vybavení (${trip.packedCount}/${trip.totalCount} zabaleno)',
+                    AppLocalizations.of(context).gearChecklist(trip.packedCount, trip.totalCount),
                     style: const TextStyle(
                         fontSize: 14, fontWeight: FontWeight.w700),
                   ),
@@ -481,7 +482,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                 TextButton.icon(
                   onPressed: _addGearItems,
                   icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Přidat'),
+                  label: Text(AppLocalizations.of(context).add),
                   style: TextButton.styleFrom(
                       foregroundColor: AppColors.primary),
                 ),
@@ -492,7 +493,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Text(
-                'Zatím žádné vybavení. Klepněte na „Přidat" pro výběr.',
+                AppLocalizations.of(context).noGearInTrip,
                 style: TextStyle(
                   fontSize: 13,
                   color:
@@ -616,11 +617,11 @@ class _GearSelectSheetState extends State<_GearSelectSheet> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
-              'Vybrat vybavení',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              AppLocalizations.of(context).selectGearTitle,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
           ),
           const Divider(height: 1),
@@ -658,7 +659,7 @@ class _GearSelectSheetState extends State<_GearSelectSheet> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Potvrdit výběr'),
+              child: Text(AppLocalizations.of(context).confirmSelection),
             ),
           ),
         ],

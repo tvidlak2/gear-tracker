@@ -5,7 +5,7 @@
 //   2. In-Dart aggregation helpers that mirror what the DB does.
 
 import 'package:test/test.dart';
-import 'package:gear_tracker/models/usage_log.dart';
+import 'package:outdoor_gear_tracker/models/usage_log.dart';
 
 // ---------------------------------------------------------------------------
 // Pure helpers that mirror DB aggregations (no DB required).

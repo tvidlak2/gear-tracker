@@ -1,6 +1,6 @@
-import 'package:gear_tracker/models/gear_item.dart';
-import 'package:gear_tracker/models/maintenance_rule.dart';
-import 'package:gear_tracker/models/usage_log.dart';
+import 'package:outdoor_gear_tracker/models/gear_item.dart';
+import 'package:outdoor_gear_tracker/models/maintenance_rule.dart';
+import 'package:outdoor_gear_tracker/models/usage_log.dart';
 
 /// Factory for a minimal GearItem used in tests.
 GearItem createTestGearItem({

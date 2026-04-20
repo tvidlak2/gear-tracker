@@ -360,7 +360,7 @@
   "@getPremiumButton": {
     "placeholders": {"price": {"type": "String"}}
   },
-  "purchaseUnavailable": "Purchase not yet available – configure a product in the RevenueCat dashboard.",
+  "purchaseUnavailable": "Purchase is currently unavailable. Please try again later.",
   "deleteServiceRecord": "Delete record",
   "deleteServiceRecordConfirm": "Are you sure you want to delete this service record?",
   "editServiceRecord": "Edit record",
