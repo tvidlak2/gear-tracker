@@ -28,6 +28,8 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   List<GearItem> _gearItems = [];
   // maintenance status per gear item id
   Map<int, MaintenanceStatus> _maintenanceStatus = {};
+  // free-text custom checklist items
+  List<TripCustomItem> _customItems = [];
 
   static final _dateFmt = DateFormat('d. M. yyyy', 'cs');
 
@@ -62,11 +64,15 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         statusMap[intId] = status;
       }
 
+      final customItems =
+          await TripService.instance.getCustomItems(widget.tripId);
+
       if (mounted) {
         setState(() {
           _trip = trip;
           _gearItems = gearItems;
           _maintenanceStatus = statusMap;
+          _customItems = customItems;
           _loading = false;
         });
       }
@@ -82,6 +88,117 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       isPacked,
     );
     await _loadData();
+  }
+
+  Future<void> _toggleCustomPacked(String id, bool isPacked) async {
+    await TripService.instance.updateCustomItemPacked(id, isPacked);
+    await _loadData();
+  }
+
+  Future<void> _deleteCustomItem(String id) async {
+    await TripService.instance.deleteCustomItem(id);
+    await _loadData();
+  }
+
+  /// Shows a choice sheet: add from gear catalogue OR add a free-text item.
+  Future<void> _showAddItemsChoice() async {
+    if (_trip == null) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkCard : Colors.white,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : AppColors.cardBorder,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  leading: const Icon(Icons.backpack_outlined),
+                  title: Text(
+                    AppLocalizations.of(ctx).selectGearTitle,
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _addGearItems();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.edit_outlined),
+                  title: Text(
+                    AppLocalizations.of(ctx).addCustomItem,
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _addCustomItemDialog();
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Prompts the user to type a free-text item name and saves it.
+  Future<void> _addCustomItemDialog() async {
+    final ctrl = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(AppLocalizations.of(ctx).addCustomItem),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(ctx).customItemHint,
+          ),
+          onSubmitted: (v) {
+            if (v.trim().isNotEmpty) Navigator.pop(ctx, v.trim());
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(AppLocalizations.of(ctx).cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (ctrl.text.trim().isNotEmpty) {
+                Navigator.pop(ctx, ctrl.text.trim());
+              }
+            },
+            child: Text(AppLocalizations.of(ctx).add),
+          ),
+        ],
+      ),
+    );
+    if (result != null && result.isNotEmpty) {
+      await TripService.instance.addCustomItem(widget.tripId, result);
+      await _loadData();
+    }
   }
 
   Future<void> _addGearItems() async {
@@ -158,6 +275,14 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         buf.writeln('✅ ${gi.name} (zabaleno)');
       } else {
         buf.writeln('⬜ ${gi.name}');
+      }
+    }
+
+    if (_customItems.isNotEmpty) {
+      buf.writeln();
+      buf.writeln('Vlastní položky:');
+      for (final ci in _customItems) {
+        buf.writeln(ci.isPacked ? '✅ ${ci.name} (zabaleno)' : '⬜ ${ci.name}');
       }
     }
 
@@ -457,6 +582,11 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   }
 
   Widget _buildGearSection(Trip trip, bool isDark) {
+    final packedCustom = _customItems.where((c) => c.isPacked).length;
+    final totalAll = trip.totalCount + _customItems.length;
+    final packedAll = trip.packedCount + packedCustom;
+    final isEmpty = trip.gearItems.isEmpty && _customItems.isEmpty;
+
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : Colors.white,
@@ -474,13 +604,13 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    AppLocalizations.of(context).gearChecklist(trip.packedCount, trip.totalCount),
+                    AppLocalizations.of(context).gearChecklist(packedAll, totalAll),
                     style: const TextStyle(
                         fontSize: 14, fontWeight: FontWeight.w700),
                   ),
                 ),
                 TextButton.icon(
-                  onPressed: _addGearItems,
+                  onPressed: _showAddItemsChoice,
                   icon: const Icon(Icons.add, size: 18),
                   label: Text(AppLocalizations.of(context).add),
                   style: TextButton.styleFrom(
@@ -489,7 +619,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
               ],
             ),
           ),
-          if (trip.gearItems.isEmpty)
+          if (isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Text(
@@ -501,7 +631,8 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                 ),
               ),
             )
-          else
+          else ...[
+            // ── Gear items from catalogue ───────────────────────────────────
             ...trip.gearItems.map((tgi) {
               final intId = int.tryParse(tgi.gearItemId);
               final gi = intId != null
@@ -565,6 +696,44 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                 ],
               );
             }),
+            // ── Free-text custom items ──────────────────────────────────────
+            ..._customItems.map((ci) {
+              return Column(
+                children: [
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  CheckboxListTile(
+                    value: ci.isPacked,
+                    onChanged: (v) =>
+                        _toggleCustomPacked(ci.id, v ?? false),
+                    activeColor: AppColors.primary,
+                    contentPadding: const EdgeInsets.only(
+                        left: 12, right: 4, top: 2, bottom: 2),
+                    title: Text(
+                      ci.name,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        decoration: ci.isPacked
+                            ? TextDecoration.lineThrough
+                            : null,
+                        color: ci.isPacked
+                            ? Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant
+                            : null,
+                      ),
+                    ),
+                    secondary: IconButton(
+                      icon: const Icon(Icons.delete_outline, size: 20),
+                      color: AppColors.subtitleGray,
+                      onPressed: () => _deleteCustomItem(ci.id),
+                      tooltip: AppLocalizations.of(context).delete,
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ],
         ],
       ),
     );

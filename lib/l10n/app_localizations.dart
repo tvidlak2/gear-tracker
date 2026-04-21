@@ -1422,6 +1422,18 @@ abstract class AppLocalizations {
   /// **'Vybrat vybavení'**
   String get selectGearTitle;
 
+  /// Label for adding a free-text custom checklist item
+  ///
+  /// In cs, this message translates to:
+  /// **'Vlastní položka'**
+  String get addCustomItem;
+
+  /// Placeholder for custom item text field
+  ///
+  /// In cs, this message translates to:
+  /// **'např. ponožky, léky, nabíječka'**
+  String get customItemHint;
+
   /// No description provided for @confirmSelection.
   ///
   /// In cs, this message translates to:

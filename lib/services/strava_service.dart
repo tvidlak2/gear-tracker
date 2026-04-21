@@ -23,9 +23,12 @@ class StravaService {
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
 
+  // ── Hardcoded app credentials ─────────────────────────────────────────────
+  // Replace with your actual values from https://www.strava.com/settings/api
+  static const _kOwnClientId     = '223075';
+  static const _kOwnClientSecret = 'c1279b7bb29910647f6198dfa77352a5c48775ec';
+
   // Storage keys
-  static const _kClientId     = 'strava_client_id';
-  static const _kClientSecret = 'strava_client_secret';
   static const _kAccessToken  = 'strava_access_token';
   static const _kRefreshToken = 'strava_refresh_token';
   static const _kExpiresAt    = 'strava_expires_at';
@@ -54,18 +57,16 @@ class StravaService {
 
   // ── Credentials ────────────────────────────────────────────────────────────
 
+  // Credentials are now hardcoded as constants above.
+  // saveCredentials / clientId / clientSecret kept only for migration cleanup.
   Future<void> saveCredentials({required String clientId, required String clientSecret}) async {
-    await _storage.write(key: _kClientId,     value: clientId);
-    await _storage.write(key: _kClientSecret, value: clientSecret);
+    // no-op: credentials are compiled in as constants
   }
 
-  Future<String?> get clientId     => _storage.read(key: _kClientId);
-  Future<String?> get clientSecret => _storage.read(key: _kClientSecret);
+  Future<String?> get clientId     async => _kOwnClientId;
+  Future<String?> get clientSecret async => _kOwnClientSecret;
 
-  Future<bool> hasCredentials() async {
-    final id = await clientId;
-    return id != null && id.isNotEmpty;
-  }
+  Future<bool> hasCredentials() async => true;
 
   // ── Connection ────────────────────────────────────────────────────────────
 
@@ -84,19 +85,10 @@ class StravaService {
   ///   Returns **null** immediately — the actual result is handled by the
   ///   `/strava-callback` GoRouter route once Strava redirects back.
   Future<String?> connect(BuildContext context) async {
-    final cId = await clientId;
-    if (cId == null || cId.isEmpty) {
-      return 'Client ID není nastaveno. Zadej API přihlašovací údaje.';
-    }
-    final cSecret = await clientSecret ?? '';
-    if (cSecret.isEmpty) {
-      return 'Client Secret není nastaveno. Zadej API přihlašovací údaje.';
-    }
-
     if (kIsWeb) {
-      return _connectWeb(cId);
+      return _connectWeb(_kOwnClientId);
     } else {
-      return _connectMobile(cId, cSecret);
+      return _connectMobile(_kOwnClientId, _kOwnClientSecret);
     }
   }
 
@@ -125,11 +117,11 @@ class StravaService {
   ///
   /// Returns **null** on success, a Czech error string on failure.
   Future<String?> completeWebOAuth(String code) async {
-    final cId     = await clientId;
-    final cSecret = await clientSecret;
-    if (cId == null || cId.isEmpty)     return 'Chybí Client ID.';
-    if (cSecret == null || cSecret.isEmpty) return 'Chybí Client Secret.';
-    return _exchangeCode(code: code, clientId: cId, clientSecret: cSecret);
+    return _exchangeCode(
+      code: code,
+      clientId: _kOwnClientId,
+      clientSecret: _kOwnClientSecret,
+    );
   }
 
   // ── Mobile flow ────────────────────────────────────────────────────────────
@@ -252,9 +244,9 @@ class StravaService {
 
   Future<bool> _refreshAccessToken() async {
     final refresh  = await _storage.read(key: _kRefreshToken);
-    final cId      = await clientId;
-    final cSecret  = await clientSecret;
-    if (refresh == null || cId == null || cSecret == null) return false;
+    if (refresh == null) return false;
+    const cId     = _kOwnClientId;
+    const cSecret = _kOwnClientSecret;
 
     try {
       final resp = await http.post(

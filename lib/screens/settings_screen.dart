@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../database/database_helper.dart';
 import '../l10n/app_localizations.dart';
@@ -37,6 +38,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   bool _notificationsEnabled = false;
   bool _notifLoading = true;
+
+  // App version
+  String _appVersion = '';
 
   // Premium state
   bool _isPremium       = false;
@@ -77,11 +81,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
+    _loadVersion();
     _loadNotificationState();
     _loadStravaState();
     _loadLocale();
     _loadPremiumState();
     _loadBackupState();
+  }
+
+  Future<void> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _appVersion = '${info.version} (build ${info.buildNumber})';
+      });
+    }
   }
 
   Future<void> _loadPremiumState() async {
@@ -105,7 +119,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _signInGoogle() async {
     final account = await _backupSvc.signIn();
-    if (mounted) setState(() => _googleAccount = account);
+    if (!mounted) return;
+    if (account != null) {
+      setState(() => _googleAccount = account);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+              'Přihlášení se nezdařilo. Zkontroluj internetové připojení a zkus znovu.'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
   }
 
   Future<void> _signOutGoogle() async {
@@ -503,12 +529,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _connectStrava() async {
-    // Ensure credentials are present
-    final hasCredentials = await _stravaSvc.hasCredentials();
-    if (!hasCredentials && mounted) {
-      final entered = await _showCredentialsDialog();
-      if (!entered) return;
-    }
     if (!mounted) return;
     setState(() { _stravaLoading = true; _stravaLoadError = null; });
 
@@ -625,67 +645,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         duration: const Duration(seconds: 3),
       ),
     );
-  }
-
-  /// Shows dialog to enter Strava client_id + client_secret.
-  /// Returns true if credentials were saved.
-  Future<bool> _showCredentialsDialog() async {
-    final idCtrl     = TextEditingController();
-    final secretCtrl = TextEditingController();
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (ctx) {
-        final l = AppLocalizations.of(ctx);
-        return AlertDialog(
-          title: Text(l.stravaCredentials),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                AppLocalizations.of(ctx).stravaApiKeyHint,
-                style: const TextStyle(fontSize: 13),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: idCtrl,
-                decoration: InputDecoration(
-                  labelText: l.stravaClientId,
-                  border: const OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: secretCtrl,
-                decoration: InputDecoration(
-                  labelText: l.stravaClientSecret,
-                  border: const OutlineInputBorder(),
-                ),
-                obscureText: true,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l.save),
-            ),
-          ],
-        );
-      },
-    );
-    if (saved == true && idCtrl.text.isNotEmpty && secretCtrl.text.isNotEmpty) {
-      await _stravaSvc.saveCredentials(
-        clientId:     idCtrl.text.trim(),
-        clientSecret: secretCtrl.text.trim(),
-      );
-      return true;
-    }
-    return false;
   }
 
   Future<void> _toggleNotifications(bool value) async {
@@ -876,9 +835,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               await _stravaSvc.setAutoSync(enabled: v);
               setState(() => _autoSync = v);
             },
-            onEditCredentials: () async {
-              await _showCredentialsDialog();
-            },
           ),
 
           // ── Sekce: Záloha a export ──────────────────────────────────────
@@ -1008,7 +964,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _SettingsTile(
             icon: Icons.info_outline,
             title: l10n.settingsVersion,
-            subtitle: '1.0.0',
+            subtitle: _appVersion.isEmpty ? '…' : _appVersion,
           ),
           _SettingsTile(
             icon: Icons.privacy_tip_outlined,
@@ -1196,8 +1152,6 @@ class _StravaSection extends StatelessWidget {
   final VoidCallback    onSyncAll;
   final VoidCallback    onRetry;
   final ValueChanged<bool> onAutoSyncChanged;
-  final VoidCallback    onEditCredentials;
-
   const _StravaSection({
     required this.loading,
     required this.connected,
@@ -1212,7 +1166,6 @@ class _StravaSection extends StatelessWidget {
     required this.onSyncAll,
     required this.onRetry,
     required this.onAutoSyncChanged,
-    required this.onEditCredentials,
   });
 
   @override
@@ -1292,22 +1245,12 @@ class _StravaSection extends StatelessWidget {
                   style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
                 ),
                 const SizedBox(height: 14),
-                Row(
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: onEditCredentials,
-                      icon: const Icon(Icons.key_outlined, size: 16),
-                      label: Text(AppLocalizations.of(context).apiKeysTitle),
-                    ),
-                    const SizedBox(width: 10),
-                    FilledButton.icon(
-                      onPressed: onConnect,
-                      style: FilledButton.styleFrom(
-                          backgroundColor: stravaOrange),
-                      icon: const Icon(Icons.link, size: 16),
-                      label: Text(AppLocalizations.of(context).stravaConnect),
-                    ),
-                  ],
+                FilledButton.icon(
+                  onPressed: onConnect,
+                  style: FilledButton.styleFrom(
+                      backgroundColor: stravaOrange),
+                  icon: const Icon(Icons.link, size: 16),
+                  label: Text(AppLocalizations.of(context).stravaConnect),
                 ),
               ],
             ),

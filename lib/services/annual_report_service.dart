@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../database/database_helper.dart';
@@ -377,7 +378,16 @@ class AnnualReportService {
   // ── PDF generation ───────────────────────────────────────────────────────────
 
   Future<Uint8List> generatePdf(AnnualReportData data) async {
-    final doc = pw.Document();
+    // Load fonts that support full Latin diacritics (Czech, Slovak, German, French, Spanish, Italian)
+    final baseFont = await PdfGoogleFonts.notoSansRegular();
+    final boldFont = await PdfGoogleFonts.notoSansBold();
+
+    final doc = pw.Document(
+      theme: pw.ThemeData.withFont(
+        base: baseFont,
+        bold: boldFont,
+      ),
+    );
 
     // Colors
     const primaryColor   = PdfColor.fromInt(0xFF1D9E75);

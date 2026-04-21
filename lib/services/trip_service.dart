@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
 
 import '../database/database_helper.dart';
 import '../models/trip.dart';
@@ -78,6 +79,44 @@ class TripService {
       {'is_packed': isPacked ? 1 : 0},
       where: 'trip_id = ? AND gear_item_id = ?',
       whereArgs: [tripId, gearItemId],
+    );
+  }
+
+  // ── Custom items ─────────────────────────────────────────────────────────────
+
+  Future<List<TripCustomItem>> getCustomItems(String tripId) async {
+    final db = await DatabaseHelper.instance.database;
+    final rows = await db.query(
+      'trip_custom_items',
+      where: 'trip_id = ?',
+      whereArgs: [tripId],
+    );
+    return rows.map(TripCustomItem.fromMap).toList();
+  }
+
+  Future<TripCustomItem> addCustomItem(String tripId, String name) async {
+    final db = await DatabaseHelper.instance.database;
+    final item = TripCustomItem(
+      id: const Uuid().v4(),
+      tripId: tripId,
+      name: name,
+    );
+    await db.insert('trip_custom_items', item.toMap());
+    return item;
+  }
+
+  Future<void> deleteCustomItem(String id) async {
+    final db = await DatabaseHelper.instance.database;
+    await db.delete('trip_custom_items', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> updateCustomItemPacked(String id, bool isPacked) async {
+    final db = await DatabaseHelper.instance.database;
+    await db.update(
+      'trip_custom_items',
+      {'is_packed': isPacked ? 1 : 0},
+      where: 'id = ?',
+      whereArgs: [id],
     );
   }
 }

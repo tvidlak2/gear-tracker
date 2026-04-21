@@ -711,6 +711,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectGearTitle => 'Select gear';
 
   @override
+  String get addCustomItem => 'Custom item';
+
+  @override
+  String get customItemHint => 'e.g. socks, medicine, charger';
+
+  @override
   String get confirmSelection => 'Confirm selection';
 
   @override

@@ -135,3 +135,40 @@ class Trip {
         notes: notes ?? this.notes,
       );
 }
+
+// ── Custom (free-text) checklist items ────────────────────────────────────────
+
+class TripCustomItem {
+  final String id;
+  final String tripId;
+  final String name;
+  final bool isPacked;
+
+  const TripCustomItem({
+    required this.id,
+    required this.tripId,
+    required this.name,
+    this.isPacked = false,
+  });
+
+  TripCustomItem copyWith({bool? isPacked}) => TripCustomItem(
+        id: id,
+        tripId: tripId,
+        name: name,
+        isPacked: isPacked ?? this.isPacked,
+      );
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'trip_id': tripId,
+        'name': name,
+        'is_packed': isPacked ? 1 : 0,
+      };
+
+  factory TripCustomItem.fromMap(Map<String, dynamic> map) => TripCustomItem(
+        id: map['id'] as String,
+        tripId: map['trip_id'] as String,
+        name: map['name'] as String,
+        isPacked: (map['is_packed'] as int? ?? 0) == 1,
+      );
+}

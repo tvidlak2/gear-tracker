@@ -1,7 +1,7 @@
 name: outdoor_gear_tracker
 description: "OutdoorGearTracker - Never miss a maintenance deadline"
 publish_to: 'none'
-version: 1.0.2+3
+version: 1.0.4+5
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -70,6 +70,9 @@ dependencies:
 
   # In-app purchases (Google Play Billing)
   in_app_purchase: ^3.2.0
+
+  # Dynamická verze aplikace
+  package_info_plus: ^8.0.0
 
   # Google Drive záloha
   google_sign_in: ^6.2.0

@@ -715,6 +715,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get selectGearTitle => 'Seleccionar equipo';
 
   @override
+  String get addCustomItem => 'Elemento personalizado';
+
+  @override
+  String get customItemHint => 'p. ej. calcetines, medicamentos, cargador';
+
+  @override
   String get confirmSelection => 'Confirmar selección';
 
   @override

@@ -714,6 +714,12 @@ class AppLocalizationsSk extends AppLocalizations {
   String get selectGearTitle => 'Vybrať vybavenie';
 
   @override
+  String get addCustomItem => 'Vlastná položka';
+
+  @override
+  String get customItemHint => 'napr. ponožky, lieky, nabíjačka';
+
+  @override
   String get confirmSelection => 'Potvrdiť výber';
 
   @override

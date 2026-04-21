@@ -12,7 +12,7 @@ import '../models/usage_log.dart';
 
 class DatabaseHelper {
   static const _databaseName = 'gear_tracker.db';
-  static const _databaseVersion = 6;
+  static const _databaseVersion = 7;
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
@@ -116,6 +116,18 @@ class DatabaseHelper {
           gear_item_id TEXT NOT NULL,
           is_packed INTEGER NOT NULL DEFAULT 0,
           PRIMARY KEY (trip_id, gear_item_id),
+          FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
+        )
+      ''');
+    }
+    if (oldVersion < 7) {
+      // Create trip_custom_items table (free-text checklist entries)
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS trip_custom_items (
+          id TEXT PRIMARY KEY,
+          trip_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          is_packed INTEGER NOT NULL DEFAULT 0,
           FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
         )
       ''');
@@ -236,6 +248,16 @@ class DatabaseHelper {
         gear_item_id TEXT NOT NULL,
         is_packed INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (trip_id, gear_item_id),
+        FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE trip_custom_items (
+        id TEXT PRIMARY KEY,
+        trip_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        is_packed INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
       )
     ''');

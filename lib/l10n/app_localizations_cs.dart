@@ -713,6 +713,12 @@ class AppLocalizationsCs extends AppLocalizations {
   String get selectGearTitle => 'Vybrat vybavení';
 
   @override
+  String get addCustomItem => 'Vlastní položka';
+
+  @override
+  String get customItemHint => 'např. ponožky, léky, nabíječka';
+
+  @override
   String get confirmSelection => 'Potvrdit výběr';
 
   @override

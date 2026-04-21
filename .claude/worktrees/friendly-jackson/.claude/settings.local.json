@@ -72,7 +72,13 @@
       "Bash(netstat -ano)",
       "mcp__Claude_in_Chrome__tabs_context_mcp",
       "mcp__Claude_in_Chrome__navigate",
-      "mcp__Claude_in_Chrome__computer"
+      "mcp__Claude_in_Chrome__computer",
+      "Bash(taskkill //PID 37912 //F)",
+      "mcp__Claude_in_Chrome__find",
+      "Bash(Get-ChildItem C:\\\\Users\\\\tomas\\\\gear-tracker -Recurse -Filter \"strava_service.dart\")",
+      "Bash(Select-Object FullName, LastWriteTime)",
+      "Bash(powershell -Command \"Get-ChildItem C:\\\\Users\\\\tomas\\\\gear-tracker -Recurse -Filter 'strava_service.dart' | Select-Object FullName, LastWriteTime\")",
+      "Bash(powershell -Command \"Get-ChildItem C:\\\\Users\\\\tomas\\\\gear-tracker -Recurse -Filter 'trip_detail_screen.dart' | Select-Object FullName, LastWriteTime\")"
     ]
   }
 }
