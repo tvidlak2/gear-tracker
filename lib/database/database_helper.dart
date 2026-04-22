@@ -24,6 +24,16 @@ class DatabaseHelper {
     return _db!;
   }
 
+  /// Closes the current database connection and clears the cached instance.
+  /// Must be called before overwriting the DB file on disk (e.g. during restore).
+  /// After this, the next call to [database] will re-open and migrate the file.
+  Future<void> closeDatabase() async {
+    if (_db != null && _db!.isOpen) {
+      await _db!.close();
+    }
+    _db = null;
+  }
+
   Future<Database> _initDatabase() async {
     final path = join(await getDatabasesPath(), _databaseName);
     return openDatabase(

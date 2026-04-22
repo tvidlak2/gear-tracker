@@ -24,6 +24,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../database/database_helper.dart';
 import 'purchase_service.dart';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -204,38 +205,57 @@ class BackupService {
   // ── Restore ───────────────────────────────────────────────────────────────
 
   /// Downloads the most recent backup from Drive and restores DB + photos.
+  ///
+  /// Critical: closes the SQLite connection BEFORE overwriting the DB file,
+  /// then clears the cached instance so the next DB access re-opens cleanly.
   Future<void> restore() async {
-    _emit('Přihlašování...');
+    try {
+      debugPrint('[Restore] Starting restore...');
+      _emit('Přihlašování...');
 
-    final account = _currentUser ?? await signIn();
-    if (account == null) throw BackupException('Přihlášení se nezdařilo.');
+      final account = _currentUser ?? await signIn();
+      if (account == null) throw BackupException('Přihlášení se nezdařilo.');
 
-    final driveApi = await _driveApi(account);
+      final driveApi = await _driveApi(account);
 
-    _emit('Hledání zálohy...');
+      _emit('Hledání zálohy...');
+      debugPrint('[Restore] Looking for backup files...');
 
-    final folderId = await _ensureFolder(driveApi);
-    final backups  = await _listBackupFiles(driveApi, folderId);
+      final folderId = await _ensureFolder(driveApi);
+      final backups  = await _listBackupFiles(driveApi, folderId);
 
-    if (backups.isEmpty) throw BackupException('Žádné zálohy nenalezeny.');
+      if (backups.isEmpty) throw BackupException('Žádné zálohy nenalezeny.');
 
-    // Latest backup = last alphabetically (date-based names)
-    final latest = backups.last;
+      // Latest backup = last alphabetically (date-based names)
+      final latest = backups.last;
 
-    _emit('Stahování ${latest.name}...');
+      _emit('Stahování ${latest.name}...');
+      debugPrint('[Restore] Downloading backup file: ${latest.name}');
 
-    final response = await driveApi.files.get(
-      latest.id!,
-      downloadOptions: drive.DownloadOptions.fullMedia,
-    ) as drive.Media;
+      final response = await driveApi.files.get(
+        latest.id!,
+        downloadOptions: drive.DownloadOptions.fullMedia,
+      ) as drive.Media;
 
-    final bytes = await _collectStream(response.stream);
+      final bytes = await _collectStream(response.stream);
+      debugPrint('[Restore] Downloaded ${bytes.length} bytes');
 
-    _emit('Obnovování dat...');
+      // ── CRITICAL: close DB before overwriting the file ──────────────────
+      _emit('Zavírání databáze...');
+      debugPrint('[Restore] Closing existing DB connection...');
+      await DatabaseHelper.instance.closeDatabase();
 
-    await _extractZip(bytes);
+      _emit('Obnovování dat...');
+      debugPrint('[Restore] Extracting ZIP...');
+      await _extractZip(bytes);
 
-    _emit('Obnova dokončena.');
+      debugPrint('[Restore] Restore complete!');
+      _emit('Obnova dokončena.');
+    } catch (e, stack) {
+      debugPrint('[Restore] ERROR: $e');
+      debugPrint('[Restore] Stack: $stack');
+      rethrow;
+    }
   }
 
   // ── List backups ──────────────────────────────────────────────────────────

@@ -67,6 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool   _autoBackup       = false;
   String? _lastBackupDate;
   String? _backupError;
+  String  _restoreProgress = '';
 
   // Strava state
   bool           _stravaConnected = false;
@@ -172,35 +173,108 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _runRestore() async {
-    // Show confirmation dialog first
     final l10nRestore = AppLocalizations.of(context);
+
+    // ── Confirmation dialog ────────────────────────────────────────────────
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: Text(l10nRestore.restoreConfirmTitle),
-        content: Text(l10nRestore.restoreConfirmContent),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10nRestore.restoreConfirmContent),
+            const SizedBox(height: 12),
+            Text(
+              'Aplikace se po obnově restartuje aby se načetla nová data.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10nRestore.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(context, true),  child: Text(l10nRestore.restoreButton)),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10nRestore.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10nRestore.restoreButton),
+          ),
         ],
       ),
     );
     if (confirm != true) return;
 
-    setState(() { _restoreLoading = true; _backupError = null; });
+    setState(() {
+      _restoreLoading = true;
+      _backupError = null;
+      _restoreProgress = 'Zahajuji obnovu...';
+    });
+
+    // Listen to progress messages during restore
+    final progressSub = _backupSvc.progressStream.listen((msg) {
+      if (mounted) setState(() => _restoreProgress = msg);
+    });
+
     try {
       await _backupSvc.restore();
+
+      progressSub.cancel();
+      if (!mounted) return;
+
+      setState(() => _restoreLoading = false);
+
+      // Show success snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Data úspěšně obnovena. Aplikace se restartuje…'),
+          backgroundColor: Colors.green.shade700,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
+      // Wait briefly so the user sees the snackbar, then navigate to root.
+      // This forces all widgets to rebuild against the restored database.
+      await Future.delayed(const Duration(seconds: 2));
+      if (mounted) context.go('/');
+
+    } on BackupException catch (e) {
+      progressSub.cancel();
       if (mounted) {
+        setState(() {
+          _restoreLoading = false;
+          _backupError = e.message;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).restoreSuccess)),
+          SnackBar(
+            content: Text('Chyba obnovy: ${e.message}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            duration: const Duration(seconds: 10),
+          ),
         );
       }
-    } on BackupException catch (e) {
-      if (mounted) setState(() => _backupError = e.message);
     } catch (e) {
-      if (mounted) setState(() => _backupError = 'Chyba: $e');
-    } finally {
-      if (mounted) setState(() => _restoreLoading = false);
+      progressSub.cancel();
+      if (mounted) {
+        setState(() {
+          _restoreLoading = false;
+          _backupError = 'Chyba: $e';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Chyba obnovy: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            duration: const Duration(seconds: 10),
+          ),
+        );
+      }
     }
   }
 
@@ -882,17 +956,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           if (!_premiumLoading)
             _BackupSection(
-              isPremium:      _isPremium,
-              googleAccount:  _googleAccount,
-              backupLoading:  _backupLoading,
-              restoreLoading: _restoreLoading,
-              autoBackup:     _autoBackup,
-              lastBackupDate: _lastBackupDate,
-              backupError:    _backupError,
-              onSignIn:       _signInGoogle,
-              onSignOut:      _signOutGoogle,
-              onBackup:       _runBackup,
-              onRestore:      _runRestore,
+              isPremium:       _isPremium,
+              googleAccount:   _googleAccount,
+              backupLoading:   _backupLoading,
+              restoreLoading:  _restoreLoading,
+              restoreProgress: _restoreProgress,
+              autoBackup:      _autoBackup,
+              lastBackupDate:  _lastBackupDate,
+              backupError:     _backupError,
+              onSignIn:        _signInGoogle,
+              onSignOut:       _signOutGoogle,
+              onBackup:        _runBackup,
+              onRestore:       _runRestore,
               onAutoBackupChanged: (v) async {
                 await _backupSvc.setAutoBackupEnabled(v);
                 setState(() => _autoBackup = v);
@@ -1677,6 +1752,7 @@ class _BackupSection extends StatelessWidget {
   final GoogleSignInAccount?  googleAccount;
   final bool                  backupLoading;
   final bool                  restoreLoading;
+  final String                restoreProgress;
   final bool                  autoBackup;
   final String?               lastBackupDate;
   final String?               backupError;
@@ -1694,6 +1770,7 @@ class _BackupSection extends StatelessWidget {
     required this.googleAccount,
     required this.backupLoading,
     required this.restoreLoading,
+    required this.restoreProgress,
     required this.autoBackup,
     required this.lastBackupDate,
     required this.backupError,
@@ -1934,6 +2011,30 @@ class _BackupSection extends StatelessWidget {
                   ),
                 ],
               ),
+
+              // ── Restore progress indicator ─────────────────────────────
+              if (restoreLoading && restoreProgress.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const SizedBox(
+                      width: 12, height: 12,
+                      child: CircularProgressIndicator(strokeWidth: 1.5),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        restoreProgress,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: cs.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
 
               const SizedBox(height: 8),
               // CSV export

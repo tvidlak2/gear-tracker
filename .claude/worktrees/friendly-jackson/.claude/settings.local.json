@@ -116,7 +116,9 @@
       "Bash(powershell -Command \"Set-Location 'C:\\\\Users\\\\tomas\\\\gear-tracker'; flutter build appbundle --release 2>&1 | Select-Object -Last 10\")",
       "Bash(powershell -Command \"Set-Location 'C:\\\\Users\\\\tomas\\\\gear-tracker'; Start-Process -FilePath 'flutter' -ArgumentList 'run -d chrome --web-port 8080' -PassThru\")",
       "mcp__Claude_in_Chrome__get_page_text",
-      "mcp__Claude_in_Chrome__read_console_messages"
+      "mcp__Claude_in_Chrome__read_console_messages",
+      "Bash(powershell -Command \"Set-Location 'C:\\\\Users\\\\tomas\\\\gear-tracker'; flutter analyze lib/services/backup_service.dart lib/database/database_helper.dart lib/screens/settings_screen.dart 2>&1 | Out-String\")",
+      "Bash(powershell -Command \"Set-Location 'C:\\\\Users\\\\tomas\\\\gear-tracker'; flutter build appbundle --release 2>&1 | Select-Object -Last 6\")"
     ]
   }
 }
