@@ -1887,7 +1887,10 @@ class _StravaGearSectionState extends State<_StravaGearSection> {
     final s = widget.settings;
     _selectedTypes = List<String>.from(s?.activityTypes ?? []);
     _syncEnabled   = s?.syncEnabled ?? false;
-    _syncFrom      = s?.syncFrom;
+    // Default to 1 year ago when not explicitly set so that the first sync
+    // fetches historical activities instead of only the last 90 days.
+    _syncFrom = s?.syncFrom ??
+        DateTime.now().subtract(const Duration(days: 365));
 
     // Auto-suggest types from category if empty
     if (_selectedTypes.isEmpty && widget.categoryIcon != null) {
@@ -1992,9 +1995,9 @@ class _StravaGearSectionState extends State<_StravaGearSection> {
                       title: Text(AppLocalizations.of(context).stravaSyncFrom,
                           style: const TextStyle(fontSize: 13)),
                       trailing: Text(
-                        _syncFrom != null
-                            ? DateFormat('d. M. yyyy').format(_syncFrom!)
-                            : 'Vybrat datum',
+                        DateFormat('d. M. yyyy').format(
+                          _syncFrom ?? DateTime.now().subtract(const Duration(days: 365)),
+                        ),
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,

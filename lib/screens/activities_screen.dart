@@ -226,7 +226,8 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
     final catMap  = {for (final c in _allCats) c.id!: c};
     final gearMap = {for (final g in _allGear) g.id!: g};
 
-    String gearSport(int id) {
+    String gearSport(int? id) {
+      if (id == null) return 'obecné';
       final g = gearMap[id];
       if (g == null) return 'obecné';
       return catMap[g.categoryId]?.sport ?? 'obecné';
@@ -237,8 +238,11 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
     final totalKm   = logs.fold<double>(0, (s, l) => s + (l.distanceKm      ?? 0.0));
     final totalElev = logs.fold<double>(0, (s, l) => s + (l.elevationGainM  ?? 0.0));
 
-    // Gear count = distinct gear items used in period
-    final activeGearIds = logs.map((l) => l.gearItemId).toSet();
+    // Gear count = distinct assigned gear items used in period (null = unassigned)
+    final activeGearIds = logs
+        .map((l) => l.gearItemId)
+        .whereType<int>()
+        .toSet();
 
     // Maintenance count = logs in period (by performedDate)
     final maintCount = cutoff == null
@@ -251,7 +255,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
     final entries = logs
         .map((l) => _ActivityEntry(
               log:   l,
-              gear:  gearMap[l.gearItemId],
+              gear:  l.gearItemId != null ? gearMap[l.gearItemId] : null,
               sport: gearSport(l.gearItemId),
             ))
         .toList()
@@ -263,6 +267,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
     final gearCnt   = <int, int>{};
     for (final l in logs) {
       final id = l.gearItemId;
+      if (id == null) continue; // skip unassigned global Strava activities
       gearMins[id]  = (gearMins[id]  ?? 0) + (l.durationMinutes ?? 0);
       gearKmMap[id] = (gearKmMap[id] ?? 0) + (l.distanceKm ?? 0.0);
       gearCnt[id]   = (gearCnt[id]   ?? 0) + 1;
@@ -316,7 +321,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
   /// Weekly bars from [cutoff] to today.
   List<_ChartBar> _buildWeeklyBars(
     List<UsageLog> logs,
-    String Function(int) gearSport,
+    String Function(int?) gearSport,
     DateTime cutoff,
   ) {
     final now       = DateTime.now();
@@ -351,7 +356,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
   /// Monthly bars for the selected period.
   List<_ChartBar> _buildMonthlyBars(
     List<UsageLog> logs,
-    String Function(int) gearSport,
+    String Function(int?) gearSport,
   ) {
     final now          = DateTime.now();
     final currentMonth = DateTime(now.year, now.month);

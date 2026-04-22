@@ -118,17 +118,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _signInGoogle() async {
-    final account = await _backupSvc.signIn();
-    if (!mounted) return;
-    if (account != null) {
-      setState(() => _googleAccount = account);
-    } else {
+    try {
+      final account = await _backupSvc.signIn();
+      if (!mounted) return;
+      if (account != null) {
+        setState(() => _googleAccount = account);
+      }
+      // null = user cancelled picker — no error needed
+    } on BackupException catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
-              'Přihlášení se nezdařilo. Zkontroluj internetové připojení a zkus znovu.'),
+          content: Text(e.message),
           backgroundColor: Theme.of(context).colorScheme.error,
-          duration: const Duration(seconds: 5),
+          duration: const Duration(seconds: 6),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Google Sign-In chyba: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          duration: const Duration(seconds: 10),
         ),
       );
     }
@@ -604,11 +616,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _syncAll() async {
     setState(() => _stravaSyncing = true);
-    Map<int, StravaSyncResult> results;
+    int added;
     try {
-      results = await _stravaSvc
-          .syncAll()
-          .timeout(const Duration(minutes: 2));
+      added = await _stravaSvc
+          .syncAllActivities()
+          .timeout(const Duration(minutes: 5));
     } on TimeoutException {
       if (mounted) {
         setState(() => _stravaSyncing = false);
@@ -617,11 +629,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
       return;
+    } catch (e) {
+      if (mounted) {
+        setState(() => _stravaSyncing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Chyba syncu: $e'),
+              duration: const Duration(seconds: 8)),
+        );
+      }
+      return;
     }
 
     if (!mounted) return;
 
-    // Refresh count after sync
+    // Refresh count + last sync date after sync
     final newCount = await _db.getTotalStravaActivityCount();
     final lastSync = await _stravaSvc.getLastSyncDate();
     setState(() {
@@ -630,19 +651,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _lastSyncDate  = lastSync;
     });
 
-    final l10n = AppLocalizations.of(context);
-    final total = results.values.fold(0, (s, r) => s + r.added);
-    final lastSyncStr = lastSync != null
-        ? DateFormat('d. M. yyyy').format(lastSync)
-        : '';
+    final yearAgo = DateTime.now().subtract(const Duration(days: 365));
+    final from    = DateFormat('d. M. yyyy').format(yearAgo);
+    final to      = DateFormat('d. M. yyyy').format(DateTime.now());
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          total > 0
-              ? l10n.stravaSyncSuccess(total, lastSyncStr)
-              : l10n.stravaSyncNoNew,
+          added > 0
+              ? 'Synchronizováno $added aktivit (období: $from – $to)'
+              : AppLocalizations.of(context).stravaSyncNoNew,
         ),
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 5),
       ),
     );
   }

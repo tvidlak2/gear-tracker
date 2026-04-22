@@ -12,7 +12,7 @@ import '../models/usage_log.dart';
 
 class DatabaseHelper {
   static const _databaseName = 'gear_tracker.db';
-  static const _databaseVersion = 7;
+  static const _databaseVersion = 8;
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
@@ -132,6 +132,31 @@ class DatabaseHelper {
         )
       ''');
     }
+    if (oldVersion < 8) {
+      // Make gear_item_id nullable in usage_logs so that global Strava sync
+      // can store activities that are not assigned to a specific gear item.
+      // SQLite doesn't support ALTER COLUMN, so we recreate the table.
+      await db.execute('PRAGMA foreign_keys = OFF');
+      await db.execute(
+          'ALTER TABLE usage_logs RENAME TO usage_logs_v7_backup');
+      await db.execute('''
+        CREATE TABLE usage_logs (
+          id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+          gear_item_id        INTEGER REFERENCES gear_items(id) ON DELETE CASCADE,
+          date                TEXT    NOT NULL,
+          duration_minutes    INTEGER,
+          distance_km         REAL,
+          elevation_gain      REAL,
+          location            TEXT,
+          source              TEXT    NOT NULL DEFAULT 'manual',
+          strava_activity_id  TEXT
+        )
+      ''');
+      await db.execute(
+          'INSERT INTO usage_logs SELECT * FROM usage_logs_v7_backup');
+      await db.execute('DROP TABLE usage_logs_v7_backup');
+      await db.execute('PRAGMA foreign_keys = ON');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -193,7 +218,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE usage_logs (
         id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-        gear_item_id        INTEGER NOT NULL REFERENCES gear_items(id) ON DELETE CASCADE,
+        gear_item_id        INTEGER REFERENCES gear_items(id) ON DELETE CASCADE,
         date                TEXT    NOT NULL,
         duration_minutes    INTEGER,
         distance_km         REAL,
@@ -557,6 +582,20 @@ class DatabaseHelper {
       columns: ['strava_activity_id'],
       where: 'gear_item_id = ? AND strava_activity_id IS NOT NULL',
       whereArgs: [gearItemId],
+    );
+    return rows
+        .map((r) => r['strava_activity_id'] as String)
+        .toSet();
+  }
+
+  /// Returns ALL strava_activity_id values across every usage_log row.
+  /// Used by [StravaService.syncAllActivities] to avoid duplicates globally.
+  Future<Set<String>> getAllStravaActivityIds() async {
+    final db = await database;
+    final rows = await db.query(
+      'usage_logs',
+      columns: ['strava_activity_id'],
+      where: 'strava_activity_id IS NOT NULL',
     );
     return rows
         .map((r) => r['strava_activity_id'] as String)

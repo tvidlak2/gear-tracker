@@ -28,7 +28,9 @@ extension UsageSourceExtension on UsageSource {
 
 class UsageLog {
   final int? id;
-  final int gearItemId;
+  /// Nullable: null means a global/unassigned Strava activity not tied to
+  /// any specific gear item. Non-null for manual logs and per-gear syncs.
+  final int? gearItemId;
   final DateTime date;
   final int? durationMinutes;
   final double? distanceKm;
@@ -40,7 +42,7 @@ class UsageLog {
 
   const UsageLog({
     this.id,
-    required this.gearItemId,
+    this.gearItemId,
     required this.date,
     this.durationMinutes,
     this.distanceKm,
@@ -53,7 +55,7 @@ class UsageLog {
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
-      'gear_item_id':       gearItemId,
+      if (gearItemId != null) 'gear_item_id': gearItemId,
       'date':               date.toIso8601String(),
       'duration_minutes':   durationMinutes,
       'distance_km':        distanceKm,
@@ -67,7 +69,7 @@ class UsageLog {
   factory UsageLog.fromMap(Map<String, dynamic> map) {
     return UsageLog(
       id:             map['id'] as int?,
-      gearItemId:     map['gear_item_id'] as int,
+      gearItemId:     map['gear_item_id'] as int?,
       date:           DateTime.parse(map['date'] as String),
       durationMinutes: map['duration_minutes'] as int?,
       distanceKm: map['distance_km'] != null

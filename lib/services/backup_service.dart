@@ -14,6 +14,7 @@ import 'dart:io';
 
 import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
@@ -66,8 +67,16 @@ class BackupService {
   /// Stream emitting progress messages during backup/restore.
   Stream<String> get progressStream => _progressController.stream;
 
+  // On web the google_sign_in_web plugin requires clientId to be set even
+  // though we don't actually use Google Sign-In on web (we throw in signIn()).
+  // Passing a placeholder satisfies the plugin's assertion without enabling
+  // actual web OAuth (which would need a real Google Cloud web client ID).
   final _googleSignIn = GoogleSignIn(
-    scopes: [drive.DriveApi.driveFileScope],
+    clientId: kIsWeb ? 'web-not-supported' : null,
+    scopes: [
+      drive.DriveApi.driveFileScope,
+      'email',
+    ],
   );
 
   GoogleSignInAccount? _currentUser;
@@ -78,16 +87,47 @@ class BackupService {
   // ── Sign-in / sign-out ────────────────────────────────────────────────────
 
   /// Attempts silent sign-in first; prompts user if needed.
+  ///
+  /// Returns the account on success, null if the user cancelled, or throws
+  /// a [BackupException] with a human-readable message on failure.
   Future<GoogleSignInAccount?> signIn() async {
-    if (kIsWeb) return null;
+    if (kIsWeb) {
+      throw const BackupException(
+        'Google Drive záloha není na webu podporována. Použij Android aplikaci.',
+      );
+    }
     try {
+      debugPrint('[GoogleSignIn] Starting sign in...');
+
       // Try silent first to avoid unnecessary OAuth dialog
       _currentUser = await _googleSignIn.signInSilently();
-      _currentUser ??= await _googleSignIn.signIn();
+      debugPrint('[GoogleSignIn] Silent result: ${_currentUser?.email ?? 'null'}');
+
+      if (_currentUser == null) {
+        debugPrint('[GoogleSignIn] Silent failed, starting interactive...');
+        _currentUser = await _googleSignIn.signIn();
+        debugPrint('[GoogleSignIn] Interactive result: ${_currentUser?.email ?? 'null (cancelled)'}');
+      }
+
+      if (_currentUser != null) {
+        final auth = await _currentUser!.authentication;
+        debugPrint('[GoogleSignIn] Access token present: ${auth.accessToken != null}');
+        debugPrint('[GoogleSignIn] ID token present: ${auth.idToken != null}');
+        debugPrint('[GoogleSignIn] Signed in as: ${_currentUser!.email}');
+      }
+
       return _currentUser;
-    } catch (e) {
-      debugPrint('BackupService.signIn error: $e');
-      return null;
+    } on PlatformException catch (e) {
+      debugPrint('[GoogleSignIn] PlatformException: code=${e.code}, message=${e.message}');
+      debugPrint('[GoogleSignIn] Details: ${e.details}');
+      // Rethrow with the actual error code so the UI can show it
+      throw BackupException(
+        'Google Sign-In chyba ${e.code}: ${e.message ?? e.details ?? 'neznámá chyba'}',
+      );
+    } catch (e, stack) {
+      debugPrint('[GoogleSignIn] Unknown error: $e');
+      debugPrint('[GoogleSignIn] Stack: $stack');
+      throw BackupException('Přihlášení Google selhalo: $e');
     }
   }
 

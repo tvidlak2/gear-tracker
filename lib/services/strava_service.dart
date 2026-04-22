@@ -377,14 +377,16 @@ class StravaService {
     }
 
     // ── Determine the "fetch after" date ──────────────────────────────────
-    // Priority: explicit syncFrom setting → gear purchase date → 90 days ago
+    // Priority: explicit syncFrom setting → gear purchase date → 365 days ago
+    // Using 1 year as default ensures historical activities are fetched on
+    // first sync, not just the last 90 days.
     DateTime syncFrom;
     if (settings.syncFrom != null) {
       syncFrom = settings.syncFrom!;
     } else {
       final item = await db.getGearItemById(gearItemId);
       syncFrom = item?.purchaseDate ??
-          DateTime.now().subtract(const Duration(days: 90));
+          DateTime.now().subtract(const Duration(days: 365));
     }
 
     // Fetch all pages (handles athletes with >200 activities)
@@ -445,6 +447,71 @@ class StravaService {
       }
       await _saveLastSyncDate();
       return results;
+    } finally {
+      isSyncing.value = false;
+    }
+  }
+
+  /// Global sync: fetches ALL activities from the past 365 days, regardless
+  /// of activity type or gear assignment.  Activities are saved to UsageLog
+  /// with [gearItemId] = null (unassigned).  Already-stored activities
+  /// (matched by strava_activity_id across ALL rows) are skipped.
+  ///
+  /// Returns the number of newly added activities.
+  Future<int> syncAllActivities() async {
+    isSyncing.value = true;
+    try {
+      final db    = DatabaseHelper.instance;
+      final after = DateTime.now().subtract(const Duration(days: 365));
+
+      // ── Paginate through all Strava pages ────────────────────────────────
+      final all = <StravaActivity>[];
+      int page = 1;
+      while (true) {
+        final batch = await fetchActivities(
+            after: after, perPage: 200, page: page);
+        // ignore: avoid_print
+        print('[Strava] Rok zpět, stránka $page, vráceno ${batch.length} aktivit');
+        all.addAll(batch);
+        if (batch.length < 200) break;
+        page++;
+      }
+      // ignore: avoid_print
+      print('[Strava] Celkem staženo: ${all.length} aktivit');
+
+      if (all.isEmpty) {
+        await _saveLastSyncDate();
+        return 0;
+      }
+
+      // ── Global deduplication ──────────────────────────────────────────────
+      final existingIds = await db.getAllStravaActivityIds();
+      int added = 0;
+
+      for (final act in all) {
+        final stravaId = act.id.toString();
+        if (existingIds.contains(stravaId)) continue;
+
+        await db.insertUsageLog(UsageLog(
+          // gearItemId intentionally null — unassigned global activity
+          date:            act.startDateUtc,
+          durationMinutes: act.durationMinutes,
+          distanceKm:      act.distanceKm > 0 ? act.distanceKm : null,
+          elevationGainM:  act.totalElevationGainM > 0
+                               ? act.totalElevationGainM
+                               : null,
+          location:         act.name,
+          source:           UsageSource.strava,
+          stravaActivityId: stravaId,
+        ));
+        added++;
+        existingIds.add(stravaId); // prevent duplicate within this batch
+      }
+
+      // ignore: avoid_print
+      print('[Strava] Celkem uloženo: $added nových aktivit');
+      await _saveLastSyncDate();
+      return added;
     } finally {
       isSyncing.value = false;
     }
