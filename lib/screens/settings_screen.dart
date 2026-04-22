@@ -15,7 +15,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../database/database_helper.dart';
 import '../l10n/app_localizations.dart';
-import '../main.dart' show localeNotifier, themeModeNotifier;
+import '../main.dart' show localeNotifier, themeModeNotifier, restartApp;
 import '../models/strava_models.dart';
 import '../services/backup_service.dart';
 import '../services/notification_service.dart';
@@ -231,19 +231,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       setState(() => _restoreLoading = false);
 
-      // Show success snackbar
+      // Show success overlay, then do a FULL app restart.
+      // context.go('/') is NOT enough — GoRouter reuses existing widget
+      // instances that still hold stale DB references.
+      // runApp() (called inside restartApp()) tears the whole tree down
+      // and rebuilds it fresh; DatabaseHelper._db is null so the first
+      // DB access re-opens the restored file and runs migrations.
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Data úspěšně obnovena. Aplikace se restartuje…'),
           backgroundColor: Colors.green.shade700,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 2),
         ),
       );
 
-      // Wait briefly so the user sees the snackbar, then navigate to root.
-      // This forces all widgets to rebuild against the restored database.
       await Future.delayed(const Duration(seconds: 2));
-      if (mounted) context.go('/');
+      // restartApp() does NOT need context — safe after async gap
+      await restartApp();
 
     } on BackupException catch (e) {
       progressSub.cancel();
