@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:go_router/go_router.dart';
@@ -53,55 +55,110 @@ Future<void> _loadThemeMode() async {
   };
 }
 
-void main() async {
+/// Called from [main] – contains all initialization logic.
+/// Separated so the top-level [main] can wrap it in a runZonedGuarded error
+/// boundary and catch any unhandled async exception that would otherwise
+/// produce a silent black screen.
+Future<void> _mainBody() async {
+  debugPrint('[Main] ══════════════════════════════════════');
+  debugPrint('[Main] GearTracker startup — v1.0.12+13');
+  debugPrint('[Main] ══════════════════════════════════════');
+
+  debugPrint('[Main] Step 1/9 — usePathUrlStrategy');
   usePathUrlStrategy(); // path-based URLs on web (no #); must be first
+
+  debugPrint('[Main] Step 2/9 — WidgetsFlutterBinding.ensureInitialized');
   WidgetsFlutterBinding.ensureInitialized();
+
+  debugPrint('[Main] Step 3/9 — initDatabaseFactory');
   await initDatabaseFactory();
+  debugPrint('[Main] Step 3/9 — initDatabaseFactory OK');
 
   // ── Apply pending restore BEFORE any DB or widget is initialised ────────
   // If the user triggered a restore in a previous session, the ZIP was saved
   // locally and flagged in SharedPreferences.  We extract it here — while no
   // SQLite connection is open and no widget tree exists — to guarantee a clean
   // DB replacement with zero chance of a black screen / stale-state crash.
+  debugPrint('[Main] Step 4/9 — applyPendingRestoreIfNeeded');
   await BackupService.instance.applyPendingRestoreIfNeeded();
+  debugPrint('[Main] Step 4/9 — applyPendingRestoreIfNeeded OK');
 
+  debugPrint('[Main] Step 5/9 — MockDataSeeder.seedIfEmpty');
   await MockDataSeeder.seedIfEmpty();
+  debugPrint('[Main] Step 5/9 — MockDataSeeder OK');
+
+  debugPrint('[Main] Step 6/9 — _loadLocale + _loadThemeMode');
   await _loadLocale();
   await _loadThemeMode();
+  debugPrint('[Main] Step 6/9 — locale/theme OK');
 
   // In-app purchases – initialize before runApp so isPremium() works immediately
+  debugPrint('[Main] Step 7/9 — PurchaseService.init');
   try {
     await PurchaseService.instance.init();
-  } catch (e) {
-    debugPrint('PurchaseService init failed (non-fatal): $e');
+    debugPrint('[Main] Step 7/9 — PurchaseService OK');
+  } catch (e, st) {
+    debugPrint('[Main] Step 7/9 — PurchaseService FAILED (non-fatal): $e\n$st');
   }
 
   // Auto-backup (silent, checks premium + auto-backup enabled + 7-day interval)
+  debugPrint('[Main] Step 8/9 — BackupService.autoBackupIfNeeded');
   try {
     await BackupService.instance.autoBackupIfNeeded();
-  } catch (e) {
-    debugPrint('BackupService.autoBackupIfNeeded failed (non-fatal): $e');
+    debugPrint('[Main] Step 8/9 — autoBackup OK');
+  } catch (e, st) {
+    debugPrint('[Main] Step 8/9 — autoBackup FAILED (non-fatal): $e\n$st');
   }
 
   // Home screen widget – initialise and push fresh data
+  debugPrint('[Main] Step 9a/9 — WidgetService.init + updateWidget');
   try {
     await WidgetService.instance.init();
     await WidgetService.instance.updateWidget();
-  } catch (e) {
-    debugPrint('WidgetService init/updateWidget failed (non-fatal): $e');
+    debugPrint('[Main] Step 9a/9 — WidgetService OK');
+  } catch (e, st) {
+    debugPrint('[Main] Step 9a/9 — WidgetService FAILED (non-fatal): $e\n$st');
   }
 
   // Notifications are an optional feature – never crash the app if they fail
   // (e.g. exact-alarm permission not granted, or platform doesn't support them)
+  debugPrint('[Main] Step 9b/9 — NotificationService.init + scheduleAll');
   try {
     await NotificationService.instance.init();
+    debugPrint('[Main] Step 9b/9 — NotificationService.init OK');
     await NotificationService.instance.scheduleAll();
-  } catch (e) {
-    // Silently ignore – the rest of the app works without notifications
-    debugPrint('NotificationService init/scheduleAll failed: $e');
+    debugPrint('[Main] Step 9b/9 — NotificationService.scheduleAll OK');
+  } catch (e, st) {
+    debugPrint('[Main] Step 9b/9 — NotificationService FAILED (non-fatal): $e\n$st');
   }
 
+  debugPrint('[Main] ✓ All init steps complete — calling runApp()');
   runApp(const GearTrackerApp());
+}
+
+void main() {
+  // ── Global Flutter error handler ──────────────────────────────────────────
+  // Catches synchronous Flutter framework errors (widget build exceptions,
+  // layout errors, etc.) that would otherwise silently produce a black screen.
+  FlutterError.onError = (FlutterErrorDetails details) {
+    debugPrint('[FlutterError] ${details.exception}\n${details.stack}');
+    // Try to show the error on-screen if we can
+    runApp(_ErrorApp(
+      error: details.exception.toString(),
+      stack: details.stack.toString(),
+    ));
+  };
+
+  // ── Zone error boundary ───────────────────────────────────────────────────
+  // Catches ALL unhandled async exceptions thrown anywhere in the app — including
+  // those inside main() initialization steps and futures not wrapped in try-catch.
+  runZonedGuarded(
+    _mainBody,
+    (Object error, StackTrace stack) {
+      debugPrint('[ZoneError] $error\n$stack');
+      runApp(_ErrorApp(error: error.toString(), stack: stack.toString()));
+    },
+  );
 }
 
 // ─── Router ───────────────────────────────────────────────────────────────────
@@ -382,6 +439,100 @@ class _AppNavBar extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ─── Startup error screen ─────────────────────────────────────────────────────
+// Shown instead of a black screen when main() throws an unhandled exception.
+// Displays the full error + stack trace so testers can copy it from a screenshot.
+
+class _ErrorApp extends StatelessWidget {
+  final String error;
+  final String stack;
+  const _ErrorApp({required this.error, required this.stack});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: const Color(0xFF1A1A2E),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.error_outline, color: Color(0xFFFF6B6B), size: 48),
+                const SizedBox(height: 12),
+                const Text(
+                  'GearTracker — Startup Error',
+                  style: TextStyle(
+                    color: Color(0xFFFF6B6B),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Screenshot this screen and send it to the developer.',
+                  style: TextStyle(color: Color(0xFFCCCCCC), fontSize: 12),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _section('ERROR', error, const Color(0xFFFF9F43)),
+                        const SizedBox(height: 12),
+                        _section('STACK TRACE', stack, const Color(0xFF9ECFFF)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _section(String title, String content, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            color: color,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0D0D1A),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: color.withOpacity(0.3)),
+          ),
+          child: SelectableText(
+            content,
+            style: const TextStyle(
+              color: Color(0xFFE0E0E0),
+              fontSize: 10,
+              fontFamily: 'monospace',
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

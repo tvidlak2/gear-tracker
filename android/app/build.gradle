@@ -17,7 +17,9 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.geartracker.gear_tracker"
-    compileSdk = flutter.compileSdkVersion
+    // Explicit 36 required for Android 16 (API 36) — flutter.compileSdkVersion
+    // currently resolves to 34/35 which triggers deprecation warnings on API 36.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
