@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart' show SystemNavigator;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +16,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../database/database_helper.dart';
 import '../l10n/app_localizations.dart';
-import '../main.dart' show localeNotifier, themeModeNotifier, restartApp;
+import '../main.dart' show localeNotifier, themeModeNotifier;
 import '../models/strava_models.dart';
 import '../services/backup_service.dart';
 import '../services/notification_service.dart';
@@ -187,7 +188,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Text(l10nRestore.restoreConfirmContent),
             const SizedBox(height: 12),
             Text(
-              'Aplikace se po obnově restartuje aby se načetla nová data.',
+              'Záloha se stáhne z Google Drive a uloží lokálně. '
+              'Aplikace se poté ukončí. Při příštím spuštění '
+              'se záloha automaticky obnoví před načtením dat.',
               style: TextStyle(
                 fontSize: 12,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -215,45 +218,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _restoreLoading = true;
       _backupError = null;
-      _restoreProgress = 'Zahajuji obnovu...';
+      _restoreProgress = 'Zahajuji stahování zálohy...';
     });
 
-    // Listen to progress messages during restore
+    // Listen to progress messages during download
     final progressSub = _backupSvc.progressStream.listen((msg) {
       if (mounted) setState(() => _restoreProgress = msg);
     });
 
     try {
+      // restore() downloads the ZIP and queues it as a pending restore.
+      // The actual DB extraction happens on the next cold app start (main.dart)
+      // BEFORE any widget or DB singleton is initialised → no black screen.
       await _backupSvc.restore();
 
       progressSub.cancel();
       if (!mounted) return;
+      setState(() { _restoreLoading = false; _restoreProgress = ''; });
 
-      setState(() => _restoreLoading = false);
-
-      // Show success overlay, then do a FULL app restart.
-      // context.go('/') is NOT enough — GoRouter reuses existing widget
-      // instances that still hold stale DB references.
-      // runApp() (called inside restartApp()) tears the whole tree down
-      // and rebuilds it fresh; DatabaseHelper._db is null so the first
-      // DB access re-opens the restored file and runs migrations.
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Data úspěšně obnovena. Aplikace se restartuje…'),
-          backgroundColor: Colors.green.shade700,
-          duration: const Duration(seconds: 2),
+      // Tell the user what happened, then exit the app so it cold-starts clean.
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => AlertDialog(
+          title: const Text('Záloha stažena'),
+          content: const Text(
+            'Data zálohy byla úspěšně stažena.\n\n'
+            'Aplikace se nyní ukončí. Otevřete ji prosím znovu — '
+            'záloha se automaticky obnoví při dalším spuštění.',
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => SystemNavigator.pop(),
+              child: const Text('Ukončit aplikaci'),
+            ),
+          ],
         ),
       );
-
-      await Future.delayed(const Duration(seconds: 2));
-      // restartApp() does NOT need context — safe after async gap
-      await restartApp();
 
     } on BackupException catch (e) {
       progressSub.cancel();
       if (mounted) {
         setState(() {
           _restoreLoading = false;
+          _restoreProgress = '';
           _backupError = e.message;
         });
         ScaffoldMessenger.of(context).showSnackBar(
@@ -269,6 +277,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         setState(() {
           _restoreLoading = false;
+          _restoreProgress = '';
           _backupError = 'Chyba: $e';
         });
         ScaffoldMessenger.of(context).showSnackBar(
@@ -355,21 +364,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       final db = await _db.database;
 
-      // Delete all table data in correct order (FK constraints)
+      // ── Delete ONLY user-data tables ───────────────────────────────────────
+      // Order matters: child tables before parents to satisfy FK constraints.
+      // Do NOT delete:
+      //   • categories  – predefined lookup data, not user content
+      // Do NOT touch:
+      //   • SharedPreferences – holds locale, theme, premium status, Strava/
+      //     backup settings; none of these are "user data"
+      //   • FlutterSecureStorage – holds Strava OAuth tokens
+      //   • Google Sign-In session – user stays logged in
       for (final table in [
-        'trip_gear_items',
+        'trip_custom_items', // child of trips
+        'trip_gear_items',   // junction: trips ↔ gear_items
         'trips',
         'insurances',
-        'maintenance_logs',
-        'usage_logs',
-        'maintenance_rules',
-        'gear_items',
-        'categories',
+        'maintenance_logs',  // also cascade-deleted via gear_items, but be explicit
+        'usage_logs',        // ditto
+        'maintenance_rules', // ditto
+        'gear_strava_settings', // cascade from gear_items
+        'gear_items',        // root table – cascades to logs/rules above
       ]) {
         try { await db.delete(table); } catch (_) {}
       }
 
-      // Delete all photos from app documents directory
+      // ── Delete photos, recreate empty directory ──────────────────────────
       if (!kIsWeb) {
         try {
           final docsDir = await getApplicationDocumentsDirectory();
@@ -377,21 +395,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           if (await photosDir.exists()) {
             await photosDir.delete(recursive: true);
           }
+          // Recreate empty directory so the app can write new photos immediately
+          await photosDir.create(recursive: true);
         } catch (_) {}
       }
 
-      // Clear SharedPreferences (but keep locale and theme)
-      final prefs = await SharedPreferences.getInstance();
-      final locale = prefs.getString('app_locale');
-      final theme  = prefs.getString('app_theme_mode');
-      await prefs.clear();
-      if (locale != null) await prefs.setString('app_locale', locale);
-      if (theme  != null) await prefs.setString('app_theme_mode', theme);
-
-      // Sign out from Strava
-      try { await StravaService.instance.disconnect(); } catch (_) {}
-
-      // Update home screen widget (will show zeros)
+      // ── Update home screen widget (will now show zeros) ──────────────────
       try { await WidgetService.instance.updateWidget(); } catch (_) {}
 
       if (mounted) {

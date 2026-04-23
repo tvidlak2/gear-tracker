@@ -1,7 +1,7 @@
 name: outdoor_gear_tracker
 description: "OutdoorGearTracker - Never miss a maintenance deadline"
 publish_to: 'none'
-version: 1.0.9+10
+version: 1.0.11+12
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

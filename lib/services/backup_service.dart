@@ -24,16 +24,19 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
-import '../database/database_helper.dart';
 import 'purchase_service.dart';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const _kDriveFolderName  = 'OutdoorGearTracker Backup';
-const _kLastBackupKey    = 'last_backup_date';
-const _kAutoBackupKey    = 'auto_backup_enabled';
-const _kMaxBackups       = 3;
+const _kLastBackupKey      = 'last_backup_date';
+const _kAutoBackupKey      = 'auto_backup_enabled';
+const _kMaxBackups         = 3;
 const _kBackupIntervalDays = 7;
+/// SharedPreferences key that holds the path of a pending restore ZIP.
+/// Set by [BackupService.restore], read and cleared by
+/// [BackupService.applyPendingRestoreIfNeeded] on the next cold start.
+const _kPendingRestoreKey  = 'pending_restore_path';
 
 // ─── Auth client ──────────────────────────────────────────────────────────────
 
@@ -204,13 +207,23 @@ class BackupService {
 
   // ── Restore ───────────────────────────────────────────────────────────────
 
-  /// Downloads the most recent backup from Drive and restores DB + photos.
+  /// Downloads the most recent backup from Google Drive and saves it to the
+  /// local filesystem as a **pending restore**.
   ///
-  /// Critical: closes the SQLite connection BEFORE overwriting the DB file,
-  /// then clears the cached instance so the next DB access re-opens cleanly.
+  /// The actual DB extraction happens on the NEXT cold app start via
+  /// [applyPendingRestoreIfNeeded], called from `main()` **before** any widget
+  /// or DB singleton is initialised.  This avoids every possible cause of the
+  /// post-restore black screen:
+  ///
+  ///  * No active SQLite connection while overwriting the DB file.
+  ///  * No stale widget state that was loaded from the old DB.
+  ///  * No GoRouter / provider instances that need to be rebuilt.
+  ///
+  /// After this returns successfully the caller must exit the app via
+  /// `SystemNavigator.pop()` so the user can reopen it fresh.
   Future<void> restore() async {
     try {
-      debugPrint('[Restore] Starting restore...');
+      debugPrint('[Restore] Starting download for pending restore...');
       _emit('Přihlašování...');
 
       final account = _currentUser ?? await signIn();
@@ -230,7 +243,7 @@ class BackupService {
       final latest = backups.last;
 
       _emit('Stahování ${latest.name}...');
-      debugPrint('[Restore] Downloading backup file: ${latest.name}');
+      debugPrint('[Restore] Downloading: ${latest.name}');
 
       final response = await driveApi.files.get(
         latest.id!,
@@ -240,21 +253,70 @@ class BackupService {
       final bytes = await _collectStream(response.stream);
       debugPrint('[Restore] Downloaded ${bytes.length} bytes');
 
-      // ── CRITICAL: close DB before overwriting the file ──────────────────
-      _emit('Zavírání databáze...');
-      debugPrint('[Restore] Closing existing DB connection...');
-      await DatabaseHelper.instance.closeDatabase();
+      // ── Save ZIP to local storage (do NOT touch the DB yet) ─────────────
+      _emit('Ukládání zálohy lokálně...');
+      final docsDir = await getApplicationDocumentsDirectory();
+      final zipPath = p.join(docsDir.path, 'pending_restore.zip');
+      await File(zipPath).writeAsBytes(bytes, flush: true);
+      debugPrint('[Restore] Saved pending restore ZIP to: $zipPath');
 
-      _emit('Obnovování dat...');
-      debugPrint('[Restore] Extracting ZIP...');
-      await _extractZip(bytes);
+      // ── Queue the restore for next cold start ────────────────────────────
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kPendingRestoreKey, zipPath);
+      debugPrint('[Restore] Pending restore queued. App must restart cold.');
 
-      debugPrint('[Restore] Restore complete!');
-      _emit('Obnova dokončena.');
+      _emit('Záloha připravena. Ukončuji aplikaci…');
     } catch (e, stack) {
       debugPrint('[Restore] ERROR: $e');
       debugPrint('[Restore] Stack: $stack');
       rethrow;
+    }
+  }
+
+  // ── Apply pending restore (called from main() before runApp) ─────────────
+
+  /// Checks for a queued restore ZIP and applies it if present.
+  ///
+  /// **Must be called from `main()` after `initDatabaseFactory()` but BEFORE
+  /// `MockDataSeeder.seedIfEmpty()` and `runApp()`.**
+  ///
+  /// At that point no widget tree, no DB connection, and no provider singletons
+  /// are alive, so replacing the DB file is completely safe.  The pending flag
+  /// is always cleared — even on failure — to prevent an infinite crash loop.
+  Future<void> applyPendingRestoreIfNeeded() async {
+    if (kIsWeb) return;
+    String? zipPath;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      zipPath = prefs.getString(_kPendingRestoreKey);
+      if (zipPath == null) return;
+
+      debugPrint('[PendingRestore] Found pending restore: $zipPath');
+
+      // Clear the flag FIRST — even if restore fails we don't want a crash loop
+      await prefs.remove(_kPendingRestoreKey);
+
+      final zipFile = File(zipPath);
+      if (!zipFile.existsSync()) {
+        debugPrint('[PendingRestore] ZIP file not found, skipping.');
+        return;
+      }
+
+      debugPrint('[PendingRestore] Applying restore from ZIP…');
+      final bytes = await zipFile.readAsBytes();
+      await _extractZip(bytes);
+
+      // Clean up the temporary ZIP
+      try { await zipFile.delete(); } catch (_) {}
+
+      debugPrint('[PendingRestore] ✓ Restore applied successfully.');
+    } catch (e, stack) {
+      debugPrint('[PendingRestore] ERROR applying restore: $e\n$stack');
+      // Try to delete the corrupt ZIP so it doesn't block future restores
+      if (zipPath != null) {
+        try { await File(zipPath).delete(); } catch (_) {}
+      }
+      // Do NOT rethrow — a failed restore must never prevent the app from starting
     }
   }
 

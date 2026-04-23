@@ -129,7 +129,12 @@
       "Bash(powershell -Command \"Get-Content 'C:\\\\Users\\\\tomas\\\\flutter_run.log' -ErrorAction SilentlyContinue | Select-Object -Last 10; Get-Content 'C:\\\\Users\\\\tomas\\\\flutter_run_err.log' -ErrorAction SilentlyContinue | Select-Object -Last 10\")",
       "Bash(powershell -Command \"Set-Location 'C:\\\\Users\\\\tomas\\\\gear-tracker'; Start-Process -FilePath 'flutter' -ArgumentList 'run -d chrome --web-port 8080' -RedirectStandardOutput 'C:\\\\Users\\\\tomas\\\\flutter_run.log' -RedirectStandardError 'C:\\\\Users\\\\tomas\\\\flutter_run_err.log' -WindowStyle Hidden -PassThru | Select-Object -ExpandProperty Id\")",
       "Bash(powershell -Command \"Start-Sleep -Seconds 30; netstat -ano | findstr ':8080' | findstr 'LISTEN'\")",
-      "mcp__Claude_in_Chrome__read_page"
+      "mcp__Claude_in_Chrome__read_page",
+      "PowerShell(Set-Location C:\\\\Users\\\\tomas\\\\gear-tracker; $proc = Get-Process | Where-Object { $_.Name -match 'dart|flutter' }; $proc | ForEach-Object { \"PID: $\\($_.Id\\) Name: $\\($_.Name\\)\" })",
+      "PowerShell(Get-Process | Where-Object { $_.Name -match 'dart' } | Select-Object Id, Name, CPU)",
+      "Read(//mnt/c/Users/tomas/**)",
+      "Bash(echo \"Flutter PID: $!\")",
+      "Bash(echo \"PID: $!\")"
     ]
   }
 }

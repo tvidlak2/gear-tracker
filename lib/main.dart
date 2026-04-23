@@ -53,23 +53,18 @@ Future<void> _loadThemeMode() async {
   };
 }
 
-/// Completely rebuilds the app after a backup restore.
-///
-/// Calling [runApp] again tears down the whole widget tree and recreates it
-/// from scratch.  Because [DatabaseHelper.closeDatabase] already set `_db`
-/// to null, the very first DB access will re-open the restored file and run
-/// any pending migrations.  Locale / theme are reloaded from SharedPreferences
-/// so that settings restored from the backup are applied immediately.
-Future<void> restartApp() async {
-  await _loadLocale();
-  await _loadThemeMode();
-  runApp(const GearTrackerApp());
-}
-
 void main() async {
   usePathUrlStrategy(); // path-based URLs on web (no #); must be first
   WidgetsFlutterBinding.ensureInitialized();
   await initDatabaseFactory();
+
+  // ── Apply pending restore BEFORE any DB or widget is initialised ────────
+  // If the user triggered a restore in a previous session, the ZIP was saved
+  // locally and flagged in SharedPreferences.  We extract it here — while no
+  // SQLite connection is open and no widget tree exists — to guarantee a clean
+  // DB replacement with zero chance of a black screen / stale-state crash.
+  await BackupService.instance.applyPendingRestoreIfNeeded();
+
   await MockDataSeeder.seedIfEmpty();
   await _loadLocale();
   await _loadThemeMode();
