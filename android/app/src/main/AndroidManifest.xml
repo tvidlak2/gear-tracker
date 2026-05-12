@@ -6,10 +6,12 @@
     <!-- ── Google Play Billing ──────────────────────────────────────────── -->
     <uses-permission android:name="com.android.vending.BILLING" />
 
-    <!-- ── Média / fotky ─────────────────────────────────────────────────── -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
+    <!-- ── Fotoaparát ────────────────────────────────────────────────────── -->
+    <!-- READ_MEDIA_IMAGES a READ_EXTERNAL_STORAGE záměrně odstraněny.       -->
+    <!-- image_picker na Android 13+ automaticky používá Photo Picker API,   -->
+    <!-- které nepotřebuje žádné storage permission.                          -->
+    <!-- Ukládání do internal storage (getApplicationDocumentsDirectory())   -->
+    <!-- rovněž nevyžaduje storage permission.                               -->
     <uses-permission android:name="android.permission.CAMERA" />
 
     <!-- ── Notifikace ────────────────────────────────────────────────────── -->

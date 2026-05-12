@@ -61,7 +61,7 @@ Future<void> _loadThemeMode() async {
 /// produce a silent black screen.
 Future<void> _mainBody() async {
   debugPrint('[Main] ══════════════════════════════════════');
-  debugPrint('[Main] GearTracker startup — v1.0.14+15');
+  debugPrint('[Main] GearTracker startup — v1.0.15+16');
   debugPrint('[Main] ══════════════════════════════════════');
 
   debugPrint('[Main] Step 1/9 — usePathUrlStrategy');
