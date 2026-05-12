@@ -134,7 +134,13 @@
       "PowerShell(Get-Process | Where-Object { $_.Name -match 'dart' } | Select-Object Id, Name, CPU)",
       "Read(//mnt/c/Users/tomas/**)",
       "Bash(echo \"Flutter PID: $!\")",
-      "Bash(echo \"PID: $!\")"
+      "Bash(echo \"PID: $!\")",
+      "Bash(wsl bash *)",
+      "Bash(where flutter *)",
+      "Bash(copy \"C:\\\\Users\\\\tomas\\\\gear-tracker\\\\build\\\\app\\\\outputs\\\\flutter-apk\\\\app-release.apk\" \"C:\\\\Users\\\\tomas\\\\Desktop\\\\GearTracker-1.0.12-diagnostic.apk\")",
+      "Bash(cp \"/mnt/c/Users/tomas/gear-tracker/build/app/outputs/flutter-apk/app-release.apk\" \"/mnt/c/Users/tomas/Desktop/GearTracker-1.0.12-diagnostic.apk\")",
+      "Bash(cmd.exe /c copy \"C:\\\\Users\\\\tomas\\\\gear-tracker\\\\build\\\\app\\\\outputs\\\\flutter-apk\\\\app-release.apk\" \"C:\\\\Users\\\\tomas\\\\Desktop\\\\GearTracker-1.0.12-diagnostic.apk\")",
+      "PowerShell(Copy-Item \"C:\\\\Users\\\\tomas\\\\gear-tracker\\\\build\\\\app\\\\outputs\\\\flutter-apk\\\\app-release.apk\" \"C:\\\\Users\\\\tomas\\\\Desktop\\\\GearTracker-1.0.13-fix.apk\" -Force)"
     ]
   }
 }
