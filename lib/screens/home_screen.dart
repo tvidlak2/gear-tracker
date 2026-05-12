@@ -543,7 +543,8 @@ class _AttentionRow extends StatelessWidget {
   }
 }
 
-// ─── Empty state ──────────────────────────────────────────────────────────────
+// ─── Empty state / Welcome screen ────────────────────────────────────────────
+// Shown on first install (and any time the gear list is empty).
 
 class _EmptyState extends StatelessWidget {
   final VoidCallback onAdd;
@@ -551,28 +552,67 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n   = AppLocalizations.of(context);
+    final isDark = context.isDark;
+
     return Padding(
-      padding: const EdgeInsets.all(40),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
       child: Column(
         children: [
-          Icon(Icons.backpack_outlined, size: 72, color: context.subtitleColor),
-          const SizedBox(height: 16),
-          Text(
-            l10n.noGearYet,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          // ── Illustration ─────────────────────────────────────────────────
+          Container(
+            width: 96,
+            height: 96,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.primary.withAlpha(30)
+                  : AppColors.primary.withAlpha(20),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.backpack_outlined,
+              size: 48,
+              color: AppColors.primary,
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 24),
+
+          // ── Headline ─────────────────────────────────────────────────────
+          const Text(
+            'Vítejte v OutdoorGearTracker!',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+
+          // ── Subtitle ─────────────────────────────────────────────────────
           Text(
             l10n.addFirstGear,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: context.subtitleColor),
+            style: TextStyle(
+              fontSize: 14,
+              color: context.subtitleColor,
+              height: 1.4,
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
+
+          // ── CTA button ───────────────────────────────────────────────────
           FilledButton.icon(
             onPressed: onAdd,
-            icon: const Icon(Icons.add_rounded),
-            label: Text(l10n.addGear),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            icon: const Icon(Icons.add_rounded, size: 20),
+            label: Text(
+              l10n.addGear,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
