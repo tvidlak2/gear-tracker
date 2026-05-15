@@ -67,7 +67,9 @@ class _AddGearScreenState extends State<AddGearScreen> {
   final _notesCtrl       = TextEditingController();
   final _purchasePriceCtrl = TextEditingController();
 
-  List<Category>   _categories       = [];
+  List<Category>   _categories          = [];
+  bool             _isLoadingCategories = true;
+  String?          _categoryLoadError;   // null = OK, jinak detail výjimky
   int?             _selectedCatId;
   GearStatus       _status           = GearStatus.active;
   DateTime?        _manufacturedDate;
@@ -93,10 +95,12 @@ class _AddGearScreenState extends State<AddGearScreen> {
   }
 
   Future<void> _loadData() async {
-    final cats = await _db.getCategories();
-    GearItem?  item;
+    // Kategorie se načítají nezávisle — vlastní timeout a error stav, aby
+    // selhání jejich loadu nezablokovalo zbytek formuláře (a naopak).
+    _loadCategories();
+
     if (_isEdit) {
-      item = await _db.getGearItemById(widget.gearItemId!);
+      final item = await _db.getGearItemById(widget.gearItemId!);
       if (item != null) {
         _existingItem      = item;
         _nameCtrl.text     = item.name;
@@ -125,9 +129,35 @@ class _AddGearScreenState extends State<AddGearScreen> {
           isSafetyCritical: r.isSafetyCritical,
         )).toList();
       }
+      if (mounted) setState(() {});
     }
+  }
+
+  /// Defenzivní načtení kategorií. Stavový automat:
+  /// loading → loaded / empty / error. Po timeoutu nebo výjimce vždy
+  /// přejde do error stavu — spinner nikdy nezůstane viset napořád.
+  Future<void> _loadCategories() async {
     if (mounted) {
-      setState(() => _categories = cats);
+      setState(() {
+        _isLoadingCategories = true;
+        _categoryLoadError   = null;
+      });
+    }
+    try {
+      final cats = await _db
+          .getCategories()
+          .timeout(const Duration(seconds: 8));
+      if (!mounted) return;
+      setState(() {
+        _categories          = cats;
+        _isLoadingCategories = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _categoryLoadError   = e.toString();
+        _isLoadingCategories = false;
+      });
     }
   }
 
@@ -469,15 +499,24 @@ class _AddGearScreenState extends State<AddGearScreen> {
 
   Widget _buildCategorySection() {
     final l10n = AppLocalizations.of(context);
-    if (_categories.isEmpty) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SectionLabel(l10n.gearCategory),
-          const SizedBox(height: 10),
-          const Center(child: CircularProgressIndicator()),
-        ],
+
+    // ── Stavový automat sekce Kategorie ───────────────────────────────────
+    // loading → error → empty → loaded. Spinner žije POUZE ve stavu loading;
+    // po timeoutu/výjimce vždy spadneme do error stavu (viz _loadCategories).
+    if (_isLoadingCategories) {
+      return _categorySectionFrame(
+        l10n,
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 12),
+          child: Center(child: CircularProgressIndicator()),
+        ),
       );
+    }
+    if (_categoryLoadError != null) {
+      return _categorySectionFrame(l10n, _buildCategoryErrorBox());
+    }
+    if (_categories.isEmpty) {
+      return _categorySectionFrame(l10n, _buildCategoryEmptyBox());
     }
 
     // Sort by preferred order; unrecognised icons go last
@@ -568,6 +607,127 @@ class _AddGearScreenState extends State<AddGearScreen> {
           ),
         ],
       ],
+    );
+  }
+
+  // Společný rámec sekce (label + obsah) pro loading / error / empty stavy.
+  Widget _categorySectionFrame(AppLocalizations l10n, Widget child) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionLabel(l10n.gearCategory),
+        const SizedBox(height: 10),
+        child,
+      ],
+    );
+  }
+
+  // Error stav: něco selhalo při načítání kategorií.
+  Widget _buildCategoryErrorBox() {
+    final detail = _categoryLoadError ?? '';
+    final shortDetail =
+        detail.length > 200 ? '${detail.substring(0, 200)}…' : detail;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.isDark ? AppColors.darkCard : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.cardBorderColor, width: 0.5),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.error_outline_rounded,
+              size: 32, color: AppColors.primary),
+          const SizedBox(height: 8),
+          const Text(
+            'Nepodařilo se načíst kategorie.',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Theme(
+            data: Theme.of(context)
+                .copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: const EdgeInsets.only(bottom: 8),
+              expandedCrossAxisAlignment: CrossAxisAlignment.start,
+              title: Text(
+                'Detail chyby',
+                style: TextStyle(fontSize: 12, color: context.subtitleColor),
+              ),
+              children: [
+                SelectableText(
+                  shortDetail,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontFamily: 'monospace',
+                    color: context.subtitleColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _loadCategories,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Zkusit znovu'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Empty stav: load proběhl, ale 0 kategorií.
+  Widget _buildCategoryEmptyBox() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.isDark ? AppColors.darkCard : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.cardBorderColor, width: 0.5),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.category_outlined,
+              size: 32, color: context.subtitleColor),
+          const SizedBox(height: 8),
+          Text(
+            'Žádné kategorie nejsou k dispozici.',
+            style: TextStyle(fontSize: 13, color: context.subtitleColor),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _loadCategories,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Zkusit znovu'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
