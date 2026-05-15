@@ -39,6 +39,28 @@ class AppLogger {
   /// Adresář s logy (po [init]). Null, dokud init neproběhl / selhal.
   Directory? get logsDirectory => _logsDir;
 
+  /// Aktuální log soubory seřazené od nejstaršího po nejnovější.
+  /// Prázdné, pokud init neproběhl nebo složka logs/ neexistuje.
+  Future<List<File>> logFiles() async {
+    final dir = _logsDir;
+    if (dir == null || !await dir.exists()) return [];
+    try {
+      final files = dir
+          .listSync()
+          .whereType<File>()
+          .where((f) {
+            final n = p.basename(f.path);
+            return n.startsWith('app-') && n.endsWith('.log');
+          })
+          .toList()
+        ..sort((a, b) =>
+            a.statSync().modified.compareTo(b.statSync().modified));
+      return files;
+    } catch (_) {
+      return [];
+    }
+  }
+
   /// Inicializace — vytvoří složku logs/, otevře dnešní soubor, provede
   /// rotaci. Idempotentní. Při jakékoli chybě zůstane v console-only režimu.
   Future<void> init() async {

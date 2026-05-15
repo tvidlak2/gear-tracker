@@ -388,6 +388,50 @@ class DatabaseHelper {
     return reseedCategories(force: false);
   }
 
+  // ─────────────────────────── DIAGNOSTIKA ───────────────────────────────
+
+  /// Verze schématu DB — pro obrazovku Diagnostika.
+  int get schemaVersion => _databaseVersion;
+
+  /// Název souboru databáze (bez cesty).
+  String get databaseFileName => _databaseName;
+
+  /// Počet záznamů v každé uživatelské tabulce. Tabulky se zjišťují
+  /// dynamicky ze `sqlite_master`, takže přidání tabulky v budoucnu
+  /// obrazovku Diagnostika nerozbije.
+  Future<Map<String, int>> getTableCounts() async {
+    final db = await database;
+    final tables = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table' "
+      "AND name NOT LIKE 'sqlite_%' AND name != 'android_metadata' "
+      "ORDER BY name",
+    );
+    final counts = <String, int>{};
+    for (final row in tables) {
+      final name = row['name'] as String;
+      try {
+        counts[name] = Sqflite.firstIntValue(
+                await db.rawQuery('SELECT COUNT(*) FROM "$name"')) ??
+            0;
+      } catch (e) {
+        await AppLogger.instance
+            .warn('getTableCounts failed for table $name: $e');
+      }
+    }
+    return counts;
+  }
+
+  /// Smaže databázový soubor a znovu otevře čistou DB (re-trigger onCreate,
+  /// tj. schéma + seed kategorií). Pouze pro krajní případ z Diagnostiky.
+  Future<void> resetDatabase() async {
+    await AppLogger.instance
+        .warn('resetDatabase: closing and deleting DB file');
+    final path = join(await getDatabasesPath(), _databaseName);
+    await closeDatabase();
+    await deleteDatabase(path);
+    await database; // znovuotevření → onCreate vytvoří čisté schéma
+  }
+
   // ───────────────────────────── CATEGORIES ──────────────────────────────
 
   Future<List<Category>> getCategories() async {
