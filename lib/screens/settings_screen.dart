@@ -23,6 +23,7 @@ import '../services/notification_service.dart';
 import '../services/purchase_service.dart';
 import '../services/strava_service.dart';
 import '../services/widget_service.dart';
+import 'diagnostics_screen.dart';
 import 'paywall_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -1078,6 +1079,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.privacy_tip_outlined,
             title: l10n.settingsPrivacyPolicy,
             onTap: () {},
+          ),
+          _SettingsTile(
+            icon: Icons.bug_report_outlined,
+            title: 'Diagnostika',
+            subtitle: 'Logy, stav databáze, obnovení dat',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const DiagnosticsScreen()),
+            ),
           ),
         ],
       ),

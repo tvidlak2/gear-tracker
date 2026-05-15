@@ -9,6 +9,7 @@ import '../models/maintenance_log.dart';
 import '../models/maintenance_rule.dart';
 import '../models/strava_models.dart';
 import '../models/usage_log.dart';
+import '../utils/app_logger.dart';
 
 class DatabaseHelper {
   static const _databaseName = 'gear_tracker.db';
@@ -36,6 +37,7 @@ class DatabaseHelper {
 
   Future<Database> _initDatabase() async {
     final path = join(await getDatabasesPath(), _databaseName);
+    await AppLogger.instance.info('DB opening at $path');
     return openDatabase(
       path,
       version: _databaseVersion,
@@ -46,6 +48,7 @@ class DatabaseHelper {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    await AppLogger.instance.info('DB onUpgrade: $oldVersion -> $newVersion');
     if (oldVersion < 2) {
       // Add strava_activity_id to usage_logs
       await db.execute(
@@ -170,6 +173,7 @@ class DatabaseHelper {
   }
 
   Future<void> _onCreate(Database db, int version) async {
+    await AppLogger.instance.info('DB onCreate: creating schema v$version');
     await db.execute('''
       CREATE TABLE categories (
         id       INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -300,32 +304,145 @@ class DatabaseHelper {
     await _insertDefaultCategories(db);
   }
 
-  Future<void> _insertDefaultCategories(Database db) async {
-    final defaults = [
-      {'name': 'Lano', 'icon': 'rope', 'sport': 'lezení'},
-      {'name': 'Úvazek', 'icon': 'harness', 'sport': 'lezení'},
-      {'name': 'Přilba', 'icon': 'helmet', 'sport': 'lezení'},
-      {'name': 'Jistítko', 'icon': 'belay', 'sport': 'lezení'},
-      {'name': 'Karabina', 'icon': 'carabiner', 'sport': 'lezení'},
-      {'name': 'Cepín', 'icon': 'ice_axe', 'sport': 'skialpinismus'},
-      {'name': 'Mačky', 'icon': 'crampons', 'sport': 'skialpinismus'},
-      {'name': 'Lyže', 'icon': 'skis', 'sport': 'skialpinismus'},
-      {'name': 'Batoh', 'icon': 'backpack', 'sport': 'obecné'},
-      {'name': 'Stan', 'icon': 'tent', 'sport': 'obecné'},
-      {'name': 'Spacák', 'icon': 'sleeping_bag', 'sport': 'obecné'},
-      {'name': 'Kolo', 'icon': 'bike', 'sport': 'cyklistika'},
-    ];
-    for (final cat in defaults) {
-      await db.insert('categories', cat);
+  /// Výchozí kategorie — jediný zdroj pravdy pro seed (hardcoded, žádný asset).
+  /// Sdílený mezi [_onCreate] a [reseedCategories], aby se list neduplikoval.
+  static const List<Map<String, Object?>> _defaultCategories = [
+    {'name': 'Lano', 'icon': 'rope', 'sport': 'lezení'},
+    {'name': 'Úvazek', 'icon': 'harness', 'sport': 'lezení'},
+    {'name': 'Přilba', 'icon': 'helmet', 'sport': 'lezení'},
+    {'name': 'Jistítko', 'icon': 'belay', 'sport': 'lezení'},
+    {'name': 'Karabina', 'icon': 'carabiner', 'sport': 'lezení'},
+    {'name': 'Cepín', 'icon': 'ice_axe', 'sport': 'skialpinismus'},
+    {'name': 'Mačky', 'icon': 'crampons', 'sport': 'skialpinismus'},
+    {'name': 'Lyže', 'icon': 'skis', 'sport': 'skialpinismus'},
+    {'name': 'Batoh', 'icon': 'backpack', 'sport': 'obecné'},
+    {'name': 'Stan', 'icon': 'tent', 'sport': 'obecné'},
+    {'name': 'Spacák', 'icon': 'sleeping_bag', 'sport': 'obecné'},
+    {'name': 'Kolo', 'icon': 'bike', 'sport': 'cyklistika'},
+  ];
+
+  /// Vloží výchozí kategorie. Každý insert běží ve vlastním try/catch, aby
+  /// jeden rozbitý záznam neshodil celý seed — chyba se jen zaloguje.
+  /// Přijímá [DatabaseExecutor], takže funguje i uvnitř transakce.
+  Future<({int inserted, int failed})> _insertDefaultCategories(
+      DatabaseExecutor db) async {
+    var inserted = 0;
+    var failed = 0;
+    for (final cat in _defaultCategories) {
+      try {
+        await db.insert('categories', cat);
+        inserted++;
+      } catch (e) {
+        failed++;
+        await AppLogger.instance
+            .warn('Failed to insert category ${cat['name']}: $e');
+      }
     }
+    return (inserted: inserted, failed: failed);
+  }
+
+  /// Zajistí, že v DB jsou výchozí kategorie.
+  ///
+  /// [force] == false: seed proběhne POUZE pokud je tabulka prázdná
+  ///   (`SELECT COUNT(*) == 0`). Záměrně se NEřídí persistovaným flagem —
+  ///   ten mohl přežít z předchozí instalace přes Android Auto Backup,
+  ///   zatímco data nikoli.
+  /// [force] == true: smaže existující kategorie a vloží výchozí znovu.
+  ///
+  /// Vrací počet úspěšně vložených a selhaných záznamů.
+  Future<({int inserted, int failed})> reseedCategories(
+      {bool force = false}) async {
+    final db = await database;
+    final count = Sqflite.firstIntValue(
+            await db.rawQuery('SELECT COUNT(*) FROM categories')) ??
+        0;
+    await AppLogger.instance
+        .info('Reseed categories: force=$force, currentCount=$count');
+
+    if (!force && count > 0) {
+      await AppLogger.instance
+          .info('Categories already seeded (count=$count), skipping');
+      return (inserted: 0, failed: 0);
+    }
+    if (!force) {
+      await AppLogger.instance.info('Categories empty, running seed');
+    }
+
+    // Celé v transakci — DELETE a inserty jsou atomické; per-insert try/catch
+    // uvnitř zajišťuje "continue on error" na úrovni jednotlivých záznamů.
+    final result = await db.transaction((txn) async {
+      if (force) {
+        await txn.delete('categories');
+      }
+      return _insertDefaultCategories(txn);
+    });
+    await AppLogger.instance.info(
+        'Reseed result: inserted=${result.inserted}, failed=${result.failed}');
+    return result;
+  }
+
+  /// Doplní výchozí kategorie, pokud DB žádné nemá. Bezpečné pro opakované
+  /// volání. Voláno z `main.dart` po startu — řeší případ Auto Backup, kdy
+  /// `onCreate` (a tedy seed) na obnovené DB vůbec neproběhne.
+  Future<({int inserted, int failed})> ensureCategoriesSeeded() {
+    return reseedCategories(force: false);
+  }
+
+  // ─────────────────────────── DIAGNOSTIKA ───────────────────────────────
+
+  /// Verze schématu DB — pro obrazovku Diagnostika.
+  int get schemaVersion => _databaseVersion;
+
+  /// Název souboru databáze (bez cesty).
+  String get databaseFileName => _databaseName;
+
+  /// Počet záznamů v každé uživatelské tabulce. Tabulky se zjišťují
+  /// dynamicky ze `sqlite_master`, takže přidání tabulky v budoucnu
+  /// obrazovku Diagnostika nerozbije.
+  Future<Map<String, int>> getTableCounts() async {
+    final db = await database;
+    final tables = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table' "
+      "AND name NOT LIKE 'sqlite_%' AND name != 'android_metadata' "
+      "ORDER BY name",
+    );
+    final counts = <String, int>{};
+    for (final row in tables) {
+      final name = row['name'] as String;
+      try {
+        counts[name] = Sqflite.firstIntValue(
+                await db.rawQuery('SELECT COUNT(*) FROM "$name"')) ??
+            0;
+      } catch (e) {
+        await AppLogger.instance
+            .warn('getTableCounts failed for table $name: $e');
+      }
+    }
+    return counts;
+  }
+
+  /// Smaže databázový soubor a znovu otevře čistou DB (re-trigger onCreate,
+  /// tj. schéma + seed kategorií). Pouze pro krajní případ z Diagnostiky.
+  Future<void> resetDatabase() async {
+    await AppLogger.instance
+        .warn('resetDatabase: closing and deleting DB file');
+    final path = join(await getDatabasesPath(), _databaseName);
+    await closeDatabase();
+    await deleteDatabase(path);
+    await database; // znovuotevření → onCreate vytvoří čisté schéma
   }
 
   // ───────────────────────────── CATEGORIES ──────────────────────────────
 
   Future<List<Category>> getCategories() async {
-    final db = await database;
-    final rows = await db.query('categories', orderBy: 'sport, name');
-    return rows.map(Category.fromMap).toList();
+    try {
+      final db = await database;
+      final rows = await db.query('categories', orderBy: 'sport, name');
+      return rows.map(Category.fromMap).toList();
+    } catch (e, st) {
+      await AppLogger.instance.error(e, st);
+      rethrow;
+    }
   }
 
   Future<Category?> getCategoryById(int id) async {

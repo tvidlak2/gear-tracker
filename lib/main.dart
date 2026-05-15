@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'database/db_factory.dart';
+import 'database/database_helper.dart';
+import 'utils/app_logger.dart';
 import 'l10n/app_localizations.dart';
 import 'mock_data.dart';
 import 'services/backup_service.dart';
@@ -61,7 +63,7 @@ Future<void> _loadThemeMode() async {
 /// produce a silent black screen.
 Future<void> _mainBody() async {
   debugPrint('[Main] ══════════════════════════════════════');
-  debugPrint('[Main] GearTracker startup — v1.0.15+16');
+  debugPrint('[Main] GearTracker startup — v1.0.16+17');
   debugPrint('[Main] ══════════════════════════════════════');
 
   debugPrint('[Main] Step 1/9 — usePathUrlStrategy');
@@ -69,6 +71,13 @@ Future<void> _mainBody() async {
 
   debugPrint('[Main] Step 2/9 — WidgetsFlutterBinding.ensureInitialized');
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Logger inicializuj co nejdřív — od teď jdou všechny logy i do souboru.
+  await AppLogger.instance.init();
+  await AppLogger.instance.info('GearTracker startup — _mainBody begin');
+  await AppLogger.instance.info(
+      'Backup rules: allowBackup=true, cloud-backup excludes DB+prefs, '
+      'device-transfer excludes DB+prefs');
 
   debugPrint('[Main] Step 3/9 — initDatabaseFactory');
   await initDatabaseFactory();
@@ -82,6 +91,21 @@ Future<void> _mainBody() async {
   debugPrint('[Main] Step 4/9 — applyPendingRestoreIfNeeded');
   await BackupService.instance.applyPendingRestoreIfNeeded();
   debugPrint('[Main] Step 4/9 — applyPendingRestoreIfNeeded OK');
+
+  // ── Zajisti výchozí kategorie ───────────────────────────────────────────
+  // Musí běžet AŽ PO případném restore (přepisuje DB soubor) a PŘED runApp.
+  // onCreate se na obnovené / přežilé DB nezavolá, takže seed kategorií
+  // explicitně tady — count-based check, nikoli persistovaný flag.
+  // Selhání nesmí zhasnout start: runApp() musí proběhnout vždy, jinak by
+  // uživatel místo error UI viděl prázdnou obrazovku.
+  debugPrint('[Main] Step 4b/9 — ensureCategoriesSeeded');
+  try {
+    final seed = await DatabaseHelper.instance.ensureCategoriesSeeded();
+    debugPrint('[Main] Step 4b/9 — ensureCategoriesSeeded OK '
+        '(inserted=${seed.inserted}, failed=${seed.failed})');
+  } catch (e, st) {
+    debugPrint('[Main] Step 4b/9 — ensureCategoriesSeeded FAILED (non-fatal): $e\n$st');
+  }
 
   debugPrint('[Main] Step 5/9 — MockDataSeeder.seedIfEmpty');
   await MockDataSeeder.seedIfEmpty();
@@ -142,6 +166,7 @@ void main() {
   // layout errors, etc.) that would otherwise silently produce a black screen.
   FlutterError.onError = (FlutterErrorDetails details) {
     debugPrint('[FlutterError] ${details.exception}\n${details.stack}');
+    AppLogger.instance.error(details.exception, details.stack);
     // Try to show the error on-screen if we can
     runApp(_ErrorApp(
       error: details.exception.toString(),
@@ -156,6 +181,7 @@ void main() {
     _mainBody,
     (Object error, StackTrace stack) {
       debugPrint('[ZoneError] $error\n$stack');
+      AppLogger.instance.error(error, stack);
       runApp(_ErrorApp(error: error.toString(), stack: stack.toString()));
     },
   );
