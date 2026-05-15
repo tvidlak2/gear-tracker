@@ -98,6 +98,8 @@ dev_dependencies:
   test: ^1.25.2
   flutter_lints: ^3.0.0
   flutter_launcher_icons: ^0.14.1
+  # SQLite FFI — umožní testovat DatabaseHelper na host VM (flutter test)
+  sqflite_common_ffi: ^2.3.0
 
 flutter:
   generate: true
