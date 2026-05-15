@@ -70,6 +70,7 @@ class _AddGearScreenState extends State<AddGearScreen> {
   List<Category>   _categories          = [];
   bool             _isLoadingCategories = true;
   String?          _categoryLoadError;   // null = OK, jinak detail výjimky
+  bool             _isReseeding         = false;
   int?             _selectedCatId;
   GearStatus       _status           = GearStatus.active;
   DateTime?        _manufacturedDate;
@@ -159,6 +160,41 @@ class _AddGearScreenState extends State<AddGearScreen> {
         _isLoadingCategories = false;
       });
     }
+  }
+
+  /// Obnoví výchozí kategorie (force reseed) a znovu načte sekci.
+  /// Po dokončení informuje uživatele SnackBarem o výsledku.
+  Future<void> _reseedCategories() async {
+    if (_isReseeding) return;
+    setState(() {
+      _isReseeding         = true;
+      _isLoadingCategories = true;   // během reseedu drž spinner
+      _categoryLoadError   = null;
+    });
+
+    ({int inserted, int failed}) result;
+    try {
+      result = await _db.reseedCategories(force: true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _categoryLoadError   = e.toString();
+        _isLoadingCategories = false;
+        _isReseeding         = false;
+      });
+      return;
+    }
+
+    if (!mounted) return;
+    _isReseeding = false;
+    await _loadCategories();
+    if (!mounted) return;
+    final msg = result.failed > 0
+        ? 'Načteno ${result.inserted} kategorií, ${result.failed} se nepodařilo'
+        : 'Načteno ${result.inserted} kategorií';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
   }
 
   @override
@@ -622,6 +658,48 @@ class _AddGearScreenState extends State<AddGearScreen> {
     );
   }
 
+  // Recovery tlačítka sdílená error i empty stavem.
+  // "Zkusit znovu" = hlavní akce (primární barva), "Obnovit výchozí
+  // kategorie" = sekundární (tlumený styl). Reseed tlačítko je disabled,
+  // dokud běží — ochrana proti dvojímu spuštění.
+  Widget _categoryRecoveryButtons() {
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _loadCategories,
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Zkusit znovu'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.primary),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _isReseeding ? null : _reseedCategories,
+            icon: const Icon(Icons.restart_alt_rounded, size: 18),
+            label: const Text('Obnovit výchozí kategorie'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: context.subtitleColor,
+              side: BorderSide(color: context.cardBorderColor),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   // Error stav: něco selhalo při načítání kategorií.
   Widget _buildCategoryErrorBox() {
     final detail = _categoryLoadError ?? '';
@@ -669,22 +747,8 @@ class _AddGearScreenState extends State<AddGearScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 4),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _loadCategories,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Zkusit znovu'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                side: const BorderSide(color: AppColors.primary),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-          ),
+          const SizedBox(height: 8),
+          _categoryRecoveryButtons(),
         ],
       ),
     );
@@ -711,21 +775,7 @@ class _AddGearScreenState extends State<AddGearScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _loadCategories,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Zkusit znovu'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                side: const BorderSide(color: AppColors.primary),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-          ),
+          _categoryRecoveryButtons(),
         ],
       ),
     );

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'database/db_factory.dart';
+import 'database/database_helper.dart';
 import 'l10n/app_localizations.dart';
 import 'mock_data.dart';
 import 'services/backup_service.dart';
@@ -82,6 +83,21 @@ Future<void> _mainBody() async {
   debugPrint('[Main] Step 4/9 — applyPendingRestoreIfNeeded');
   await BackupService.instance.applyPendingRestoreIfNeeded();
   debugPrint('[Main] Step 4/9 — applyPendingRestoreIfNeeded OK');
+
+  // ── Zajisti výchozí kategorie ───────────────────────────────────────────
+  // Musí běžet AŽ PO případném restore (přepisuje DB soubor) a PŘED runApp.
+  // onCreate se na obnovené / přežilé DB nezavolá, takže seed kategorií
+  // explicitně tady — count-based check, nikoli persistovaný flag.
+  // Selhání nesmí zhasnout start: runApp() musí proběhnout vždy, jinak by
+  // uživatel místo error UI viděl prázdnou obrazovku.
+  debugPrint('[Main] Step 4b/9 — ensureCategoriesSeeded');
+  try {
+    final seed = await DatabaseHelper.instance.ensureCategoriesSeeded();
+    debugPrint('[Main] Step 4b/9 — ensureCategoriesSeeded OK '
+        '(inserted=${seed.inserted}, failed=${seed.failed})');
+  } catch (e, st) {
+    debugPrint('[Main] Step 4b/9 — ensureCategoriesSeeded FAILED (non-fatal): $e\n$st');
+  }
 
   debugPrint('[Main] Step 5/9 — MockDataSeeder.seedIfEmpty');
   await MockDataSeeder.seedIfEmpty();

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -300,24 +301,83 @@ class DatabaseHelper {
     await _insertDefaultCategories(db);
   }
 
-  Future<void> _insertDefaultCategories(Database db) async {
-    final defaults = [
-      {'name': 'Lano', 'icon': 'rope', 'sport': 'lezení'},
-      {'name': 'Úvazek', 'icon': 'harness', 'sport': 'lezení'},
-      {'name': 'Přilba', 'icon': 'helmet', 'sport': 'lezení'},
-      {'name': 'Jistítko', 'icon': 'belay', 'sport': 'lezení'},
-      {'name': 'Karabina', 'icon': 'carabiner', 'sport': 'lezení'},
-      {'name': 'Cepín', 'icon': 'ice_axe', 'sport': 'skialpinismus'},
-      {'name': 'Mačky', 'icon': 'crampons', 'sport': 'skialpinismus'},
-      {'name': 'Lyže', 'icon': 'skis', 'sport': 'skialpinismus'},
-      {'name': 'Batoh', 'icon': 'backpack', 'sport': 'obecné'},
-      {'name': 'Stan', 'icon': 'tent', 'sport': 'obecné'},
-      {'name': 'Spacák', 'icon': 'sleeping_bag', 'sport': 'obecné'},
-      {'name': 'Kolo', 'icon': 'bike', 'sport': 'cyklistika'},
-    ];
-    for (final cat in defaults) {
-      await db.insert('categories', cat);
+  /// Výchozí kategorie — jediný zdroj pravdy pro seed (hardcoded, žádný asset).
+  /// Sdílený mezi [_onCreate] a [reseedCategories], aby se list neduplikoval.
+  static const List<Map<String, Object?>> _defaultCategories = [
+    {'name': 'Lano', 'icon': 'rope', 'sport': 'lezení'},
+    {'name': 'Úvazek', 'icon': 'harness', 'sport': 'lezení'},
+    {'name': 'Přilba', 'icon': 'helmet', 'sport': 'lezení'},
+    {'name': 'Jistítko', 'icon': 'belay', 'sport': 'lezení'},
+    {'name': 'Karabina', 'icon': 'carabiner', 'sport': 'lezení'},
+    {'name': 'Cepín', 'icon': 'ice_axe', 'sport': 'skialpinismus'},
+    {'name': 'Mačky', 'icon': 'crampons', 'sport': 'skialpinismus'},
+    {'name': 'Lyže', 'icon': 'skis', 'sport': 'skialpinismus'},
+    {'name': 'Batoh', 'icon': 'backpack', 'sport': 'obecné'},
+    {'name': 'Stan', 'icon': 'tent', 'sport': 'obecné'},
+    {'name': 'Spacák', 'icon': 'sleeping_bag', 'sport': 'obecné'},
+    {'name': 'Kolo', 'icon': 'bike', 'sport': 'cyklistika'},
+  ];
+
+  /// Vloží výchozí kategorie. Každý insert běží ve vlastním try/catch, aby
+  /// jeden rozbitý záznam neshodil celý seed — chyba se jen zaloguje.
+  /// Přijímá [DatabaseExecutor], takže funguje i uvnitř transakce.
+  Future<({int inserted, int failed})> _insertDefaultCategories(
+      DatabaseExecutor db) async {
+    var inserted = 0;
+    var failed = 0;
+    for (final cat in _defaultCategories) {
+      try {
+        await db.insert('categories', cat);
+        inserted++;
+      } catch (e) {
+        failed++;
+        debugPrint('[DB] Seed kategorie selhal: ${cat['name']} — $e');
+      }
     }
+    return (inserted: inserted, failed: failed);
+  }
+
+  /// Zajistí, že v DB jsou výchozí kategorie.
+  ///
+  /// [force] == false: seed proběhne POUZE pokud je tabulka prázdná
+  ///   (`SELECT COUNT(*) == 0`). Záměrně se NEřídí persistovaným flagem —
+  ///   ten mohl přežít z předchozí instalace přes Android Auto Backup,
+  ///   zatímco data nikoli.
+  /// [force] == true: smaže existující kategorie a vloží výchozí znovu.
+  ///
+  /// Vrací počet úspěšně vložených a selhaných záznamů.
+  Future<({int inserted, int failed})> reseedCategories(
+      {bool force = false}) async {
+    final db = await database;
+
+    if (!force) {
+      final count = Sqflite.firstIntValue(
+              await db.rawQuery('SELECT COUNT(*) FROM categories')) ??
+          0;
+      if (count > 0) {
+        debugPrint('[DB] reseedCategories: $count kategorií v DB, seed přeskočen');
+        return (inserted: 0, failed: 0);
+      }
+    }
+
+    // Celé v transakci — DELETE a inserty jsou atomické; per-insert try/catch
+    // uvnitř zajišťuje "continue on error" na úrovni jednotlivých záznamů.
+    final result = await db.transaction((txn) async {
+      if (force) {
+        await txn.delete('categories');
+      }
+      return _insertDefaultCategories(txn);
+    });
+    debugPrint('[DB] reseedCategories(force: $force): '
+        'vloženo ${result.inserted}, selhalo ${result.failed}');
+    return result;
+  }
+
+  /// Doplní výchozí kategorie, pokud DB žádné nemá. Bezpečné pro opakované
+  /// volání. Voláno z `main.dart` po startu — řeší případ Auto Backup, kdy
+  /// `onCreate` (a tedy seed) na obnovené DB vůbec neproběhne.
+  Future<({int inserted, int failed})> ensureCategoriesSeeded() {
+    return reseedCategories(force: false);
   }
 
   // ───────────────────────────── CATEGORIES ──────────────────────────────
