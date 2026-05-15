@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android Auto Backup pravidla pro Android 11 a starší (API ≤ 30).
+
+    SQLite databáze a shared_preferences jsou ZÁMĚRNĚ vyloučené ze zálohy.
+    Důvod: obnova zastaralé / poškozené DB z Auto Backupu na nové instalaci
+    vedla k incidentu, kdy se nenačítaly kategorie (a dříve k black screen).
+    DB se má na novém zařízení vytvořit čistá přes onCreate + seed; uživatel
+    si data přenese vlastní zálohou (Google Drive export v aplikaci).
+-->
+<full-backup-content>
+    <exclude domain="database" path="gear_tracker.db" />
+    <exclude domain="database" path="gear_tracker.db-journal" />
+    <exclude domain="database" path="gear_tracker.db-wal" />
+    <exclude domain="database" path="gear_tracker.db-shm" />
+    <exclude domain="sharedpref" path="FlutterSharedPreferences.xml" />
+</full-backup-content>

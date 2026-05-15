@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android Auto Backup pravidla pro Android 12 a novější (API ≥ 31).
+
+    SQLite databáze a shared_preferences jsou ZÁMĚRNĚ vyloučené z obou
+    přenosových kanálů. Důvod: obnova zastaralé / poškozené DB vedla
+    k incidentu s nenačtenými kategoriemi (a dříve k black screen).
+
+      cloud-backup    — Google Drive Auto Backup
+      device-transfer — přenos mezi zařízeními (Samsung Smart Switch ap.)
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="database" path="gear_tracker.db" />
+        <exclude domain="database" path="gear_tracker.db-journal" />
+        <exclude domain="database" path="gear_tracker.db-wal" />
+        <exclude domain="database" path="gear_tracker.db-shm" />
+        <exclude domain="sharedpref" path="FlutterSharedPreferences.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="database" path="gear_tracker.db" />
+        <exclude domain="database" path="gear_tracker.db-journal" />
+        <exclude domain="database" path="gear_tracker.db-wal" />
+        <exclude domain="database" path="gear_tracker.db-shm" />
+        <exclude domain="sharedpref" path="FlutterSharedPreferences.xml" />
+    </device-transfer>
+</data-extraction-rules>

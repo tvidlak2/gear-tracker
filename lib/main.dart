@@ -75,6 +75,9 @@ Future<void> _mainBody() async {
   // Logger inicializuj co nejdřív — od teď jdou všechny logy i do souboru.
   await AppLogger.instance.init();
   await AppLogger.instance.info('GearTracker startup — _mainBody begin');
+  await AppLogger.instance.info(
+      'Backup rules: allowBackup=true, cloud-backup excludes DB+prefs, '
+      'device-transfer excludes DB+prefs');
 
   debugPrint('[Main] Step 3/9 — initDatabaseFactory');
   await initDatabaseFactory();
