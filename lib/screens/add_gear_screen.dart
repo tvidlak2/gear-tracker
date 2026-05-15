@@ -9,6 +9,7 @@ import '../models/category.dart';
 import '../models/gear_item.dart';
 import '../models/maintenance_rule.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_logger.dart';
 import '../widgets/category_icon.dart';
 import '../widgets/photo_picker.dart';
 
@@ -138,6 +139,7 @@ class _AddGearScreenState extends State<AddGearScreen> {
   /// loading → loaded / empty / error. Po timeoutu nebo výjimce vždy
   /// přejde do error stavu — spinner nikdy nezůstane viset napořád.
   Future<void> _loadCategories() async {
+    await AppLogger.instance.info('AddGearScreen: loading categories');
     if (mounted) {
       setState(() {
         _isLoadingCategories = true;
@@ -148,12 +150,15 @@ class _AddGearScreenState extends State<AddGearScreen> {
       final cats = await _db
           .getCategories()
           .timeout(const Duration(seconds: 8));
+      await AppLogger.instance
+          .info('AddGearScreen: loaded ${cats.length} categories');
       if (!mounted) return;
       setState(() {
         _categories          = cats;
         _isLoadingCategories = false;
       });
-    } catch (e) {
+    } catch (e, st) {
+      await AppLogger.instance.error(e, st);
       if (!mounted) return;
       setState(() {
         _categoryLoadError   = e.toString();
@@ -166,6 +171,8 @@ class _AddGearScreenState extends State<AddGearScreen> {
   /// Po dokončení informuje uživatele SnackBarem o výsledku.
   Future<void> _reseedCategories() async {
     if (_isReseeding) return;
+    await AppLogger.instance
+        .info('User triggered manual reseed from AddGearScreen');
     setState(() {
       _isReseeding         = true;
       _isLoadingCategories = true;   // během reseedu drž spinner

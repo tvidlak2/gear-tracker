@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'database/db_factory.dart';
 import 'database/database_helper.dart';
+import 'utils/app_logger.dart';
 import 'l10n/app_localizations.dart';
 import 'mock_data.dart';
 import 'services/backup_service.dart';
@@ -70,6 +71,10 @@ Future<void> _mainBody() async {
 
   debugPrint('[Main] Step 2/9 — WidgetsFlutterBinding.ensureInitialized');
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Logger inicializuj co nejdřív — od teď jdou všechny logy i do souboru.
+  await AppLogger.instance.init();
+  await AppLogger.instance.info('GearTracker startup — _mainBody begin');
 
   debugPrint('[Main] Step 3/9 — initDatabaseFactory');
   await initDatabaseFactory();
@@ -158,6 +163,7 @@ void main() {
   // layout errors, etc.) that would otherwise silently produce a black screen.
   FlutterError.onError = (FlutterErrorDetails details) {
     debugPrint('[FlutterError] ${details.exception}\n${details.stack}');
+    AppLogger.instance.error(details.exception, details.stack);
     // Try to show the error on-screen if we can
     runApp(_ErrorApp(
       error: details.exception.toString(),
@@ -172,6 +178,7 @@ void main() {
     _mainBody,
     (Object error, StackTrace stack) {
       debugPrint('[ZoneError] $error\n$stack');
+      AppLogger.instance.error(error, stack);
       runApp(_ErrorApp(error: error.toString(), stack: stack.toString()));
     },
   );

@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -10,6 +9,7 @@ import '../models/maintenance_log.dart';
 import '../models/maintenance_rule.dart';
 import '../models/strava_models.dart';
 import '../models/usage_log.dart';
+import '../utils/app_logger.dart';
 
 class DatabaseHelper {
   static const _databaseName = 'gear_tracker.db';
@@ -37,6 +37,7 @@ class DatabaseHelper {
 
   Future<Database> _initDatabase() async {
     final path = join(await getDatabasesPath(), _databaseName);
+    await AppLogger.instance.info('DB opening at $path');
     return openDatabase(
       path,
       version: _databaseVersion,
@@ -47,6 +48,7 @@ class DatabaseHelper {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    await AppLogger.instance.info('DB onUpgrade: $oldVersion -> $newVersion');
     if (oldVersion < 2) {
       // Add strava_activity_id to usage_logs
       await db.execute(
@@ -171,6 +173,7 @@ class DatabaseHelper {
   }
 
   Future<void> _onCreate(Database db, int version) async {
+    await AppLogger.instance.info('DB onCreate: creating schema v$version');
     await db.execute('''
       CREATE TABLE categories (
         id       INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -331,7 +334,8 @@ class DatabaseHelper {
         inserted++;
       } catch (e) {
         failed++;
-        debugPrint('[DB] Seed kategorie selhal: ${cat['name']} — $e');
+        await AppLogger.instance
+            .warn('Failed to insert category ${cat['name']}: $e');
       }
     }
     return (inserted: inserted, failed: failed);
@@ -349,15 +353,19 @@ class DatabaseHelper {
   Future<({int inserted, int failed})> reseedCategories(
       {bool force = false}) async {
     final db = await database;
+    final count = Sqflite.firstIntValue(
+            await db.rawQuery('SELECT COUNT(*) FROM categories')) ??
+        0;
+    await AppLogger.instance
+        .info('Reseed categories: force=$force, currentCount=$count');
 
+    if (!force && count > 0) {
+      await AppLogger.instance
+          .info('Categories already seeded (count=$count), skipping');
+      return (inserted: 0, failed: 0);
+    }
     if (!force) {
-      final count = Sqflite.firstIntValue(
-              await db.rawQuery('SELECT COUNT(*) FROM categories')) ??
-          0;
-      if (count > 0) {
-        debugPrint('[DB] reseedCategories: $count kategorií v DB, seed přeskočen');
-        return (inserted: 0, failed: 0);
-      }
+      await AppLogger.instance.info('Categories empty, running seed');
     }
 
     // Celé v transakci — DELETE a inserty jsou atomické; per-insert try/catch
@@ -368,8 +376,8 @@ class DatabaseHelper {
       }
       return _insertDefaultCategories(txn);
     });
-    debugPrint('[DB] reseedCategories(force: $force): '
-        'vloženo ${result.inserted}, selhalo ${result.failed}');
+    await AppLogger.instance.info(
+        'Reseed result: inserted=${result.inserted}, failed=${result.failed}');
     return result;
   }
 
@@ -383,9 +391,14 @@ class DatabaseHelper {
   // ───────────────────────────── CATEGORIES ──────────────────────────────
 
   Future<List<Category>> getCategories() async {
-    final db = await database;
-    final rows = await db.query('categories', orderBy: 'sport, name');
-    return rows.map(Category.fromMap).toList();
+    try {
+      final db = await database;
+      final rows = await db.query('categories', orderBy: 'sport, name');
+      return rows.map(Category.fromMap).toList();
+    } catch (e, st) {
+      await AppLogger.instance.error(e, st);
+      rethrow;
+    }
   }
 
   Future<Category?> getCategoryById(int id) async {
