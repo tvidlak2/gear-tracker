@@ -15,6 +15,7 @@ import '../services/igc_parser.dart';
 import '../services/gpx_parser.dart';
 import '../services/maintenance_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_logger.dart';
 import '../widgets/maintenance_badge.dart';
 import '../widgets/photo_picker.dart';
 
@@ -799,6 +800,7 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
   }
 
   Future<void> _importIgc() async {
+    await AppLogger.instance.info('AddUsageLogScreen: opening IGC picker');
     FilePickerResult? result;
     try {
       result = await FilePicker.platform.pickFiles(
@@ -806,10 +808,26 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
         allowedExtensions: ['igc'],
         withData: true,
       );
-    } catch (_) {}
+    } catch (e, st) {
+      // Plugin / permission / native error — DO NOT swallow silently.
+      // Předtím tu byl prázdný catch a uživatel viděl, že "se nic nestane"
+      // (selektor pak revertl na Ruční zadání bez vysvětlení).
+      await AppLogger.instance.error(e, st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Otevření výběru souboru selhalo: $e'),
+          duration: const Duration(seconds: 10),
+        ),
+      );
+      setState(() { _source = UsageSource.manual; _importedFileName = null; });
+      return;
+    }
 
     if (result == null || result.files.isEmpty) {
-      // Cancelled – revert source
+      // User-initiated cancel — tichý revert je správný UX.
+      await AppLogger.instance.info('AddUsageLogScreen: IGC pick cancelled');
+      if (!mounted) return;
       setState(() { _source = UsageSource.manual; _importedFileName = null; });
       return;
     }
@@ -846,6 +864,7 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
   }
 
   Future<void> _importGpx() async {
+    await AppLogger.instance.info('AddUsageLogScreen: opening GPX picker');
     FilePickerResult? result;
     try {
       result = await FilePicker.platform.pickFiles(
@@ -853,9 +872,23 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
         allowedExtensions: ['gpx'],
         withData: true,
       );
-    } catch (_) {}
+    } catch (e, st) {
+      // Plugin / permission / native error — DO NOT swallow silently.
+      await AppLogger.instance.error(e, st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Otevření výběru souboru selhalo: $e'),
+          duration: const Duration(seconds: 10),
+        ),
+      );
+      setState(() { _source = UsageSource.manual; _importedFileName = null; });
+      return;
+    }
 
     if (result == null || result.files.isEmpty) {
+      await AppLogger.instance.info('AddUsageLogScreen: GPX pick cancelled');
+      if (!mounted) return;
       setState(() { _source = UsageSource.manual; _importedFileName = null; });
       return;
     }
