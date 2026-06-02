@@ -22,6 +22,7 @@ import '../services/insurance_service.dart';
 import '../services/maintenance_service.dart';
 import '../services/strava_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_logger.dart';
 import '../widgets/maintenance_badge.dart';
 
 class GearDetailScreen extends StatefulWidget {
@@ -492,6 +493,7 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
   // ── IGC import ────────────────────────────────────────────────────────────
 
   Future<void> _importIgc() async {
+    await AppLogger.instance.info('GearDetail: opening IGC picker');
     // 1. Pick file
     FilePickerResult? result;
     try {
@@ -500,12 +502,25 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
         allowedExtensions: ['igc'],
         withData: true,
       );
-    } catch (_) {
-      // File picker cancelled or platform error
+    } catch (e, st) {
+      // Plugin / permission / native error — DO NOT swallow silently.
+      // Předtím byly cancel a exception ve stejné catch větvi a tlačítko
+      // tudíž "nic nedělalo" při chybě file_pickeru.
+      await AppLogger.instance.error(e, st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Otevření výběru souboru selhalo: $e'),
+          duration: const Duration(seconds: 10),
+        ),
+      );
       return;
     }
 
-    if (result == null || result.files.isEmpty) return;
+    if (result == null || result.files.isEmpty) {
+      await AppLogger.instance.info('GearDetail: IGC pick cancelled');
+      return;
+    }
 
     final bytes = result.files.first.bytes;
     if (bytes == null || !mounted) return;
