@@ -497,15 +497,16 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
     // 1. Pick file
     FilePickerResult? result;
     try {
+      // FileType.any + manuální validace přípony — FileType.custom
+      // s allowedExtensions vyhazuje na Androidu PlatformException
+      // ("Unsupported filter"). Tu chybu odhalila předchozí oprava
+      // tichého catche; tohle je už skutečný root cause.
       result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['igc'],
+        type: FileType.any,
         withData: true,
       );
     } catch (e, st) {
       // Plugin / permission / native error — DO NOT swallow silently.
-      // Předtím byly cancel a exception ve stejné catch větvi a tlačítko
-      // tudíž "nic nedělalo" při chybě file_pickeru.
       await AppLogger.instance.error(e, st);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -519,6 +520,21 @@ class _GearDetailScreenState extends State<GearDetailScreen> {
 
     if (result == null || result.files.isEmpty) {
       await AppLogger.instance.info('GearDetail: IGC pick cancelled');
+      return;
+    }
+
+    // Validace přípony — handler bere pouze .igc.
+    final ext = result.files.first.extension?.toLowerCase();
+    if (ext != 'igc') {
+      await AppLogger.instance
+          .warn('GearDetail: rejected non-IGC file (ext=$ext)');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Nepodporovaný formát: .$ext\nPodporované: .igc'),
+          duration: const Duration(seconds: 5),
+        ),
+      );
       return;
     }
 

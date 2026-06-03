@@ -803,15 +803,15 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
     await AppLogger.instance.info('AddUsageLogScreen: opening IGC picker');
     FilePickerResult? result;
     try {
+      // FileType.any + manuální validace přípony — FileType.custom
+      // s allowedExtensions vyhazuje na Androidu PlatformException
+      // ("Unsupported filter").
       result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['igc'],
+        type: FileType.any,
         withData: true,
       );
     } catch (e, st) {
       // Plugin / permission / native error — DO NOT swallow silently.
-      // Předtím tu byl prázdný catch a uživatel viděl, že "se nic nestane"
-      // (selektor pak revertl na Ruční zadání bez vysvětlení).
       await AppLogger.instance.error(e, st);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -828,6 +828,22 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
       // User-initiated cancel — tichý revert je správný UX.
       await AppLogger.instance.info('AddUsageLogScreen: IGC pick cancelled');
       if (!mounted) return;
+      setState(() { _source = UsageSource.manual; _importedFileName = null; });
+      return;
+    }
+
+    // Validace přípony — handler bere pouze .igc.
+    final ext = result.files.first.extension?.toLowerCase();
+    if (ext != 'igc') {
+      await AppLogger.instance
+          .warn('AddUsageLogScreen: rejected non-IGC file (ext=$ext)');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Nepodporovaný formát: .$ext\nPodporované: .igc'),
+          duration: const Duration(seconds: 5),
+        ),
+      );
       setState(() { _source = UsageSource.manual; _importedFileName = null; });
       return;
     }
@@ -867,9 +883,11 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
     await AppLogger.instance.info('AddUsageLogScreen: opening GPX picker');
     FilePickerResult? result;
     try {
+      // FileType.any + manuální validace přípony — FileType.custom
+      // s allowedExtensions vyhazuje na Androidu PlatformException
+      // ("Unsupported filter").
       result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['gpx'],
+        type: FileType.any,
         withData: true,
       );
     } catch (e, st) {
@@ -889,6 +907,22 @@ class _AddUsageLogScreenState extends State<AddUsageLogScreen> {
     if (result == null || result.files.isEmpty) {
       await AppLogger.instance.info('AddUsageLogScreen: GPX pick cancelled');
       if (!mounted) return;
+      setState(() { _source = UsageSource.manual; _importedFileName = null; });
+      return;
+    }
+
+    // Validace přípony — handler bere pouze .gpx.
+    final ext = result.files.first.extension?.toLowerCase();
+    if (ext != 'gpx') {
+      await AppLogger.instance
+          .warn('AddUsageLogScreen: rejected non-GPX file (ext=$ext)');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Nepodporovaný formát: .$ext\nPodporované: .gpx'),
+          duration: const Duration(seconds: 5),
+        ),
+      );
       setState(() { _source = UsageSource.manual; _importedFileName = null; });
       return;
     }
